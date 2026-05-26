@@ -5,7 +5,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 // redirects into the app. Must stay outside the auth gate in middleware.
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const next = req.nextUrl.searchParams.get("next") ?? "/board";
+  const rawNext = req.nextUrl.searchParams.get("next") ?? "/board";
+  // Same-origin paths only — reject absolute URLs / protocol-relative to avoid an open redirect.
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/board";
   if (code) {
     const sb = await supabaseServer();
     const { error } = await sb.auth.exchangeCodeForSession(code);

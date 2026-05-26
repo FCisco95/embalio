@@ -13,7 +13,7 @@ export async function markPosted(draftId: string, tweetUrl: string) {
   const { error: postErr } = await sb.from("posts").insert({
     profile_id: draft.profile_id, draft_id: draft.id, tweet_url: parsed.data,
   });
-  if (postErr && !postErr.message.includes("duplicate")) throw new Error(postErr.message);
+  if (postErr && postErr.code !== "23505") throw new Error(postErr.message);
 
   await sb.from("drafts").update({ status: "posted" }).eq("id", draftId);
   if (draft.candidate_id) await sb.from("candidates").update({ status: "engaged" }).eq("id", draft.candidate_id);

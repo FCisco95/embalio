@@ -8,6 +8,8 @@ const MAX_POSTS_PER_RUN = 50;
 const STALE_DAYS = 7;
 
 export async function GET(req: NextRequest) {
+  if (!process.env.CRON_SECRET)
+    return NextResponse.json({ error: "misconfigured" }, { status: 500 });
   if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`)
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sb = supabaseService();
