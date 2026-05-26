@@ -15,7 +15,7 @@ export function makeApify(): ApifyClient {
 }
 
 async function runActor(client: ApifyLike, actor: string, input: object): Promise<unknown[]> {
-  const run: any = await client.actor(actor).call(input);
+  const run = await client.actor(actor).call(input);
   const { items } = await client.dataset(run.defaultDatasetId).listItems();
   return items;
 }
