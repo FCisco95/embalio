@@ -11,7 +11,10 @@ export default function Login() {
     <div className="p-6 max-w-sm space-y-3">
       <h1 className="text-xl font-semibold">Sign in</h1>
       <Input placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <Button onClick={async () => { await sb.auth.signInWithOtp({ email }); alert("Check your email"); }}>Send magic link</Button>
+      <Button onClick={async () => {
+        await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/auth/callback` } });
+        alert("Check your email");
+      }}>Send magic link</Button>
     </div>
   );
 }
