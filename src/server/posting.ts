@@ -39,6 +39,8 @@ export async function postDraft(draftId: string) {
     .eq("id", draftId)
     .single();
   if (error || !draft) throw new Error("draft not found");
+  // Idempotency: never re-post a draft that already went out.
+  if (draft.status === "posted") throw new Error("draft already posted");
 
   const { data: account } = await sb
     .from("posting_accounts")
@@ -48,7 +50,9 @@ export async function postDraft(draftId: string) {
     .maybeSingle();
   if (!account) throw new Error("AdsPower posting not configured for this profile");
 
-  const { data: job } = await sb
+  // The partial unique index on posting_jobs(draft_id) where status in
+  // ('running','succeeded') rejects a concurrent/duplicate attempt here.
+  const { data: job, error: jobErr } = await sb
     .from("posting_jobs")
     .insert({
       profile_id: draft.profile_id,
@@ -59,6 +63,8 @@ export async function postDraft(draftId: string) {
     })
     .select()
     .single();
+  if (jobErr) throw new Error(jobErr.code === "23505" ? "a post for this draft is already in progress" : jobErr.message);
+  if (!job) throw new Error("failed to create posting_job");
 
   try {
     const { url } = await postTweetViaAdsPower(
@@ -78,37 +84,34 @@ export async function postDraft(draftId: string) {
           .from("candidates")
           .update({ status: "engaged" })
           .eq("id", draft.candidate_id);
-      if (job)
-        await sb
-          .from("posting_jobs")
-          .update({
-            status: "succeeded",
-            result_url: url,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", job.id);
-      revalidatePath("/performance");
-      return { ok: true as const, url };
-    }
-    // Posted action ran but we couldn't capture a status URL — surface for manual confirmation.
-    if (job)
       await sb
         .from("posting_jobs")
         .update({
-          status: "failed",
-          error: "could not confirm posted tweet URL",
+          status: "succeeded",
           result_url: url,
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
+      revalidatePath("/performance");
+      return { ok: true as const, url };
+    }
+    // Posted action ran but we couldn't capture a status URL — surface for manual confirmation.
+    await sb
+      .from("posting_jobs")
+      .update({
+        status: "failed",
+        error: "could not confirm posted tweet URL",
+        result_url: url,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", job.id);
     return { ok: false as const, error: "could not confirm posted tweet URL", url };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (job)
-      await sb
-        .from("posting_jobs")
-        .update({ status: "failed", error: msg, updated_at: new Date().toISOString() })
-        .eq("id", job.id);
+    await sb
+      .from("posting_jobs")
+      .update({ status: "failed", error: msg, updated_at: new Date().toISOString() })
+      .eq("id", job.id);
     throw new Error(msg);
   }
 }

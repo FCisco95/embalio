@@ -17,7 +17,11 @@ export class AdsPowerClient {
     if (json.code !== 0) {
       throw new Error(`AdsPower start failed: ${json.msg ?? json.code}`);
     }
-    return { wsEndpoint: json.data.ws.puppeteer as string };
+    const wsEndpoint = json.data?.ws?.puppeteer;
+    if (!wsEndpoint) {
+      throw new Error("AdsPower start: missing CDP ws endpoint in response");
+    }
+    return { wsEndpoint: wsEndpoint as string };
   }
 
   async stop(adspowerUserId: string): Promise<void> {

@@ -22,6 +22,9 @@ create table posting_jobs (
 );
 
 create index on posting_jobs (profile_id, created_at desc);
+-- Idempotency: reject a duplicate in-flight/successful post for the same draft.
+create unique index posting_jobs_active_draft_uidx
+  on posting_jobs (draft_id) where status in ('running','succeeded');
 
 alter table posting_accounts enable row level security;
 alter table posting_jobs     enable row level security;
