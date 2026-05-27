@@ -41,6 +41,7 @@ export const WeeklyAngle = z.object({
 });
 export const WeeklyAngleList = z.object({ angles: z.array(WeeklyAngle).min(1).max(5) });
 export type WeeklyAngle = z.infer<typeof WeeklyAngle>;
+export type WeeklyAngleList = z.infer<typeof WeeklyAngleList>;
 
 export const WeeklyPost = z.object({
   format: z.enum(["quick-take", "experiment", "tool-find", "observation", "reaction"]),
@@ -69,15 +70,16 @@ export const ReplyCandidate = z.object({
 });
 export const ReplyCandidateList = z.object({ opportunities: z.array(ReplyCandidate) });
 export type ReplyCandidate = z.infer<typeof ReplyCandidate>;
+export type ReplyCandidateList = z.infer<typeof ReplyCandidateList>;
 
 export const ReplyDraft = z.object({
-  reply: z.string().max(560).optional(),
+  reply: z.string().min(1).max(560).optional(),
   skip: z.boolean().default(false),
 });
 export type ReplyDraft = z.infer<typeof ReplyDraft>;
 
 export const ReplyOpportunity = ReplyCandidate.extend({
-  reply: z.string().max(560),
+  reply: z.string().min(1).max(560),
 });
 export type ReplyOpportunity = z.infer<typeof ReplyOpportunity>;
 

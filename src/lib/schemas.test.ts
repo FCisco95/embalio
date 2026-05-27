@@ -111,7 +111,9 @@ describe("ReplyDraft", () => {
     expect(ReplyDraft.safeParse({ reply: "Apple integrates CPU and GPU on same die.", skip: false }).success).toBe(true);
   });
   it("accepts a skip signal", () => {
-    expect(ReplyDraft.safeParse({ skip: true }).success).toBe(true);
+    const r = ReplyDraft.safeParse({ skip: true });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.reply).toBeUndefined();
   });
 });
 
