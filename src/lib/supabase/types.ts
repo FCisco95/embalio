@@ -141,6 +141,92 @@ export type Database = {
           },
         ]
       }
+      posting_accounts: {
+        Row: {
+          active: boolean
+          adspower_user_id: string
+          created_at: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          active?: boolean
+          adspower_user_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          active?: boolean
+          adspower_user_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posting_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posting_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          draft_id: string | null
+          error: string | null
+          id: string
+          method: string
+          profile_id: string
+          result_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          draft_id?: string | null
+          error?: string | null
+          id?: string
+          method?: string
+          profile_id: string
+          result_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          draft_id?: string | null
+          error?: string | null
+          id?: string
+          method?: string
+          profile_id?: string
+          result_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posting_jobs_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_jobs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           draft_id: string | null
