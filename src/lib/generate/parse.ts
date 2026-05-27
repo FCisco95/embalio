@@ -2,29 +2,40 @@ import type { ZodType } from "zod";
 
 export type ParseResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-function extractJson(text: string): string | null {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const body = fenced ? fenced[1] : text;
-  const objStart = body.indexOf("{");
-  const arrStart = body.indexOf("[");
-  const start = [objStart, arrStart].filter((n) => n >= 0).sort((a, b) => a - b)[0];
-  if (start === undefined) return null;
-  // Walk from the first bracket tracking depth so trailing prose containing a
-  // stray }/] doesn't extend the slice past the real matching close.
-  const [open, close] = body[start] === "{" ? ["{", "}"] : ["[", "]"];
-  let depth = 0;
-  for (let i = start; i < body.length; i++) {
-    if (body[i] === open) depth++;
-    else if (body[i] === close && --depth === 0) return body.slice(start, i + 1);
+// Yields candidate JSON substrings from messy model output: fenced ```json blocks
+// first, then every brace/bracket-balanced region, largest first. Real payloads are
+// the biggest balanced region, so stray braces in prose ("{280}") never win.
+function* jsonCandidates(text: string): Generator<string> {
+  const fenced: string[] = [];
+  const fenceRe = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let m: RegExpExecArray | null;
+  while ((m = fenceRe.exec(text))) fenced.push(m[1]);
+
+  const regions: string[] = [];
+  for (const src of [...fenced, text]) {
+    for (let i = 0; i < src.length; i++) {
+      const open = src[i];
+      if (open !== "{" && open !== "[") continue;
+      const close = open === "{" ? "}" : "]";
+      let depth = 0;
+      for (let j = i; j < src.length; j++) {
+        if (src[j] === open) depth++;
+        else if (src[j] === close && --depth === 0) { regions.push(src.slice(i, j + 1)); break; }
+      }
+    }
   }
-  return null; // unbalanced
+  regions.sort((a, b) => b.length - a.length);
+  yield* regions;
 }
 
 export function parseStructured<T>(schema: ZodType<T>, text: string): ParseResult<T> {
-  const json = extractJson(text);
-  if (!json) return { ok: false, error: "no JSON found" };
-  let value: unknown;
-  try { value = JSON.parse(json); } catch (e) { return { ok: false, error: `invalid JSON: ${String(e)}` }; }
-  const r = schema.safeParse(value);
-  return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error.message };
+  let lastErr = "no JSON found";
+  for (const candidate of jsonCandidates(text)) {
+    let value: unknown;
+    try { value = JSON.parse(candidate); } catch { lastErr = "invalid JSON"; continue; }
+    const r = schema.safeParse(value);
+    if (r.success) return { ok: true, data: r.data };
+    lastErr = r.error.message;
+  }
+  return { ok: false, error: lastErr };
 }

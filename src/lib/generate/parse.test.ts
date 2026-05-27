@@ -24,4 +24,12 @@ describe("parseStructured", () => {
     const r = parseStructured(S, 'Here it is: {"a":"x"} note: keep under {280} chars');
     expect(r.ok && r.data.a).toBe("x");
   });
+  it("ignores a stray brace pair BEFORE the real object", () => {
+    const r = parseStructured(S, 'keeping under {280} chars, here: {"a":"x"}');
+    expect(r.ok && r.data.a).toBe("x");
+  });
+  it("picks the valid object even inside a fenced block with preamble", () => {
+    const r = parseStructured(S, 'sure {note}:\n```json\n{"a":"deep"}\n```');
+    expect(r.ok && r.data.a).toBe("deep");
+  });
 });
