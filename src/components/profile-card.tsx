@@ -2,6 +2,7 @@ import { listSeedTargets, addSeedTarget } from "@/server/profiles";
 import { getPostingAccount } from "@/server/posting";
 import { Card } from "@/components/ui/card";
 import { PostingConfig } from "@/components/posting-config";
+import { OnboardingWizard } from "@/components/onboarding-wizard";
 
 export async function ProfileCard({ profile }: { profile: { id: string; handle: string; niche_description: string | null } }) {
   const targets = await listSeedTargets(profile.id);
@@ -23,6 +24,7 @@ export async function ProfileCard({ profile }: { profile: { id: string; handle: 
       </form>
       <div className="mt-2 text-xs text-muted-foreground">{targets?.length ?? 0} seed targets</div>
       {postingEnabled && <PostingConfig profileId={profile.id} current={account?.adspower_user_id} />}
+      <OnboardingWizard profileId={profile.id} />
     </Card>
   );
 }
