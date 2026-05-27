@@ -7,12 +7,22 @@ update seed_targets
   set handle = lower(trim('@' from handle))
   where handle is not null;
 
--- 2. Remove duplicates — keep the earliest row per (profile_id, handle).
-delete from seed_targets a
-  using seed_targets b
-  where a.added_at > b.added_at
-    and a.profile_id = b.profile_id
-    and a.handle     = b.handle;
+-- 2. Remove duplicates — keep exactly one row per (profile_id, handle).
+--    Uses row_number() with id as tiebreaker so equal-timestamp duplicates
+--    (which the added_at > comparison would leave behind) are always resolved.
+delete from seed_targets
+  where id in (
+    select id from (
+      select id,
+             row_number() over (
+               partition by profile_id, handle
+               order by added_at, id
+             ) as rn
+        from seed_targets
+       where handle is not null
+    ) ranked
+    where rn > 1
+  );
 
 -- 3. Unique constraint on (profile_id, handle) — handles are now pre-normalized.
 alter table seed_targets

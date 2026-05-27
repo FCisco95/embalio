@@ -66,11 +66,16 @@ export async function postDraft(draftId: string) {
   if (jobErr) throw new Error(jobErr.code === "23505" ? "a post for this draft is already in progress" : jobErr.message);
   if (!job) throw new Error("failed to create posting_job");
 
+  // Track whether AdsPower executed the post so the catch block can distinguish
+  // "tweet never sent → safe to retry" from "tweet live but state sync failed →
+  // must not retry, needs manual reconciliation".
+  let tweetSent = false;
   try {
     const { url } = await postTweetViaAdsPower(
       account.adspower_user_id,
       draft.body,
     );
+    tweetSent = true;
     if (isConfirmedTweetUrl(url)) {
       const { error: postErr } = await sb.from("posts").insert({
         profile_id: draft.profile_id,
@@ -121,9 +126,13 @@ export async function postDraft(draftId: string) {
     return { ok: false as const, error: "could not confirm posted tweet URL", url };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    // If AdsPower already fired, the tweet may be live — use needs_manual_confirmation
+    // so the idempotency index blocks auto-retry and forces manual reconciliation.
+    // If AdsPower never ran, 'failed' is correct and safe to retry.
+    const catchStatus = tweetSent ? "needs_manual_confirmation" : "failed";
     await sb
       .from("posting_jobs")
-      .update({ status: "failed", error: msg, updated_at: new Date().toISOString() })
+      .update({ status: catchStatus, error: msg, updated_at: new Date().toISOString() })
       .eq("id", job.id);
     throw new Error(msg);
   }

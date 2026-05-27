@@ -138,6 +138,46 @@ describe("postDraft — Fix 1: follow-up DB writes must be checked for errors", 
   });
 });
 
+describe("postDraft — catch block after live tweet must not use retryable 'failed' status", () => {
+  // Codex finding [high]: if the tweet went live but a follow-up DB write throws,
+  // the catch block currently marks the job 'failed', which IS retryable (not in the
+  // unique-index coverage), allowing a second live post on retry.
+  // Fix: track tweetSent flag; use needs_manual_confirmation in catch when tweet was sent.
+  beforeEach(() => {
+    mockPostTweet.mockResolvedValue({ url: CONFIRMED_URL });
+    mockIsConfirmed.mockReturnValue(true);
+  });
+
+  it("marks job needs_manual_confirmation in catch when tweet sent but drafts.update failed", async () => {
+    const jobUpdateSpy = vi.fn();
+    const sb = buildSb({
+      draftUpdateError: { message: "drafts update blew up", code: "503" },
+      jobUpdateSpy,
+    });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow();
+
+    // The catch-block job update (n=2) must NOT use 'failed' — tweet is live
+    expect(jobUpdateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "needs_manual_confirmation" }),
+    );
+  });
+
+  it("only uses 'failed' in catch when tweet was never sent (postTweet threw)", async () => {
+    mockPostTweet.mockRejectedValue(new Error("AdsPower unreachable"));
+    const jobUpdateSpy = vi.fn();
+    const sb = buildSb({ jobUpdateSpy });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow("AdsPower unreachable");
+
+    expect(jobUpdateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" }),
+    );
+  });
+});
+
 describe("postDraft — Fix 2: unconfirmed URL sets needs_manual_confirmation (not failed)", () => {
   beforeEach(() => {
     mockPostTweet.mockResolvedValue({ url: UNCONFIRMED_URL });
