@@ -274,34 +274,46 @@ export type Database = {
       }
       profiles: {
         Row: {
+          content_pillars: string[]
           created_at: string
           display_name: string | null
+          goals: string | null
           handle: string
           id: string
           niche_description: string | null
+          onboarding_answers: Json
           user_id: string
           voice_corpus: string[]
           voice_notes: string | null
+          voice_spec: string | null
         }
         Insert: {
+          content_pillars?: string[]
           created_at?: string
           display_name?: string | null
+          goals?: string | null
           handle: string
           id?: string
           niche_description?: string | null
+          onboarding_answers?: Json
           user_id?: string
           voice_corpus?: string[]
           voice_notes?: string | null
+          voice_spec?: string | null
         }
         Update: {
+          content_pillars?: string[]
           created_at?: string
           display_name?: string | null
+          goals?: string | null
           handle?: string
           id?: string
           niche_description?: string | null
+          onboarding_answers?: Json
           user_id?: string
           voice_corpus?: string[]
           voice_notes?: string | null
+          voice_spec?: string | null
         }
         Relationships: []
       }
