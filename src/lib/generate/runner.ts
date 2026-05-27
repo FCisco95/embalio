@@ -14,7 +14,10 @@ export function buildClaudeArgs(opts: RunnerOpts): string[] {
 
 export const claudeCliRunner: CliRunner = (args, stdin, timeoutMs = DEFAULT_TIMEOUT_MS) =>
   new Promise((resolve, reject) => {
-    const child = spawn("claude", args, { stdio: ["pipe", "pipe", "pipe"] });
+    // shell:true is required on Windows (the global `claude` is a .cmd shim;
+    // Node 22 refuses to spawn .cmd directly). Prompt goes via stdin, not args,
+    // so there's no shell-injection surface. Works on POSIX shells too.
+    const child = spawn("claude", args, { stdio: ["pipe", "pipe", "pipe"], shell: true });
     let out = "", err = "", settled = false;
     const timer = setTimeout(() => {
       if (settled) return;
