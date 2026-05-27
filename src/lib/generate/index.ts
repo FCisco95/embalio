@@ -7,7 +7,11 @@ export type Backend = "subscription" | "gemini";
 export interface GenerateOpts { research?: boolean; backend?: Backend }
 
 function backend(opts: GenerateOpts): Backend {
-  return opts.backend ?? (process.env.GEN_BACKEND as Backend) ?? "subscription";
+  if (opts.backend) return opts.backend;
+  const env = process.env.GEN_BACKEND;
+  if (!env) return "subscription";
+  if (env !== "subscription" && env !== "gemini") throw new Error(`Unknown GEN_BACKEND: "${env}"`);
+  return env;
 }
 
 export async function generateText(

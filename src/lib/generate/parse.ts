@@ -9,11 +9,15 @@ function extractJson(text: string): string | null {
   const arrStart = body.indexOf("[");
   const start = [objStart, arrStart].filter((n) => n >= 0).sort((a, b) => a - b)[0];
   if (start === undefined) return null;
-  const open = body[start];
-  const close = open === "{" ? "}" : "]";
-  const end = body.lastIndexOf(close);
-  if (end <= start) return null;
-  return body.slice(start, end + 1);
+  // Walk from the first bracket tracking depth so trailing prose containing a
+  // stray }/] doesn't extend the slice past the real matching close.
+  const [open, close] = body[start] === "{" ? ["{", "}"] : ["[", "]"];
+  let depth = 0;
+  for (let i = start; i < body.length; i++) {
+    if (body[i] === open) depth++;
+    else if (body[i] === close && --depth === 0) return body.slice(start, i + 1);
+  }
+  return null; // unbalanced
 }
 
 export function parseStructured<T>(schema: ZodType<T>, text: string): ParseResult<T> {

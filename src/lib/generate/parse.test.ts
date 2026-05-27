@@ -20,4 +20,8 @@ describe("parseStructured", () => {
   it("fails when no JSON present", () => {
     expect(parseStructured(S, "no json here").ok).toBe(false);
   });
+  it("ignores trailing prose that contains a stray brace", () => {
+    const r = parseStructured(S, 'Here it is: {"a":"x"} note: keep under {280} chars');
+    expect(r.ok && r.data.a).toBe("x");
+  });
 });

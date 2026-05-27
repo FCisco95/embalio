@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 
 export interface RunnerOpts { research?: boolean }
-export type CliRunner = (args: string[], stdin: string) => Promise<string>;
+export type CliRunner = (args: string[], stdin: string, timeoutMs?: number) => Promise<string>;
+
+// Research calls (web tools) legitimately take longer than plain generation.
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 export function buildClaudeArgs(opts: RunnerOpts): string[] {
   const args = ["-p"];
@@ -9,14 +12,25 @@ export function buildClaudeArgs(opts: RunnerOpts): string[] {
   return args;
 }
 
-export const claudeCliRunner: CliRunner = (args, stdin) =>
+export const claudeCliRunner: CliRunner = (args, stdin, timeoutMs = DEFAULT_TIMEOUT_MS) =>
   new Promise((resolve, reject) => {
     const child = spawn("claude", args, { stdio: ["pipe", "pipe", "pipe"] });
-    let out = "", err = "";
+    let out = "", err = "", settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill();
+      reject(new Error(`claude timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
     child.stdout.on("data", (d) => (out += String(d)));
     child.stderr.on("data", (d) => (err += String(d)));
-    child.on("error", reject);
-    child.on("close", (code) => (code === 0 ? resolve(out) : reject(new Error(`claude exited ${code}: ${err}`))));
+    child.on("error", (e) => { if (settled) return; settled = true; clearTimeout(timer); reject(e); });
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      code === 0 ? resolve(out) : reject(new Error(`claude exited ${code}: ${err}`));
+    });
     child.stdin.write(stdin);
     child.stdin.end();
   });
