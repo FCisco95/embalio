@@ -7,7 +7,8 @@ import { readHandoff } from "@/lib/handoff-reader";
 
 describe("readHandoff", () => {
   it("returns the full handoff text when file exists", async () => {
-    vi.mocked(fs.readFile).mockResolvedValueOnce("# Resonance Handoff\n\n## What was built\n\nSpine 1" as unknown as Buffer);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(fs.readFile as any).mockResolvedValueOnce("# Resonance Handoff\n\n## What was built\n\nSpine 1");
     const text = await readHandoff();
     expect(text).toContain("Spine 1");
   });

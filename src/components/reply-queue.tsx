@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { generateReplyQueue } from "@/server/engage";
 import type { ReplyOpportunity, ReplyQueue } from "@/lib/schemas";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -41,8 +41,13 @@ function ReplyCard({ opp }: { opp: ReplyOpportunity }) {
           Copy reply
         </Button>
         {opp.targetUrl && (
-          <a href={opp.targetUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline">View post</Button>
+          <a
+            href={opp.targetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ size: "sm", variant: "outline" })}
+          >
+            View post
           </a>
         )}
         <Button size="sm" variant="ghost" onClick={() => setSkipped(true)}>
@@ -77,6 +82,7 @@ export function ReplyQueuePanel({ profiles }: { profiles: { id: string; handle: 
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center gap-3">
         <select
+          aria-label="Profile"
           className="border rounded px-2 py-1 text-sm"
           value={profileId}
           onChange={(e) => setProfileId(e.target.value)}
@@ -85,9 +91,12 @@ export function ReplyQueuePanel({ profiles }: { profiles: { id: string; handle: 
             <option key={p.id} value={p.id}>{p.handle}</option>
           ))}
         </select>
-        <Button disabled={busy} onClick={generate}>
+        <Button disabled={busy || !profileId} onClick={generate}>
           {busy ? "Scanning seed accounts..." : "Generate reply queue"}
         </Button>
+        {profiles.length === 0 && (
+          <p className="text-sm text-destructive">No profiles found. Create a profile first.</p>
+        )}
       </div>
 
       {queue && (
@@ -98,8 +107,8 @@ export function ReplyQueuePanel({ profiles }: { profiles: { id: string; handle: 
           {queue.opportunities.length === 0 && (
             <p className="text-muted-foreground text-sm">Nothing worth replying to right now.</p>
           )}
-          {queue.opportunities.map((opp, i) => (
-            <ReplyCard key={i} opp={opp} />
+          {queue.opportunities.map((opp) => (
+            <ReplyCard key={opp.targetUrl || `${opp.targetHandle}-${opp.targetPost.slice(0, 40)}`} opp={opp} />
           ))}
         </div>
       )}

@@ -30,7 +30,7 @@ export async function generateReplyQueue(profileId: string, handleOverride?: str
       .select("handle")
       .eq("profile_id", profileId)
       .eq("active", true);
-    handles = (seeds ?? []).map((s: { handle: string }) => s.handle).filter(Boolean);
+    handles = (seeds ?? []).map((s) => s.handle).filter((h): h is string => Boolean(h));
   }
 
   if (handles.length === 0) throw new Error("no seed accounts found — run onboarding first");
