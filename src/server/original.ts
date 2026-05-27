@@ -1,8 +1,9 @@
 "use server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { generateStructured } from "@/lib/generate";
-import { AngleList, OriginalDraft, type Angle } from "@/lib/schemas";
-import { buildAnglesPrompt, buildOriginalFromAnglePrompt, buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
+import { generateStructured, generateText } from "@/lib/generate";
+import { AngleList, OriginalDraft, type Angle, WeeklyAngleList, WeeklyPost, WeeklyPostPlan } from "@/lib/schemas";
+import { buildAnglesPrompt, buildOriginalFromAnglePrompt, buildVoiceSystemFromSpec, buildCiscoContextBlock, buildWorldResearchPrompt, buildCrossRefSynthesisPrompt, buildWeeklyDraftPrompt, buildAlgorithmRulesBlock } from "@/lib/voice-prompt";
+import { readHandoff } from "@/lib/handoff-reader";
 import { revalidatePath } from "next/cache";
 
 export async function proposeAnglesForPillars(pillars: string[]): Promise<Angle[]> {
@@ -37,4 +38,63 @@ export async function getProfilePillars(profileId: string): Promise<string[]> {
   const sb = await supabaseServer();
   const { data } = await sb.from("profiles").select("content_pillars").eq("id", profileId).single();
   return data?.content_pillars ?? [];
+}
+
+export async function generateWeeklyPosts(profileId: string, journalEntry?: string): Promise<WeeklyPostPlan> {
+  const sb = await supabaseServer();
+
+  // Step 1: Load context
+  const { data: profile, error } = await sb
+    .from("profiles")
+    .select("handle, voice_spec, content_pillars")
+    .eq("id", profileId)
+    .single();
+  if (error || !profile) throw new Error("profile not found");
+
+  const handoffText = await readHandoff();
+  const date = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const ciscoContext = buildCiscoContextBlock(
+    { handle: profile.handle, voice_spec: profile.voice_spec, content_pillars: profile.content_pillars as string[] },
+    handoffText,
+    journalEntry
+  );
+  const voiceSystem = buildVoiceSystemFromSpec({ handle: profile.handle, voice_spec: profile.voice_spec });
+
+  // Step 2: Parallel research
+  const [xTopics, github, news] = await Promise.all([
+    generateText(buildWorldResearchPrompt("x-topics", date), { research: true }),
+    generateText(buildWorldResearchPrompt("github", date), { research: true }),
+    generateText(buildWorldResearchPrompt("news", date), { research: true }),
+  ]);
+
+  // Step 3: Synthesis
+  const synthesis = await generateStructured(
+    WeeklyAngleList,
+    buildCrossRefSynthesisPrompt(ciscoContext, { xTopics, github, news }, date)
+  );
+  if (!synthesis.data) throw new Error("could not find angles — try again");
+
+  // Step 4: Draft in parallel
+  const draftResults = await Promise.all(
+    synthesis.data.angles.map((angle) =>
+      generateStructured(
+        OriginalDraft,
+        buildWeeklyDraftPrompt(voiceSystem, angle, buildAlgorithmRulesBlock(angle.format))
+      )
+    )
+  );
+
+  // Step 5: Assemble plan
+  const posts: WeeklyPost[] = synthesis.data.angles.map((angle, i) => ({
+    format: angle.format,
+    hook: angle.hook,
+    posts: draftResults[i].data?.posts ?? ["(draft failed — regenerate)"],
+    context: angle.connection,
+    source: angle.source,
+    sourceDate: angle.sourceDate,
+    suggestedVisual: draftResults[i].data?.suggestedVisual,
+  }));
+
+  revalidatePath("/compose");
+  return { weekOf: date, posts };
 }
