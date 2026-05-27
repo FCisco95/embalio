@@ -14,7 +14,7 @@ export const PersonaSynthesis = z.object({
   voiceSpec: z.string().min(1),
   contentPillars: z.array(z.string()).min(1),
   seedAccounts: z.array(z.string()).default([]),
-  samplePosts: z.array(z.string()).max(3).default([]),
+  samplePosts: z.array(z.string()).max(5).default([]),
 });
 export type PersonaSynthesis = z.infer<typeof PersonaSynthesis>;
 

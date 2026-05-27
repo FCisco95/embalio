@@ -46,17 +46,20 @@ export function buildSynthesisPrompt(a: {
     `Desired tone/style: ${a.tone}`,
     a.doDont ? `Do/Don't: ${a.doDont}` : "",
     a.admired ? `Admired accounts: ${a.admired}` : "",
-    `Produce: a concrete voiceSpec (casing, length, emoji/hashtag policy, cadence of ideas, what to avoid),`,
-    `contentPillars (array), seedAccounts (array of @handles worth engaging in this niche, researched),`,
-    `and 2-3 samplePosts written in the synthesized voice.`,
+    `Produce a concrete voiceSpec (casing, length, emoji/hashtag policy, cadence of ideas, what to avoid),`,
+    `content pillars, seed accounts (@handles worth engaging in this niche, researched), and 2-3 sample posts in the voice.`,
+    `Return exactly this JSON shape, where every array is an array of PLAIN STRINGS (not objects):`,
+    `{"voiceSpec": "...", "contentPillars": ["..."], "seedAccounts": ["@handle"], "samplePosts": ["...", "..."]}`,
   ].filter(Boolean).join("\n");
 }
 
 export function buildAnglesPrompt(pillars: string[]): string {
   return [
     `Research the web for recent (last 7 days) developments across these niche pillars: ${pillars.join(", ")}.`,
-    `Propose 3-5 distinct post angles. Each angle has: mode (one of "news-insight", "experiment", "build-in-public"),`,
-    `a one-line hook, and a source URL when based on a finding. "experiment" = suggest a concrete thing to test and post about.`,
+    `Propose 3-5 distinct post angles. "experiment" = suggest a concrete thing to test and post about.`,
+    `Return exactly this JSON shape:`,
+    `{"angles": [{"mode": "news-insight" | "experiment" | "build-in-public", "hook": "one line", "source": "https://..."}]}`,
+    `("source" optional; include it when the angle is based on a web finding.)`,
   ].join("\n");
 }
 
@@ -66,7 +69,8 @@ export function buildOriginalFromAnglePrompt(voiceSystem: string, angle: Angle):
     ``,
     `Write an original X post for this angle (mode: ${angle.mode}): "${angle.hook}".`,
     angle.source ? `Source: ${angle.source}` : "",
-    `Return a "posts" array (1 post, or 2-5 for a short thread if it genuinely needs it), each <=280 chars,`,
-    `plus an optional "suggestedVisual". Informative and specific — no generic filler.`,
+    `Informative and specific — no generic filler. 1 post, or 2-5 for a short thread only if it genuinely needs it; each <=280 chars.`,
+    `Return exactly this JSON shape (posts is an array of plain strings):`,
+    `{"posts": ["..."], "suggestedVisual": "..."}  ("suggestedVisual" optional.)`,
   ].filter(Boolean).join("\n");
 }
