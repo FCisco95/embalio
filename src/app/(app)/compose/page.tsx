@@ -1,7 +1,12 @@
 import { listProfiles } from "@/server/profiles";
-import { AngleComposer } from "@/components/angle-composer";
+import { WeeklyComposer } from "@/components/weekly-composer";
 
 export default async function ComposePage() {
   const profiles = (await listProfiles()) ?? [];
-  return <div className="p-6"><h1 className="text-xl font-semibold mb-3">Compose</h1><AngleComposer profiles={profiles} /></div>;
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-semibold mb-4">Compose</h1>
+      <WeeklyComposer profiles={profiles} />
+    </div>
+  );
 }
