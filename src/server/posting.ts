@@ -78,13 +78,22 @@ export async function postDraft(draftId: string) {
         tweet_url: url,
       });
       if (postErr && postErr.code !== "23505") throw new Error(postErr.message);
-      await sb.from("drafts").update({ status: "posted" }).eq("id", draft.id);
-      if (draft.candidate_id)
-        await sb
+
+      const { error: draftErr } = await sb
+        .from("drafts")
+        .update({ status: "posted" })
+        .eq("id", draft.id);
+      if (draftErr) throw new Error(draftErr.message);
+
+      if (draft.candidate_id) {
+        const { error: candErr } = await sb
           .from("candidates")
           .update({ status: "engaged" })
           .eq("id", draft.candidate_id);
-      await sb
+        if (candErr) throw new Error(candErr.message);
+      }
+
+      const { error: jobSuccErr } = await sb
         .from("posting_jobs")
         .update({
           status: "succeeded",
@@ -92,14 +101,18 @@ export async function postDraft(draftId: string) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
+      if (jobSuccErr) throw new Error(jobSuccErr.message);
+
       revalidatePath("/performance");
       return { ok: true as const, url };
     }
-    // Posted action ran but we couldn't capture a status URL — surface for manual confirmation.
+    // Posted action ran but we couldn't capture a confirmed tweet URL.
+    // Use needs_manual_confirmation (not failed) so the idempotency index blocks
+    // auto-retry until the operator reconciles the outcome manually.
     await sb
       .from("posting_jobs")
       .update({
-        status: "failed",
+        status: "needs_manual_confirmation",
         error: "could not confirm posted tweet URL",
         result_url: url,
         updated_at: new Date().toISOString(),

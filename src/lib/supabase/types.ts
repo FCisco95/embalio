@@ -360,7 +360,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      save_persona: {
+        Args: {
+          p_profile_id: string
+          p_voice_spec: string
+          p_goals: string
+          p_content_pillars: string[]
+          p_onboarding_answers: Json
+          p_seed_handles: string[]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

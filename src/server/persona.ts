@@ -27,15 +27,25 @@ export async function getPersona(profileId: string) {
 export async function savePersona(profileId: string, input: {
   voiceSpec: string; goals: string; contentPillars: string[]; answers: InterviewAnswers; seedAccounts: string[];
 }) {
+  // Normalize handles (lowercase, strip @) and deduplicate before sending to the
+  // save_persona RPC which atomically updates the profile + upserts seed_targets.
+  const seedHandles = [
+    ...new Set(
+      input.seedAccounts
+        .map((h) => h.trim().replace(/^@+/, "").toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+
   const sb = await supabaseServer();
-  const { error } = await sb.from("profiles").update({
-    voice_spec: input.voiceSpec, goals: input.goals,
-    content_pillars: input.contentPillars, onboarding_answers: input.answers as unknown as Json,
-  }).eq("id", profileId);
+  const { error } = await sb.rpc("save_persona", {
+    p_profile_id: profileId,
+    p_voice_spec: input.voiceSpec,
+    p_goals: input.goals,
+    p_content_pillars: input.contentPillars,
+    p_onboarding_answers: input.answers as unknown as Json,
+    p_seed_handles: seedHandles,
+  });
   if (error) throw new Error(error.message);
-  for (const handle of input.seedAccounts) {
-    const h = handle.trim();
-    if (h) await sb.from("seed_targets").insert({ profile_id: profileId, handle: h });
-  }
   revalidatePath("/profiles");
 }
