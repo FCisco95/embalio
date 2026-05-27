@@ -1,36 +1,27 @@
-import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { generateStructured } from "@/lib/generate";
 import { DraftOutput } from "@/lib/schemas";
-import { MODELS } from "@/lib/models";
 import {
-  buildVoiceSystem,
-  buildReplyPrompt,
-  buildOriginalPrompt,
-  type VoiceProfile,
+  buildVoiceSystem, buildVoiceSystemFromSpec, buildReplyPrompt, buildOriginalPrompt, type VoiceProfile,
 } from "@/lib/voice-prompt";
 
-export interface DraftResult extends DraftOutput {
-  model_used: string;
+export interface DraftResult extends DraftOutput { model_used: string }
+
+type Profile = VoiceProfile & { voice_spec?: string | null };
+
+function systemFor(p: Profile): string {
+  return p.voice_spec ? buildVoiceSystemFromSpec({ handle: p.handle, voice_spec: p.voice_spec }) : buildVoiceSystem(p);
 }
 
-async function run(profile: VoiceProfile, userPrompt: string): Promise<DraftResult> {
-  const { object } = await generateObject({
-    model: anthropic(MODELS.draft),
-    schema: DraftOutput,
-    system: {
-      role: "system",
-      content: buildVoiceSystem(profile),
-      providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-    },
-    messages: [{ role: "user", content: userPrompt }],
-  });
-  return { ...object, model_used: MODELS.draft };
+async function run(profile: Profile, userPrompt: string): Promise<DraftResult> {
+  const prompt = `${systemFor(profile)}\n\n${userPrompt}\n\nReturn JSON: { "body": string (<=280), "suggestedVisual"?: string }.`;
+  const r = await generateStructured(DraftOutput, prompt);
+  if (!r.data) throw new Error("model did not return a valid draft");
+  return { ...r.data, model_used: process.env.GEN_BACKEND ?? "subscription" };
 }
 
-export function draftReply(profile: VoiceProfile, targetTweet: string): Promise<DraftResult> {
+export function draftReply(profile: Profile, targetTweet: string): Promise<DraftResult> {
   return run(profile, buildReplyPrompt(targetTweet));
 }
-
-export function draftOriginal(profile: VoiceProfile, topic: string): Promise<DraftResult> {
+export function draftOriginal(profile: Profile, topic: string): Promise<DraftResult> {
   return run(profile, buildOriginalPrompt(topic));
 }
