@@ -237,27 +237,144 @@ Reads `docs/HANDOFF.md` and extracts the relevant "what I'm building" text. Retu
 
 ---
 
-## 9. What does NOT get built (YAGNI)
+## 9. Reply Queue
+
+Replies are reach. Originals are conversion. This feature surfaces 3-5 posts from Cisco's seed accounts each day that are worth replying to, with a drafted reply ready to copy.
+
+### 9.1 The reply format
+
+From @FCisco95's reply to @KaiXCreator ("Why do developers choose MacBook?"):
+
+```
+Apple integrates the CPU, GPU, and RAM onto the same silicon wafer.
+
+Unlike traditional PC setups where the CPU and GPU copy data back and forth
+between system RAM and dedicated video memory
+```
+
+The formula:
+1. **Core technical fact** — one sentence, no wind-up, no "great question"
+2. **The implication** — one sentence explaining *why* it matters, contrast helps
+3. **Stop.** Don't list 5 more reasons.
+
+Rules specific to replies:
+- Never start with the target's name or "you're right"
+- Never summarize what the original post said
+- Add information the original post didn't have
+- 2-4 sentences total — replies that are too long get skipped
+- If you have nothing genuinely technical/specific to add, skip the post entirely
+
+### 9.2 Orchestration flow
+
+```
+[Load seed_targets from DB]      ← Cisco's 14 seed accounts
+       │
+[Scan for recent posts]          ← one claude -p call, WebSearch all handles, last 24-48h
+       │
+[Filter + score]                 ← which posts does Cisco have something real to say about?
+       │                            score: engagement (>20 likes), topic overlap, reply potential
+[Draft replies in parallel]      ← one call per opportunity, reply format rules
+       │
+[Output: reply queue]            ← 3-5 opportunities, each with target post + drafted reply
+```
+
+### 9.3 Filter criteria
+
+The filter call receives all scanned posts and Cisco's context. It asks:
+- Does Cisco have direct technical knowledge about this topic?
+- Is the post asking a question or making a claim Cisco can add to?
+- Is it recent enough (< 24h is best for reply visibility)?
+- Is the engagement high enough to be worth the reply? (>20 likes or from a tier-1 seed account)
+
+Skip: pure news reshares, posts Cisco has no connection to, posts that are just opinions with no technical hook.
+
+### 9.4 New schemas
+
+```typescript
+export const ReplyOpportunity = z.object({
+  targetHandle: z.string(),
+  targetPost: z.string(),          // the text of the post being replied to
+  targetUrl: z.string().optional(),
+  targetLikes: z.number().optional(),
+  postedAt: z.string().optional(), // "May 27, 2026 · 8:35 AM"
+  reply: z.string().max(560),      // drafted reply — 2 tweets max
+  reason: z.string(),              // why this post is worth replying to (shown to user)
+});
+export type ReplyOpportunity = z.infer<typeof ReplyOpportunity>;
+
+export const ReplyQueue = z.object({
+  generatedAt: z.string(),
+  opportunities: z.array(ReplyOpportunity).min(0).max(5),
+});
+export type ReplyQueue = z.infer<typeof ReplyQueue>;
+```
+
+### 9.5 New code for reply queue
+
+**`src/lib/voice-prompt.ts` additions:**
+- `buildSeedScanPrompt(handles: string[], date: string)` → searches recent posts from seed accounts
+- `buildReplyFilterPrompt(posts, ciscoContext)` → returns scored opportunities
+- `buildReplyDraftPrompt(voiceSystem, targetPost)` → drafts the reply with format rules
+
+**`src/server/engage.ts`** (new file):
+- `generateReplyQueue(profileId)` → `ReplyQueue`
+  - Step 1: load seed_targets + voice_spec from DB
+  - Step 2: scan recent posts from all seed handles (one research call)
+  - Step 3: filter + score (one synthesis call)
+  - Step 4: draft replies in parallel (one call per opportunity)
+  - Step 5: return queue
+
+**`src/components/reply-queue.tsx`** (new):
+- Shown on `/engage` route (new page) or as a second tab on `/compose`
+- Header: "Reply queue · May 27" with a refresh button
+- 3-5 cards, each showing:
+  - Original post: author handle + post text + engagement stats
+  - Drafted reply (editable textarea)
+  - "Copy reply" button
+  - "Skip" button (removes from queue without action)
+- "Generate queue" button at top — runs the full pipeline
+
+### 9.6 Reply queue success criteria
+
+- Queue generates in under 3 minutes
+- Every drafted reply passes the format check: no preamble, adds new technical information, 2-4 sentences
+- At least 2 of 5 opportunities are from tier-1 seed accounts (karpathy, simonw, swyx level)
+- Zero sycophantic openers in any draft
+- User can edit inline and copy in one click
+
+---
+
+## 10. What does NOT get built (YAGNI)
 
 - Video scripts — downstream of posts, not in this sprint
 - Auto-posting — still human-in-the-loop
 - Metrics tracking — separate spine
 - Vault/Obsidian integration — no vault directory exists; `docs/HANDOFF.md` is sufficient
 - Saved weekly plans in DB — out of scope; posts saved to `drafts` on copy/approve
+- `market-insight` as a 6th format — the structural techniques (confident label, pivot question, contrast closer) are folded into `observation` and `reaction` format rules instead
 
 ---
 
-## 10. Open hook: X algorithm skills
+## 11. Open hook: X algorithm skills
 
-When Cisco's 10 X algorithm skills are complete, they plug into `buildAlgorithmRulesBlock(format)`. Expected input: format-specific rules like "experiment posts should end with a question", "quick-takes under 150 chars get more reach", "avoid external links in body". The stub is in place from day one.
+When Cisco's 10 X algorithm skills are complete, they plug into `buildAlgorithmRulesBlock(format)`. Expected input: format-specific rules like "experiment posts should end with a question", "quick-takes under 150 chars get more reach", "avoid external links in body". The stub is in place from day one. Same hook applies to reply drafts via `buildAlgorithmReplyRulesBlock()`.
 
 ---
 
-## 11. Success criteria
+## 12. Success criteria
 
-- "Generate this week's posts" produces 5 posts, one per format, in under 5 minutes
+**Weekly posts:**
+- "Generate this week's posts" produces 3-5 posts in under 5 minutes
 - Each post passes a read-aloud test: sounds like a builder texting a peer, not a newsletter
 - At least 2 of 5 posts reference something from the last 48h with a date/source
 - At least 1 post references something from `docs/HANDOFF.md` (what Cisco is actually building)
 - Zero AI tells in final output (no em dashes, no "game-changer", no newsletter openers)
-- User can edit any post inline and copy with one click
+
+**Reply queue:**
+- Queue generates in under 3 minutes
+- Every reply: no preamble, adds new technical information, 2-4 sentences max
+- At least 2 of 5 opportunities from tier-1 seed accounts
+- Zero sycophantic openers
+
+**Both:**
+- User can edit inline and copy with one click
