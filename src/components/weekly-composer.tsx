@@ -85,6 +85,7 @@ export function WeeklyComposer({ profiles }: { profiles: { id: string; handle: s
   return (
     <div className="space-y-4 max-w-2xl">
       <select
+        aria-label="Profile"
         className="border rounded px-2 py-1 text-sm"
         value={profileId}
         onChange={(e) => setProfileId(e.target.value)}
@@ -93,6 +94,9 @@ export function WeeklyComposer({ profiles }: { profiles: { id: string; handle: s
           <option key={p.id} value={p.id}>{p.handle}</option>
         ))}
       </select>
+      {profiles.length === 0 && (
+        <p className="text-sm text-destructive">No profiles found. Create a profile first.</p>
+      )}
 
       <div className="space-y-1">
         <label className="text-sm text-muted-foreground">
@@ -107,7 +111,7 @@ export function WeeklyComposer({ profiles }: { profiles: { id: string; handle: s
         />
       </div>
 
-      <Button disabled={busy} onClick={generate} className="w-full sm:w-auto">
+      <Button disabled={busy || !profileId} onClick={generate} className="w-full sm:w-auto">
         {busy ? PROGRESS_MESSAGES[progressIdx] : "Generate this week's posts"}
       </Button>
 
