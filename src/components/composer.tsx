@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { PostButton } from "@/components/post-button";
 
-export function Composer({ profiles }: { profiles: { id: string; handle: string }[] }) {
+export function Composer({ profiles, postingEnabled }: { profiles: { id: string; handle: string }[]; postingEnabled?: boolean }) {
   const [profileId, setProfileId] = useState(profiles[0]?.id ?? "");
   const [topic, setTopic] = useState("");
   const [draft, setDraft] = useState<{ id: string; body: string; suggested_visual?: string } | null>(null);
@@ -28,6 +29,7 @@ export function Composer({ profiles }: { profiles: { id: string; handle: string 
           <Textarea rows={4} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
           {draft.suggested_visual && <div className="text-xs text-muted-foreground">🖼 {draft.suggested_visual}</div>}
           <Button size="sm" onClick={() => { navigator.clipboard.writeText(draft.body); toast.success("Copied"); }}>Copy</Button>
+          {postingEnabled && <PostButton draftId={draft.id} />}
           <div className="flex gap-2">
             <Input placeholder="paste posted tweet URL" value={url} onChange={(e) => setUrl(e.target.value)} />
             <Button size="sm" variant="secondary" onClick={async () => {

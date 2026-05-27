@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { markPosted, dismissCandidate } from "@/server/posts";
+import { PostButton } from "@/components/post-button";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function CandidateCard({ candidate }: { candidate: any }) {
+export function CandidateCard({ candidate, postingEnabled }: { candidate: any; postingEnabled?: boolean }) {
   const draft = candidate.drafts?.[0];
   const [url, setUrl] = useState("");
   return (
@@ -22,6 +23,7 @@ export function CandidateCard({ candidate }: { candidate: any }) {
             <Button size="sm" onClick={() => { navigator.clipboard.writeText(draft.body); toast.success("Copied"); }}>Copy reply</Button>
             <Button size="sm" variant="ghost" onClick={async () => { await dismissCandidate(candidate.id); toast.success("Dismissed"); }}>Dismiss</Button>
           </div>
+          {postingEnabled && <PostButton draftId={draft.id} />}
           <div className="flex gap-2">
             <Input placeholder="paste posted tweet URL" value={url} onChange={(e) => setUrl(e.target.value)} />
             <Button size="sm" variant="secondary" onClick={async () => {

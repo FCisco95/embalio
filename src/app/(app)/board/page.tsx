@@ -8,6 +8,7 @@ export default async function BoardPage({ searchParams }: { searchParams: Promis
   const profiles = (await listProfiles()) ?? [];
   const active = profile ?? profiles[0]?.id;
 
+  const postingEnabled = process.env.NEXT_PUBLIC_POSTING_ENABLED === "true";
   let candidates: Record<string, unknown>[] = [];
   if (active) {
     const sb = await supabaseServer();
@@ -27,7 +28,7 @@ export default async function BoardPage({ searchParams }: { searchParams: Promis
         {profiles.map((p) => <a key={p.id} href={`/board?profile=${p.id}`} className={p.id === active ? "font-semibold underline" : "underline"}>{p.handle}</a>)}
       </div>
       <div className="grid gap-3">
-        {candidates.map((c) => <CandidateCard key={c.id as string} candidate={c} />)}
+        {candidates.map((c) => <CandidateCard key={c.id as string} candidate={c} postingEnabled={postingEnabled} />)}
         {candidates.length === 0 && <p className="text-muted-foreground">No targets yet — hit Refresh.</p>}
       </div>
     </div>
