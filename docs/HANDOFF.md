@@ -1,7 +1,7 @@
 # Resonance — Handoff (canonical)
 
-**Last updated:** 2026-05-27
-**Branch:** `main` — all work committed, clean tree.
+**Last updated:** 2026-05-28
+**Branch:** `main` — all work committed, clean tree. Pushed to github.com/FCisco95/dispatchAI (private).
 **Scope:** local, single-user "engagement engine" (see the pivot below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
@@ -12,17 +12,18 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ## TL;DR
 
-Resonance pivoted from "deploy-to-Vercel SaaS" toward a **local, single-user
-engagement engine** that generates content **free on the owner's Claude Code
-subscription** (the app shells `claude -p`, no paid API), and built **Spine 1**
-of that engine end-to-end, verified live in a browser.
+Resonance (now also known as **dispatchAI** on GitHub) built **Spine 2** — the
+Content Intelligence Agent — on top of Spine 1. The `/compose` page now generates
+3-5 weekly posts from parallel web research + personal context in one click. A new
+`/engage` page surfaces daily reply opportunities from seed accounts with drafted
+replies ready to copy.
 
-**Next session: fix the 3 Codex adversarial findings (§4), then pick a next spine (§5).**
+**Next session:** wire in x-growth skills to `buildAlgorithmRulesBlock()`, or
+fix the 3 remaining Codex adversarial findings (§4), or run `/x-strategist` on
+@FCisco95 to get the x-growth skills tuned to real voice + targets.
 
-**Suggested skills next session:** `superpowers:subagent-driven-development`
-(execute fixes/next spine task-by-task), `superpowers:brainstorming` (before
-designing a new spine), `superpowers:test-driven-development`,
-`/codex:adversarial-review --base 2f534ae` (re-run after the fixes).
+**Suggested skills next session:** `superpowers:subagent-driven-development`,
+`/codex:adversarial-review --base 2f534ae` (re-run after posting.ts fixes).
 
 ---
 
@@ -45,9 +46,6 @@ designing a new spine), `superpowers:test-driven-development`,
   the owner reviews and copies out.
 - **X API still declined** (cost); posting stays AdsPower-only (Phase 1, opt-in, untested).
 
-Spec: `docs/superpowers/specs/2026-05-27-engagement-engine-spine1-design.md`
-Plan: `docs/superpowers/plans/2026-05-27-engagement-engine-spine1.md` (11 tasks)
-
 ---
 
 ## 2. What Spine 1 built (all committed on main)
@@ -63,16 +61,38 @@ Plan: `docs/superpowers/plans/2026-05-27-engagement-engine-spine1.md` (11 tasks)
 | Original-post actions | `src/server/original.ts` (proposeAnglesForPillars/draftFromAngle/composeOriginalForProfile/getProfilePillars) | `1e98b27` |
 | Angle composer UI | `src/components/angle-composer.tsx` (replaces old `composer.tsx` on `/compose`) | `ab71e13` |
 
-**Live end-to-end verification (real `claude` calls, in browser):** onboarding
-interview → 51s web research → synthesized voice_spec (nailed "lowercase,
-technical, no hype") + 5 pillars + 14 real seed accounts (@karpathy, @simonw,
-@swyx…) saved to DB → `/compose` angle research (57s) produced 5 current on-niche
-angles → drafted the QuantSpec "experiment" angle into an in-voice post (with
-arXiv source) persisted to `drafts`. **48 tests pass, tsc clean, `next build` succeeds.**
+---
+
+## 3. What Spine 2 built — Content Intelligence Agent (2026-05-28)
+
+Spec: `docs/superpowers/specs/2026-05-27-content-intelligence-agent-design.md`
+Plan: `docs/superpowers/plans/2026-05-27-content-intelligence-agent.md` (8 tasks)
+
+| Area | Files | What it does |
+|---|---|---|
+| New schemas (8) | `src/lib/schemas.ts` | WeeklyAngle, WeeklyAngleList, WeeklyPost, WeeklyPostPlan, ReplyCandidate, ReplyCandidateList, ReplyDraft, ReplyOpportunity, ReplyQueue |
+| Handoff reader | `src/lib/handoff-reader.ts` | Reads `docs/HANDOFF.md` at runtime; returns fallback string on error |
+| Prompt builders (8) | `src/lib/voice-prompt.ts` | buildCiscoContextBlock, buildWorldResearchPrompt, buildCrossRefSynthesisPrompt, buildWeeklyDraftPrompt, buildAlgorithmRulesBlock (stub), buildSeedScanPrompt, buildReplyFilterPrompt, buildReplyDraftPrompt |
+| Weekly post generation | `src/server/original.ts` | `generateWeeklyPosts(profileId, journalEntry?)`: 3 parallel research calls → synthesis → parallel drafts → WeeklyPostPlan |
+| Weekly composer UI | `src/components/weekly-composer.tsx` | Profile selector, optional journal textarea, "Generate this week's posts" button, rotating progress messages, post cards with format badge + editable text + copy |
+| Reply queue server action | `src/server/engage.ts` | `generateReplyQueue(profileId)`: seed scan → filter → parallel reply drafts → ReplyQueue |
+| Reply queue UI | `src/components/reply-queue.tsx` | Cards with target post + editable reply + Copy/View/Skip per card |
+| /engage route | `src/app/(app)/engage/page.tsx` | New page wired to ReplyQueuePanel |
+| Nav | `src/app/(app)/layout.tsx` | Engage link added (Board → Compose → Engage → Performance → Profiles) |
+| /compose page | `src/app/(app)/compose/page.tsx` | Now renders WeeklyComposer instead of AngleComposer |
+
+**96 tests pass, tsc clean, `next build` succeeds.**
+
+### Key architecture decisions
+
+- **Direction flip:** user's actual context (HANDOFF.md + journal entry) is Step 1; web research is Step 2 (context-adder, not driver)
+- **5 post formats:** quick-take, experiment, tool-find, observation, reaction — each with specific structure + voice rules baked into the draft prompt
+- **Algorithm hook stub:** `buildAlgorithmRulesBlock(format)` returns `""` — plug in x-growth skills here when ready (same hook for replies via `buildAlgorithmReplyRulesBlock`)
+- **Reply format:** core technical fact → implication → stop at 2-4 sentences, zero preamble, never sycophantic
 
 ---
 
-## 3. Current running state
+## 4. Current running state
 
 - Local Supabase (Docker) + local dev server, `NEXT_PUBLIC_POSTING_ENABLED=true`,
   `GEN_BACKEND` unset (=subscription). `.env.local` has local Supabase keys +
@@ -82,10 +102,11 @@ arXiv source) persisted to `drafts`. **48 tests pass, tsc clean, `next build` su
 - To resume: ensure Docker + `npx supabase start`, `npm run dev`, log in via
   Mailpit magic link (http://127.0.0.1:54324). PKCE flow lands on `/auth/callback`;
   use host `localhost:3000` consistently.
+- GitHub remote: `git remote add origin https://github.com/FCisco95/dispatchAI.git` (already set)
 
 ---
 
-## 4. IMMEDIATE TO-DO: fix Codex adversarial findings (verdict: needs-attention)
+## 5. Remaining Codex adversarial findings (from Spine 1 review)
 
 Re-run after fixing: `/codex:adversarial-review --base 2f534ae`.
 
@@ -96,51 +117,29 @@ Re-run after fixing: `/codex:adversarial-review --base 2f534ae`.
    unposted / job stuck `running`. Fix: check each result, or wrap in a
    transactional RPC so success only returns when all commit.
 2. **[high] Ambiguous posting outcome marked `failed` enables duplicate live
-   posts on retry** — `src/server/posting.ts:98-108`. Unconfirmed-URL path sets
-   job `failed`; the partial unique index only blocks `running`/`succeeded`, so a
-   retry can post a second tweet while the first was live-but-unconfirmed. Fix:
-   add a non-retryable intermediate state (e.g. `needs_manual_confirmation`) that
-   blocks auto-retry until reconciliation. (Residual risk already flagged in the
-   Phase 1 handoff; Codex confirms it's worth closing — needs a `posting_jobs.status`
-   check-constraint migration + a `drafts` status like `unconfirmed`.)
+   posts on retry** — `src/server/posting.ts:98-108`. Fix: add a non-retryable
+   intermediate state (e.g. `needs_manual_confirmation`) that blocks auto-retry
+   until reconciliation. Needs a `posting_jobs.status` check-constraint migration
+   + a `drafts` status like `unconfirmed`.
 3. **[medium] `savePersona` non-atomic + no seed dedup** —
-   `src/server/persona.ts:31-39`. Updates profile then inserts seed_targets
-   one-by-one; mid-loop failure leaves partial state, and repeated submissions
-   accumulate duplicate handles. Fix: single transaction (RPC) + dedup (unique
+   `src/server/persona.ts:31-39`. Fix: single transaction (RPC) + dedup (unique
    constraint or upsert on normalized handle per profile).
 
 ---
 
-## 5. Next developments (pick one; brainstorm first)
+## 6. Next developments (pick one; brainstorm first)
 
-Per the larger vision (a strategic content + engagement engine), remaining spines:
-
-- **Reply/engagement cues at scale** — rewire the existing v0 board/targeting to
-  the subscription `generate()`; surface a daily queue of seed-account posts worth
-  replying to, with drafted replies. (Highest growth ROI: replies = reach,
-  originals = conversion.)
+- **Wire x-growth skills into `buildAlgorithmRulesBlock(format)`** — 10 skills
+  are complete in the vault. Plug format-specific rules (reach thresholds, CTA
+  placement, thread length) into every draft + reply call. Run `/x-strategist`
+  on @FCisco95 first to get account config that tunes the skills to real voice.
+- **Fix Codex adversarial findings** (§5 above) — posting.ts correctness issues.
 - **Account-research planner** — turn onboarding's proposed seed accounts into an
   ongoing "who to engage + why + a plan" view.
-- **Metrics + strategy loop** — store engagements/reach (Apify free tier or manual
-  entry, since Claude can't read X analytics) and surface "you've hit topic X 3×,
-  reach Y — try Z."
+- **Metrics + strategy loop** — store engagements/reach (manual entry or Apify
+  free tier) and surface "you've hit topic X 3×, reach Y — try Z."
 - **Polish** — prefill the saved `voice_spec` back into the onboarding wizard for
-  editing (wizard currently resets on reload; `getPersona` exists but isn't wired
-  to the wizard `defaults`); a "regenerate angle" button.
-
-Strategy guidance: lead with replies (reach), keep originals high-quality +
-niche-anchored (not generic trend-chasing), keep human approval before posting.
-
----
-
-## 6. Still blocked on the owner (from v0)
-
-- **v0 deploy** — owner provisions a fresh free Supabase + Vercel account
-  (separate from Organic). Turnkey runbook in
-  `docs/handoffs/HANDOFF-v0-phase1.md` (if migrated) or the vault archive. Note:
-  the deployed Vercel path can't use subscription generation; deploying the
-  *engagement engine* would require paid API or keeping generation local. Decide
-  the deployment story when revisiting.
+  editing (`getPersona` exists but isn't wired to wizard `defaults`).
 
 ---
 
@@ -148,14 +147,12 @@ niche-anchored (not generic trend-chasing), keep human approval before posting.
 
 - `npm test` requires local Supabase running (`rls.test.ts` integration test).
 - `postTweetViaAdsPower` (Phase 1) is still live-only/untested (needs AdsPower install).
-- Old `src/components/composer.tsx` (topic-based) is now unused (replaced by
-  angle-composer) — left in place; safe to delete later.
+- Old `src/components/composer.tsx` (topic-based) and `src/components/angle-composer.tsx`
+  are now unused — left in place; safe to delete later.
 - Each web-research `generate` call takes ~50-90s; onboarding/angle steps are
   intentionally slow. The 120s runner timeout is tight for slow research — watch it.
-- Anthropic prompt-cache (v0 drafting) is moot now that drafting goes through `claude -p`.
+- `buildAlgorithmRulesBlock` is a stub returning `""` — placeholder for x-growth skills.
 
 ---
 
-*Provenance: this canonical doc was seeded 2026-05-27 from the session snapshot
-`docs/handoffs/2026-05-27-engagement-engine-spine1.md` (originally written to the
-Obsidian vault before handoffs were moved in-repo).*
+*Provenance: updated 2026-05-28 after Spine 2 (Content Intelligence Agent) completion.*
