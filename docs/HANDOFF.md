@@ -18,12 +18,22 @@ Content Intelligence Agent — on top of Spine 1. The `/compose` page now genera
 `/engage` page surfaces daily reply opportunities from seed accounts with drafted
 replies ready to copy.
 
-**Next session:** wire in x-growth skills to `buildAlgorithmRulesBlock()`, or
-fix the 3 remaining Codex adversarial findings (§4), or run `/x-strategist` on
-@FCisco95 to get the x-growth skills tuned to real voice + targets.
+> **▶ DO THIS NEXT (set 2026-05-28, resume after midnight limit reset):**
+> We're pivoting dispatchAI into a **ViewCreator.ai-style multi-channel content
+> cockpit** (no login, one-click tile grid, post quality voice-consistent content
+> to every social on fresh data). The brainstorm is PAUSED mid-design.
+> 1. Run the saved research workflow:
+>    `Workflow({ scriptPath: "docs/superpowers/workflows/viewcreator-research.workflow.js" })`
+> 2. Read **`docs/superpowers/notes/2026-05-28-viewcreator-cockpit-brainstorm.md`**
+>    for the locked decisions, then continue the brainstorm (decompose the
+>    multi-channel scope → design the first sub-project: no-login cockpit + X end-to-end).
 
-**Suggested skills next session:** `superpowers:subagent-driven-development`,
-`/codex:adversarial-review --base 2f534ae` (re-run after posting.ts fixes).
+**Older next-session options (now secondary):** wire in x-growth skills to
+`buildAlgorithmRulesBlock()`, fix the 3 remaining Codex adversarial findings (§4),
+or run `/x-strategist` on @FCisco95.
+
+**Suggested skills next session:** `superpowers:brainstorming` (resume), then
+`superpowers:writing-plans`. Also `superpowers:subagent-driven-development`.
 
 ---
 
