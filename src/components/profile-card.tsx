@@ -16,15 +16,11 @@ export async function ProfileCard({ profile }: { profile: { id: string; handle: 
   return (
     <Card>
       <CardHeader className="border-b">
-        <div className="flex items-center gap-3">
-          <BrandAvatar name={profile.handle} size="md" />
-          <div className="min-w-0">
-            <CardTitle>{profile.handle}</CardTitle>
-            {profile.niche_description && (
-              <CardDescription className="truncate">{profile.niche_description}</CardDescription>
-            )}
-          </div>
-        </div>
+        <BrandAvatar name={profile.handle} size="md" className="row-span-2 self-center" />
+        <CardTitle>{profile.handle}</CardTitle>
+        {profile.niche_description && (
+          <CardDescription className="truncate">{profile.niche_description}</CardDescription>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-4">
         <form

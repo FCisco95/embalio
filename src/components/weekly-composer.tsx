@@ -113,10 +113,11 @@ export function WeeklyComposer({ profiles }: { profiles: { id: string; handle: s
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm text-muted-foreground">
+        <label htmlFor="journal" className="text-sm text-muted-foreground">
           What are you working on this week? (optional)
         </label>
         <Textarea
+          id="journal"
           rows={3}
           placeholder="shipped X, broke Y, noticed Z while building..."
           value={journal}

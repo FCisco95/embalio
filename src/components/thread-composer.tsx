@@ -49,7 +49,6 @@ function TweetCard({ tweet, type, idx }: { tweet: string; type: string; idx: num
       </CardHeader>
       <CardContent className="flex flex-col gap-3 pt-4">
         <Textarea
-          rows={Math.max(2, Math.ceil(body.length / 60))}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           className="font-mono text-[14px]"
@@ -114,9 +113,9 @@ export function ThreadComposer({ profiles }: { profiles: { id: string; handle: s
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm text-muted-foreground">Thread topic or idea</label>
+        <label htmlFor="thread-topic" className="text-sm text-muted-foreground">Thread topic or idea</label>
         <Textarea
-          rows={2}
+          id="thread-topic"
           placeholder="What you want to thread about — a finding, experiment, workflow, contrarian take…"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
