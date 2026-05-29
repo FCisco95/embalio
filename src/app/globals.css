@@ -157,6 +157,13 @@
     box-shadow: var(--shadow-elev);
   }
 
+  /* Dropdown / popover rise+fade entry (account switcher, menus) */
+  .dx-pop { animation: dx-pop 0.14s ease; }
+  @keyframes dx-pop {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
   /* Active nav left-bar indicator */
   .nav-active-bar::before {
     content: '';

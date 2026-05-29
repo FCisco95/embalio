@@ -6,7 +6,10 @@ import { PageShell } from "@/components/shell/page-shell";
 export default async function ProfilesPage() {
   const profiles = await listProfiles();
   return (
-    <PageShell title="Voice">
+    <PageShell
+      title="Brand Voice"
+      subtitle="Your voice spec, guardrails, and seed accounts."
+    >
       <div className="space-y-10 max-w-2xl">
         <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground mb-3">

@@ -50,7 +50,10 @@ export default async function PerformancePage({
   const weeklyData = DAY_LABELS.map((label, i) => ({ label, value: dayCounts[i] }));
 
   return (
-    <PageShell title="Performance">
+    <PageShell
+      title="Reach"
+      subtitle="Per-post performance across your connected platforms."
+    >
       <div className="space-y-6">
         {/* Profile filter */}
         <div className="flex gap-1 p-1 bg-surface-2 rounded-full w-fit">

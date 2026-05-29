@@ -5,10 +5,10 @@ import { PageShell } from "@/components/shell/page-shell";
 export default async function BoardPage() {
   const profiles = (await listProfiles()) ?? [];
   return (
-    <PageShell title="Board">
-      <p className="text-[13px] text-muted-foreground mb-4">
-        X accounts ranked by growth impact — who to follow and engage with today.
-      </p>
+    <PageShell
+      title="Targeting board"
+      subtitle="X accounts ranked by growth impact — who to follow and engage with today."
+    >
       <TargetBoardPanel profiles={profiles} />
     </PageShell>
   );
