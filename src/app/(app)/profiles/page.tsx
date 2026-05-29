@@ -7,15 +7,21 @@ export default async function ProfilesPage() {
   const profiles = await listProfiles();
   return (
     <PageShell title="Voice">
-      <div className="space-y-8">
+      <div className="space-y-10 max-w-2xl">
         <section>
-          <h2 className="text-base font-semibold mb-3">New profile</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground mb-3">
+            New profile
+          </p>
           <ProfileForm />
         </section>
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Your profiles</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground mb-3">
+            Your profiles
+          </p>
           {(profiles ?? []).map((p) => <ProfileCard key={p.id} profile={p} />)}
-          {(profiles ?? []).length === 0 && <p className="text-muted-foreground">No profiles yet — create one above.</p>}
+          {(profiles ?? []).length === 0 && (
+            <p className="text-[13px] text-muted-foreground">No profiles yet — create one above.</p>
+          )}
         </section>
       </div>
     </PageShell>
