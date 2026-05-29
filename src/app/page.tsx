@@ -3,8 +3,6 @@ import { CockpitTile } from "@/components/cockpit/cockpit-tile"
 import { ResearchTile } from "@/components/cockpit/research-tile"
 import { getWeeklyBriefing, runWeeklyBriefing, type Briefing } from "@/server/briefing"
 
-const TODAY = new Date().toISOString().split("T")[0]
-
 const NAV_TILES = [
   {
     emoji: "💬",
@@ -43,18 +41,20 @@ const NAV_TILES = [
   },
 ]
 
-async function runResearch(): Promise<{ ok: boolean; briefing?: Briefing; error?: string }> {
-  "use server"
-  try {
-    const briefing = await runWeeklyBriefing(TODAY)
-    return { ok: true, briefing }
-  } catch (err) {
-    return { ok: false, error: (err as Error).message }
-  }
-}
-
 export default async function HomePage() {
-  const briefing = await getWeeklyBriefing(TODAY)
+  const today = new Date().toISOString().split("T")[0]
+
+  async function runResearch(): Promise<{ ok: boolean; briefing?: Briefing; error?: string }> {
+    "use server"
+    try {
+      const briefing = await runWeeklyBriefing(today)
+      return { ok: true, briefing }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  }
+
+  const briefing = await getWeeklyBriefing(today)
 
   return (
     <PageShell title="Cockpit" padded={false}>

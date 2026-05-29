@@ -317,6 +317,36 @@ export type Database = {
         }
         Relationships: []
       }
+      research_briefings: {
+        Row: {
+          id: string
+          profile_id: string
+          date: string
+          summary: string
+          topics: Json
+          raw_data: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          date: string
+          summary?: string
+          topics?: Json
+          raw_data?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          date?: string
+          summary?: string
+          topics?: Json
+          raw_data?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       seed_targets: {
         Row: {
           active: boolean
