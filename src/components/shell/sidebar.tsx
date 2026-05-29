@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BrandAvatar } from "@/components/ui/brand-avatar"
 
 const NAV = [
   { href: "/",            icon: Home,      label: "Home"        },
@@ -61,12 +62,7 @@ export function Sidebar() {
       {/* Brand chip footer */}
       <div className="border-t border-border p-3 shrink-0">
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-secondary">
-          <div
-            className="size-7 rounded-md flex items-center justify-center shrink-0 text-[11px] font-bold text-primary-foreground"
-            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-          >
-            F
-          </div>
+          <BrandAvatar name="fcisco95" size="sm" />
           <div className="flex flex-col min-w-0">
             <span className="text-[12.5px] font-semibold truncate">fcisco95</span>
             <span className="text-[11px] text-muted-foreground truncate">@fcisco95</span>
