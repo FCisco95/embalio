@@ -44,7 +44,7 @@ export function AreaChart({ data, height = 180, className }: AreaChartProps) {
 
   const gridLines = [0.25, 0.5, 0.75].map((t) => padT + innerH * (1 - t))
 
-  const xLabels = [0, Math.floor(data.length / 2), data.length - 1]
+  const xLabels = [...new Set([0, Math.floor(data.length / 2), data.length - 1])]
 
   function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect()

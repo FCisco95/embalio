@@ -134,6 +134,7 @@ export default async function PerformancePage({
                       <a
                         href={p.tweet_url}
                         target="_blank"
+                        rel="noopener noreferrer"
                         className="underline underline-offset-2 text-brand-text truncate block"
                       >
                         {p.drafts?.body ?? p.tweet_url}
