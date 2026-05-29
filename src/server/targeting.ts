@@ -80,3 +80,4 @@ export async function refreshTargetsForProfile(profileId: string): Promise<numbe
   }
   return ranked.length;
 }
+

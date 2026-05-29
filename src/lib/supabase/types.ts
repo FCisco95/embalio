@@ -281,8 +281,10 @@ export type Database = {
           handle: string
           id: string
           niche_description: string | null
+          north_star_metric: string | null
           onboarding_answers: Json
-          user_id: string
+          premium_account: boolean
+          user_id: string | null
           voice_corpus: string[]
           voice_notes: string | null
           voice_spec: string | null
@@ -295,8 +297,10 @@ export type Database = {
           handle: string
           id?: string
           niche_description?: string | null
+          north_star_metric?: string | null
           onboarding_answers?: Json
-          user_id?: string
+          premium_account?: boolean
+          user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
           voice_spec?: string | null
@@ -309,8 +313,10 @@ export type Database = {
           handle?: string
           id?: string
           niche_description?: string | null
+          north_star_metric?: string | null
           onboarding_answers?: Json
-          user_id?: string
+          premium_account?: boolean
+          user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
           voice_spec?: string | null

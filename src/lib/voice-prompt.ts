@@ -153,8 +153,104 @@ export function buildWeeklyDraftPrompt(
   ].filter(Boolean).join("\n\n");
 }
 
-export function buildAlgorithmRulesBlock(_format: string): string {
-  return "";
+const ALGORITHM_BASE = `2026 X algorithm rules (must be respected):
+- Replies > reposts > likes for distribution — write so people reply, not just like
+- Links in post body suppress reach — if you must cite a URL, put it in a reply-to-yourself
+- First line is the entire bet: passes the 3-second scroll test or the post dies
+- Out-of-network reach chain: saves → profile-clicks → follows; every "save-worthy" element matters
+- Specific numbers, tool names, and dates outperform vague claims in saves + shares
+- Never end with generic CTAs ("follow me", "share this"); end with a real question if at all`;
+
+const ALGORITHM_BY_FORMAT: Record<string, string> = {
+  "quick-take": `Format-specific: under 200 chars is ideal — no links, state the opinion, invite challenge.`,
+  "experiment": `Format-specific: metrics and concrete outcomes drive shares; include at least one number.`,
+  "tool-find": `Format-specific: put the repo URL in a reply, not the post body. Mention a specific capability, not just the name.`,
+  "observation": `Format-specific: end with a quotable one-liner — this is what gets saved and screenshot-shared.`,
+  "reaction": `Format-specific: use a screenshot/metric as the visual anchor if available; describe it in the suggestedVisual field.`,
+  "thread": `Format-specific: first tweet must work standalone — never "a thread:" opener. Saves on tweet 1 are the distribution mechanism.`,
+  "reply": `Format-specific: standalone value beats agreement — add a fact the original post didn't have or it's noise.`,
+};
+
+export function buildAlgorithmRulesBlock(format: string): string {
+  const specific = ALGORITHM_BY_FORMAT[format] ?? "";
+  return [ALGORITHM_BASE, specific].filter(Boolean).join("\n");
+}
+
+export function buildAlgorithmReplyRulesBlock(): string {
+  return [ALGORITHM_BASE, ALGORITHM_BY_FORMAT["reply"]].join("\n");
+}
+
+export function buildThreadPrompt(voiceSystem: string, topic: string, algorithmRules: string): string {
+  return [
+    voiceSystem,
+    `Draft a Twitter thread on this topic: "${topic}"`,
+    `Thread rules:`,
+    `- 5-8 tweets total. If the content is genuinely thin (can be said in one tweet), set thin=true and give a single-tweet alternative in thin_suggestion.`,
+    `- Tweet 1 (type "hook"): works as a standalone tweet. NO "a thread:" or 🧵 opener. The first tweet is the only one most people see — make it the full payoff, not a teaser.`,
+    `- Body tweets (type "body"): one idea per tweet. Specific and concrete. Name the tool, the number, the date.`,
+    `- Final tweet (type "cta"): a genuine question or invitation. Not "follow me for more".`,
+    `- Capitalization: capitalize first word + proper nouns only. No hashtags.`,
+    `- Anti-AI-tell: no em dashes, no "delve", "game-changer", "revolutionary". Sound like a builder texting a peer.`,
+    algorithmRules,
+    `Return exactly this JSON:`,
+    `{"tweets": [{"tweet": "...", "type": "hook"|"body"|"cta"}], "thin": false, "thin_suggestion": null}`,
+  ].filter(Boolean).join("\n\n");
+}
+
+export function buildTrendRadarPrompt(pillars: string[], date: string): string {
+  return [
+    `Search X/Twitter, tech news, and GitHub for concrete trends relevant to these content pillars: ${pillars.join(", ")}.`,
+    `Today is ${date}. Focus on signal from the last 48 hours only — skip evergreen topics.`,
+    `Find 2-3 real, specific trends. Each must have a "why_now": what actually changed this week (a release, an announcement, a spike in discussion).`,
+    `For each trend propose one concrete post angle — a specific thing a builder in this space could say from their own experience.`,
+    `Avoid generic noise ("AI is growing", "crypto is volatile"). Only surface things that would make someone say "I need to post about this today".`,
+    `Return exactly this JSON:`,
+    `{"trends": [{"topic": "...", "why_now": "...", "angle": "...", "source": "https://... (optional)"}], "generatedAt": "${date}"}`,
+  ].join("\n");
+}
+
+export function buildTargetFinderPrompt(
+  seedHandles: string[],
+  pillars: string[],
+  northStarMetric: string | null,
+  date: string
+): string {
+  return [
+    `Today is ${date}. I want to grow my X/Twitter account in these niches: ${pillars.join(", ")}.`,
+    northStarMetric ? `North-star metric: ${northStarMetric}` : "",
+    seedHandles.length > 0
+      ? `My current seed accounts: ${seedHandles.slice(0, 20).join(", ")}`
+      : "I don't have seed accounts yet.",
+    `Find 5-10 X/Twitter accounts I should prioritize engaging with right now. These should be:`,
+    `- Active in my niche (posting regularly, getting real engagement)`,
+    `- A mix of: larger accounts (10k+) I can add signal to, and peers (1k-10k) I can build relationships with`,
+    `- NOT already in my seed list above`,
+    `- Real accounts (no bots, no spam)`,
+    `For each, explain why engaging with them helps my specific north-star metric, and suggest a concrete approach (type of reply, what kind of value to add).`,
+    `Rank by expected impact: "high" = direct path to my north-star, "medium" = indirect, "low" = brand-building only.`,
+    `Return exactly this JSON:`,
+    `{"targets": [{"handle": "@handle", "reason": "...", "priority": "high"|"medium"|"low", "suggested_approach": "..."}], "generatedAt": "${date}"}`,
+  ].filter(Boolean).join("\n");
+}
+
+export function buildBreakoutPrompt(draft: string): string {
+  return [
+    `Score this X/Twitter post for out-of-network breakout potential on a 1-7 scale.`,
+    `2026 X algorithm breakout criteria:`,
+    `- Hook (first line): stops the scroll in 3 seconds, or the post is invisible`,
+    `- Save-worthiness: specific enough to bookmark — numbers, tool names, contrarian takes, quotable one-liners`,
+    `- Links in post body: -2 penalty (suppressed by algo); links belong in replies`,
+    `- Specificity: names + numbers outperform generalities for shares`,
+    `- Reply-bait: ends with a real question or claim that invites push-back`,
+    `Score rubric:`,
+    `1-2: Generic noise — would not stop a scroll, no reason to save`,
+    `3-4: In-network only — your followers see it, nobody else`,
+    `5-6: Breakout candidate — hook is arresting, content is specific enough to share`,
+    `7: High-confidence breakout — hook + save-worthy + reply-bait all firing`,
+    `Post to score:\n"""\n${draft}\n"""`,
+    `Return exactly this JSON:`,
+    `{"score": 5, "verdict": "one sentence", "hook_strength": "strong"|"medium"|"weak", "fixes": ["specific fix 1", "specific fix 2"]}`,
+  ].join("\n");
 }
 
 export function buildSeedScanPrompt(handles: string[], date: string): string {

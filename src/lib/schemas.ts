@@ -88,3 +88,49 @@ export const ReplyQueue = z.object({
   opportunities: z.array(ReplyOpportunity).min(0).max(5),
 });
 export type ReplyQueue = z.infer<typeof ReplyQueue>;
+
+export const ThreadTweet = z.object({
+  tweet: z.string().min(1).max(280),
+  type: z.enum(["hook", "body", "cta"]).default("body"),
+});
+export const ThreadDraft = z.object({
+  tweets: z.array(ThreadTweet).min(1).max(8),
+  thin: z.boolean().default(false),
+  thin_suggestion: z.string().nullable().optional(),
+});
+export type ThreadTweet = z.infer<typeof ThreadTweet>;
+export type ThreadDraft = z.infer<typeof ThreadDraft>;
+
+export const Trend = z.object({
+  topic: z.string(),
+  why_now: z.string(),
+  angle: z.string(),
+  source: z.string().optional(),
+});
+export const TrendReport = z.object({
+  trends: z.array(Trend).min(1).max(5),
+  generatedAt: z.string(),
+});
+export type Trend = z.infer<typeof Trend>;
+export type TrendReport = z.infer<typeof TrendReport>;
+
+export const EngagementTarget = z.object({
+  handle: z.string(),
+  reason: z.string(),
+  priority: z.enum(["high", "medium", "low"]),
+  suggested_approach: z.string(),
+});
+export const TargetQueue = z.object({
+  targets: z.array(EngagementTarget).min(0).max(10),
+  generatedAt: z.string(),
+});
+export type EngagementTarget = z.infer<typeof EngagementTarget>;
+export type TargetQueue = z.infer<typeof TargetQueue>;
+
+export const BreakoutScore = z.object({
+  score: z.number().min(1).max(7),
+  verdict: z.string(),
+  hook_strength: z.enum(["strong", "medium", "weak"]),
+  fixes: z.array(z.string()).default([]),
+});
+export type BreakoutScore = z.infer<typeof BreakoutScore>;

@@ -8,6 +8,7 @@ import type { Json } from "@/lib/supabase/types";
 
 export interface InterviewAnswers {
   niche: string; goals: string; tone: string; doDont?: string; admired?: string;
+  northStarMetric?: string; premiumAccount?: boolean;
 }
 
 // Research + synthesize the persona (web tools enabled for seed-account suggestions).
@@ -26,6 +27,7 @@ export async function getPersona(profileId: string) {
 
 export async function savePersona(profileId: string, input: {
   voiceSpec: string; goals: string; contentPillars: string[]; answers: InterviewAnswers; seedAccounts: string[];
+  northStarMetric?: string; premiumAccount?: boolean;
 }) {
   // Normalize handles (lowercase, strip @) and deduplicate before sending to the
   // save_persona RPC which atomically updates the profile + upserts seed_targets.
@@ -47,5 +49,14 @@ export async function savePersona(profileId: string, input: {
     p_seed_handles: seedHandles,
   });
   if (error) throw new Error(error.message);
+
+  if (input.northStarMetric !== undefined || input.premiumAccount !== undefined) {
+    const sb2 = await supabaseServer();
+    await sb2.from("profiles").update({
+      ...(input.northStarMetric !== undefined ? { north_star_metric: input.northStarMetric } : {}),
+      ...(input.premiumAccount !== undefined ? { premium_account: input.premiumAccount } : {}),
+    }).eq("id", profileId);
+  }
+
   revalidatePath("/profiles");
 }

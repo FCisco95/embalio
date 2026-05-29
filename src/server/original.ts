@@ -1,8 +1,8 @@
 "use server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { generateStructured, generateText } from "@/lib/generate";
-import { AngleList, OriginalDraft, type Angle, WeeklyAngleList, WeeklyPost, WeeklyPostPlan } from "@/lib/schemas";
-import { buildAnglesPrompt, buildOriginalFromAnglePrompt, buildVoiceSystemFromSpec, buildCiscoContextBlock, buildWorldResearchPrompt, buildCrossRefSynthesisPrompt, buildWeeklyDraftPrompt, buildAlgorithmRulesBlock } from "@/lib/voice-prompt";
+import { AngleList, OriginalDraft, type Angle, WeeklyAngleList, WeeklyPost, WeeklyPostPlan, ThreadDraft, BreakoutScore } from "@/lib/schemas";
+import { buildAnglesPrompt, buildOriginalFromAnglePrompt, buildVoiceSystemFromSpec, buildCiscoContextBlock, buildWorldResearchPrompt, buildCrossRefSynthesisPrompt, buildWeeklyDraftPrompt, buildAlgorithmRulesBlock, buildThreadPrompt, buildBreakoutPrompt } from "@/lib/voice-prompt";
 import { readHandoff } from "@/lib/handoff-reader";
 import { revalidatePath } from "next/cache";
 
@@ -97,4 +97,20 @@ export async function generateWeeklyPosts(profileId: string, journalEntry?: stri
 
   revalidatePath("/compose");
   return { weekOf: date, posts };
+}
+
+export async function generateThread(profileId: string, topic: string): Promise<ThreadDraft> {
+  const sb = await supabaseServer();
+  const { data: profile, error } = await sb.from("profiles").select("handle, voice_spec").eq("id", profileId).single();
+  if (error || !profile) throw new Error("profile not found");
+  const voiceSystem = buildVoiceSystemFromSpec({ handle: profile.handle, voice_spec: profile.voice_spec });
+  const r = await generateStructured(ThreadDraft, buildThreadPrompt(voiceSystem, topic, buildAlgorithmRulesBlock("thread")));
+  if (!r.data) throw new Error("could not draft thread — try again");
+  return r.data;
+}
+
+export async function scoreDraftBreakout(draft: string): Promise<BreakoutScore> {
+  const r = await generateStructured(BreakoutScore, buildBreakoutPrompt(draft));
+  if (!r.data) throw new Error("could not score draft — try again");
+  return r.data;
 }

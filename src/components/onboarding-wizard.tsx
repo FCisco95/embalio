@@ -12,6 +12,7 @@ export function OnboardingWizard({ profileId, defaults }: { profileId: string; d
   const [a, setA] = useState<InterviewAnswers>({
     niche: defaults?.niche ?? "AI, agentic & generative AI, new features, GitHub repos, building as a dev",
     goals: defaults?.goals ?? "", tone: defaults?.tone ?? "", doDont: "", admired: "",
+    northStarMetric: defaults?.northStarMetric ?? "", premiumAccount: defaults?.premiumAccount ?? false,
   });
   const [synth, setSynth] = useState<Synth | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,6 +29,7 @@ export function OnboardingWizard({ profileId, defaults }: { profileId: string; d
       await savePersona(profileId, {
         voiceSpec: synth.voiceSpec, goals: a.goals, contentPillars: synth.contentPillars,
         answers: a, seedAccounts: synth.seedAccounts,
+        northStarMetric: a.northStarMetric, premiumAccount: a.premiumAccount,
       });
       toast.success("Persona saved");
     } catch (e) { toast.error(String(e)); }
@@ -41,6 +43,11 @@ export function OnboardingWizard({ profileId, defaults }: { profileId: string; d
       <Input placeholder="Tone/style (e.g. lowercase, punchy, technical)" value={a.tone} onChange={upd("tone")} />
       <Input placeholder="Do's / Don'ts (optional)" value={a.doDont ?? ""} onChange={upd("doDont")} />
       <Input placeholder="Accounts you admire (optional)" value={a.admired ?? ""} onChange={upd("admired")} />
+      <Input placeholder="North-star metric (e.g. 1k followers in 90 days, 50 replies/week)" value={a.northStarMetric ?? ""} onChange={upd("northStarMetric")} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={a.premiumAccount ?? false} onChange={(e) => setA({ ...a, premiumAccount: e.target.checked })} />
+        X Premium account
+      </label>
       <Button disabled={busy} onClick={research}>{busy ? "Researching…" : "Draft my voice + plan"}</Button>
       {synth && (
         <div className="space-y-2 pt-2">
