@@ -25,3 +25,6 @@ export function supabaseService() {
     { auth: { persistSession: false } },
   );
 }
+
+/** Convenience alias — use in all app pages (local-only, service-role). */
+export const supabaseApp = supabaseService
