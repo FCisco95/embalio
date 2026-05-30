@@ -25,6 +25,13 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Bypass the DB-backed cache: invoke the research callback and return its payload.
+vi.mock("@/server/briefing", () => ({
+  runWeeklyBriefing: vi.fn(async (_date: string, research: () => Promise<unknown>) => ({
+    raw_data: await research(),
+  })),
+}));
+
 import { generateStructured, generateText } from "@/lib/generate";
 import { proposeAnglesForPillars, draftFromAngle, generateWeeklyPosts } from "@/server/original";
 

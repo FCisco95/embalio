@@ -4,6 +4,7 @@ import { generateStructured, generateText } from "@/lib/generate";
 import { AngleList, OriginalDraft, type Angle, WeeklyAngleList, WeeklyPost, WeeklyPostPlan, ThreadDraft, BreakoutScore } from "@/lib/schemas";
 import { buildAnglesPrompt, buildOriginalFromAnglePrompt, buildVoiceSystemFromSpec, buildCiscoContextBlock, buildWorldResearchPrompt, buildCrossRefSynthesisPrompt, buildWeeklyDraftPrompt, buildAlgorithmRulesBlock, buildThreadPrompt, buildBreakoutPrompt } from "@/lib/voice-prompt";
 import { readHandoff } from "@/lib/handoff-reader";
+import { runWeeklyBriefing, type ResearchData } from "@/server/briefing";
 import { revalidatePath } from "next/cache";
 
 export async function proposeAnglesForPillars(pillars: string[]): Promise<Angle[]> {
@@ -52,7 +53,9 @@ export async function generateWeeklyPosts(profileId: string, journalEntry?: stri
   if (error || !profile) throw new Error("profile not found");
 
   const handoffText = await readHandoff();
-  const date = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const now = new Date();
+  const isoDate = now.toISOString().slice(0, 10); // cache key: one briefing per day
+  const date = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const ciscoContext = buildCiscoContextBlock(
     { handle: profile.handle, voice_spec: profile.voice_spec, content_pillars: profile.content_pillars as string[] },
     handoffText,
@@ -60,12 +63,17 @@ export async function generateWeeklyPosts(profileId: string, journalEntry?: stri
   );
   const voiceSystem = buildVoiceSystemFromSpec({ handle: profile.handle, voice_spec: profile.voice_spec });
 
-  // Step 2: Parallel research
-  const [xTopics, github, news] = await Promise.all([
-    generateText(buildWorldResearchPrompt("x-topics", date), { research: true }),
-    generateText(buildWorldResearchPrompt("github", date), { research: true }),
-    generateText(buildWorldResearchPrompt("news", date), { research: true }),
-  ]);
+  // Step 2: Research — cached once per day. The three 120s web-research calls
+  // only fire on a cache miss; re-runs reuse the stored briefing.
+  const briefing = await runWeeklyBriefing(isoDate, async () => {
+    const [xTopics, github, news] = await Promise.all([
+      generateText(buildWorldResearchPrompt("x-topics", date), { research: true }),
+      generateText(buildWorldResearchPrompt("github", date), { research: true }),
+      generateText(buildWorldResearchPrompt("news", date), { research: true }),
+    ]);
+    return { xTopics, github, news };
+  }, profileId);
+  const { xTopics, github, news } = briefing.raw_data as ResearchData;
 
   // Step 3: Synthesis
   const synthesis = await generateStructured(
