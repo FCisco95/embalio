@@ -12,9 +12,13 @@ export async function GET(req: NextRequest) {
   const sb = supabaseService();
   const { data: profiles } = await sb.from("profiles").select("id");
   const results: Record<string, number> = {};
+  let failed = 0;
   for (const p of profiles ?? []) {
     try { results[p.id] = await refreshTargetsForProfile(p.id); }
-    catch (e) { results[p.id] = -1; console.error("targeting failed", p.id, e); }
+    catch (e) { results[p.id] = -1; failed++; console.error("targeting failed", p.id, e); }
   }
-  return NextResponse.json({ ok: true, results });
+  // Surface a total outage as 500 so the cron is visibly failing, not silently 200.
+  const total = Object.keys(results).length;
+  const allFailed = total > 0 && failed === total;
+  return NextResponse.json({ ok: !allFailed, results, failed }, { status: allFailed ? 500 : 200 });
 }

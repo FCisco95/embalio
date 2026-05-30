@@ -1,4 +1,5 @@
 import { ApifyClient } from "apify-client";
+import { withRetry } from "@/lib/retry";
 
 export type ApifyLike = Pick<ApifyClient, "actor" | "dataset">;
 
@@ -14,10 +15,16 @@ export function makeApify(): ApifyClient {
   return new ApifyClient({ token: process.env.APIFY_TOKEN! });
 }
 
+// Apify runs are network-bound and occasionally flake; retry transient failures.
 async function runActor(client: ApifyLike, actor: string, input: object): Promise<unknown[]> {
-  const run = await client.actor(actor).call(input);
-  const { items } = await client.dataset(run.defaultDatasetId).listItems();
-  return items;
+  return withRetry(
+    async () => {
+      const run = await client.actor(actor).call(input);
+      const { items } = await client.dataset(run.defaultDatasetId).listItems();
+      return items;
+    },
+    { retries: 2, baseMs: 500, onRetry: (err) => console.error(`apify actor ${actor} retry:`, err) },
+  );
 }
 
 export async function pullTweets(

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { withRetry } from "@/lib/retry";
 
 export interface RunnerOpts { research?: boolean }
 export type CliRunner = (args: string[], stdin: string, timeoutMs?: number) => Promise<string>;
@@ -12,7 +13,7 @@ export function buildClaudeArgs(opts: RunnerOpts): string[] {
   return args;
 }
 
-export const claudeCliRunner: CliRunner = (args, stdin, timeoutMs = DEFAULT_TIMEOUT_MS) =>
+const rawClaudeRun: CliRunner = (args, stdin, timeoutMs = DEFAULT_TIMEOUT_MS) =>
   new Promise((resolve, reject) => {
     // shell:true is required on Windows (the global `claude` is a .cmd shim;
     // Node 22 refuses to spawn .cmd directly). Prompt goes via stdin, not args,
@@ -36,4 +37,13 @@ export const claudeCliRunner: CliRunner = (args, stdin, timeoutMs = DEFAULT_TIME
     });
     child.stdin.write(stdin);
     child.stdin.end();
+  });
+
+// One retry on transient failure (timeout, non-zero exit, spawn error). Capped
+// at 2 attempts so 2×120s research calls stay under Vercel's 300s ceiling.
+export const claudeCliRunner: CliRunner = (args, stdin, timeoutMs) =>
+  withRetry(() => rawClaudeRun(args, stdin, timeoutMs), {
+    retries: 1,
+    baseMs: 1000,
+    onRetry: (err) => console.error("claude runner retry:", err),
   });
