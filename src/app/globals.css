@@ -94,7 +94,7 @@
   --sidebar-accent:             #f0f1f4;
   --sidebar-accent-foreground:  #14161c;
   --sidebar-border:             #e4e6ea;
-  --sidebar-ring:               #6366f1;
+  --sidebar-ring:               #be123c;
 }
 
 /* ── Dark theme ────────────────────────────────────────────────── */
@@ -133,7 +133,7 @@
   --sidebar-accent:             #181a23;
   --sidebar-accent-foreground:  #f0f1f5;
   --sidebar-border:             #24262f;
-  --sidebar-ring:               #6366f1;
+  --sidebar-ring:               #e11d48;
 }
 
 /* ── Dispatch utility classes ──────────────────────────────────── */
