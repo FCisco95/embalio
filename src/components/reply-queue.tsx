@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
+import { safeHref } from "@/lib/safe-url";
 
 function ReplyCard({ opp, profileId }: { opp: ReplyOpportunity; profileId: string }) {
   const [reply, setReply] = useState(opp.reply);
@@ -84,7 +85,7 @@ function ReplyCard({ opp, profileId }: { opp: ReplyOpportunity; profileId: strin
           )}
           {opp.targetUrl && (
             <a
-              href={opp.targetUrl}
+              href={safeHref(opp.targetUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className={buttonVariants({ size: "sm", variant: "outline" })}

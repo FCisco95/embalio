@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
+import { safeHref } from "@/lib/safe-url";
 import { SkeletonLine } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -99,7 +100,7 @@ function PostCard({ post, profileId }: { post: WeeklyPost; profileId: string }) 
           )}
           {post.source && (
             <a
-              href={post.source}
+              href={safeHref(post.source)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-brand-text underline underline-offset-2"
