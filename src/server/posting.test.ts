@@ -5,7 +5,7 @@ vi.mock("@/lib/supabase/server");
 vi.mock("@/lib/posting/x-poster");
 vi.mock("@/lib/posting/outcome");
 
-import { postDraft } from "@/server/posting";
+import { postDraft, approveDraft } from "@/server/posting";
 import { supabaseServer } from "@/lib/supabase/server";
 import { postTweetViaAdsPower } from "@/lib/posting/x-poster";
 import { isConfirmedTweetUrl } from "@/lib/posting/outcome";
@@ -81,6 +81,54 @@ function buildSb({
     }),
   };
 }
+
+describe("approval gate", () => {
+  beforeEach(() => {
+    mockPostTweet.mockResolvedValue({ url: CONFIRMED_URL });
+    mockIsConfirmed.mockReturnValue(true);
+  });
+
+  it("postDraft refuses a draft that has not been approved", async () => {
+    const sb = buildSb({ draftRow: { ...DRAFT, status: "draft" } });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow("must be approved");
+    // never reached AdsPower
+    expect(mockPostTweet).not.toHaveBeenCalled();
+  });
+
+  it("postDraft still refuses an already-posted draft (idempotency)", async () => {
+    const sb = buildSb({ draftRow: { ...DRAFT, status: "posted" } });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow("already posted");
+    expect(mockPostTweet).not.toHaveBeenCalled();
+  });
+
+  it("approveDraft sets status to 'approved'", async () => {
+    const updateSpy = vi.fn();
+    const counts: Record<string, number> = {};
+    const sb = {
+      from: vi.fn((table: string) => {
+        counts[table] = (counts[table] ?? 0) + 1;
+        if (table === "drafts" && counts[table] === 1) {
+          return node({ data: { id: "draft-1", status: "draft" }, error: null });
+        }
+        return { update: (values: any) => { updateSpy(values); return node({ error: null }); } };
+      }),
+    };
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(approveDraft("draft-1")).resolves.toEqual({ ok: true });
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "approved" }));
+  });
+
+  it("approveDraft refuses an already-posted draft", async () => {
+    const sb = buildSb({ draftRow: { id: "draft-1", status: "posted" } });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+    await expect(approveDraft("draft-1")).rejects.toThrow("already posted");
+  });
+});
 
 describe("postDraft — Fix 1: follow-up DB writes must be checked for errors", () => {
   beforeEach(() => {

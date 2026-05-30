@@ -30,6 +30,24 @@ export async function setPostingAccount(
   revalidatePath("/profiles");
 }
 
+export async function approveDraft(draftId: string) {
+  const sb = await supabaseServer();
+  // RLS-scoped: only the owner's draft is visible.
+  const { data: draft, error } = await sb
+    .from("drafts")
+    .select("id, status")
+    .eq("id", draftId)
+    .single();
+  if (error || !draft) throw new Error("draft not found");
+  if (draft.status === "posted") throw new Error("draft already posted");
+  const { error: updErr } = await sb
+    .from("drafts")
+    .update({ status: "approved" })
+    .eq("id", draftId);
+  if (updErr) throw new Error(updErr.message);
+  return { ok: true as const };
+}
+
 export async function postDraft(draftId: string) {
   const sb = await supabaseServer();
   // RLS-scoped: only the owner's draft is visible.
@@ -41,6 +59,9 @@ export async function postDraft(draftId: string) {
   if (error || !draft) throw new Error("draft not found");
   // Idempotency: never re-post a draft that already went out.
   if (draft.status === "posted") throw new Error("draft already posted");
+  // Human approval gate: injected/garbled content must be explicitly approved
+  // before it can reach X. A draft is only postable once approveDraft() ran.
+  if (draft.status !== "approved") throw new Error("draft must be approved before posting");
 
   const { data: account } = await sb
     .from("posting_accounts")
