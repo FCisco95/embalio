@@ -60,4 +60,4 @@ export function BrandAvatar({ name, size = "sm", gradient, initials, className }
 }
 
 /** The signature brand gradient used for the primary account avatar. */
-export const BRAND_GRADIENT = "linear-gradient(135deg,#6366f1,#a855f7)"
+export const BRAND_GRADIENT = "linear-gradient(135deg,#7f1d1d,#f43f5e)"
