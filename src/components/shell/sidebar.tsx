@@ -35,7 +35,7 @@ export function Sidebar({ collapsed = false, badges }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-[180ms] ease-out",
+        "flex h-screen shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-[180ms] ease-out",
         collapsed ? "w-[68px]" : "w-[236px]"
       )}
     >

@@ -15,7 +15,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
     <header
       className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between gap-3.5 border-b border-border px-[18px]"
       style={{
-        background: "color-mix(in oklch, var(--card) 75%, transparent)",
+        background: "var(--sidebar)",
         backdropFilter: "blur(12px)",
       }}
     >
