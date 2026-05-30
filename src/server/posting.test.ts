@@ -128,6 +128,14 @@ describe("approval gate", () => {
     vi.mocked(supabaseServer).mockResolvedValue(sb as any);
     await expect(approveDraft("draft-1")).rejects.toThrow("already posted");
   });
+
+  it("postDraft refuses an approved draft with an empty body", async () => {
+    const sb = buildSb({ draftRow: { ...DRAFT, status: "approved", body: "   " } });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow("empty");
+    expect(mockPostTweet).not.toHaveBeenCalled();
+  });
 });
 
 describe("postDraft — Fix 1: follow-up DB writes must be checked for errors", () => {

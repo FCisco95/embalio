@@ -62,6 +62,8 @@ export async function postDraft(draftId: string) {
   // Human approval gate: injected/garbled content must be explicitly approved
   // before it can reach X. A draft is only postable once approveDraft() ran.
   if (draft.status !== "approved") throw new Error("draft must be approved before posting");
+  // Never paste an empty body into the X composer.
+  if (!draft.body || !draft.body.trim()) throw new Error("draft body is empty");
 
   const { data: account } = await sb
     .from("posting_accounts")
