@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseService } from "@/lib/supabase/server";
-import { refreshTargetsForProfile } from "@/server/targeting";
+import { scanTargetsForProfile } from "@/server/targeting";
 
 export const maxDuration = 300;
 
@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   const results: Record<string, number> = {};
   let failed = 0;
   for (const p of profiles ?? []) {
-    try { results[p.id] = await refreshTargetsForProfile(p.id); }
+    // Scan only — drafting needs `claude` and runs locally, not on the cron.
+    try { results[p.id] = await scanTargetsForProfile(p.id); }
     catch (e) { results[p.id] = -1; failed++; console.error("targeting failed", p.id, e); }
   }
   // Surface a total outage as 500 so the cron is visibly failing, not silently 200.

@@ -30,8 +30,14 @@ export function rankCandidates(
   return scored.sort((a, b) => b.score_composite - a.score_composite).slice(0, topN);
 }
 
-// orchestration: pull → embed → rank → store candidates → draft replies for top N
-export async function refreshTargetsForProfile(profileId: string): Promise<number> {
+/**
+ * Scan + score: pull tweets → embed → rank → upsert top-N candidates.
+ *
+ * Cloud-safe — uses only Apify + OpenAI embeddings + pure scoring, no `claude`.
+ * This is the unattended cron path: surfaces fresh reply opportunities while the
+ * owner's machine is off. Returns the number of candidates surfaced.
+ */
+export async function scanTargetsForProfile(profileId: string): Promise<number> {
   const sb = supabaseService();
   const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
   if (!profile) return 0;
@@ -60,24 +66,48 @@ export async function refreshTargetsForProfile(profileId: string): Promise<numbe
     { onConflict: "profile_id,source_tweet_id", ignoreDuplicates: true },
   );
 
-  for (const c of ranked) {
-    const { data: cand } = await sb.from("candidates").select("id")
-      .eq("profile_id", profileId).eq("source_tweet_id", c.source_tweet_id).single();
-    if (!cand) continue;
-    const { count } = await sb.from("drafts").select("id", { count: "exact", head: true }).eq("candidate_id", cand.id);
+  return ranked.length;
+}
+
+/**
+ * Pre-draft replies for surfaced-but-undrafted candidates via `claude`.
+ *
+ * LOCAL-only — depends on `claude -p` and cannot run on Vercel. Generation lives
+ * here; the interactive reply queue (`generateReplyQueue`) is the richer on-demand
+ * path. Returns the number of new drafts written.
+ */
+export async function draftRepliesForProfile(profileId: string, limit = TOP_N): Promise<number> {
+  const sb = supabaseService();
+  const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
+  if (!profile) return 0;
+  const { data: cands } = await sb.from("candidates")
+    .select("id, tweet_text").eq("profile_id", profileId).eq("status", "surfaced")
+    .order("score_composite", { ascending: false }).limit(limit);
+
+  const voiceProfile = {
+    handle: profile.handle,
+    niche_description: profile.niche_description,
+    voice_corpus: profile.voice_corpus,
+    voice_notes: profile.voice_notes,
+  };
+  let drafted = 0;
+  for (const c of cands ?? []) {
+    const { count } = await sb.from("drafts").select("id", { count: "exact", head: true }).eq("candidate_id", c.id);
     if ((count ?? 0) > 0) continue;
-    const voiceProfile = {
-      handle: profile.handle,
-      niche_description: profile.niche_description,
-      voice_corpus: profile.voice_corpus,
-      voice_notes: profile.voice_notes,
-    };
     const d = await draftReply(voiceProfile, c.tweet_text);
     await sb.from("drafts").insert({
-      profile_id: profileId, kind: "reply", candidate_id: cand.id,
+      profile_id: profileId, kind: "reply", candidate_id: c.id,
       body: d.body, suggested_visual: d.suggestedVisual, model_used: d.model_used,
     });
+    drafted++;
   }
-  return ranked.length;
+  return drafted;
+}
+
+/** Local full run: scan for opportunities, then pre-draft replies for them. */
+export async function refreshTargetsForProfile(profileId: string): Promise<number> {
+  const surfaced = await scanTargetsForProfile(profileId);
+  if (surfaced > 0) await draftRepliesForProfile(profileId);
+  return surfaced;
 }
 
