@@ -1,7 +1,7 @@
 # Resonance — Handoff (canonical)
 
-**Last updated:** 2026-05-29
-**Branch:** `main` — 14 new commits (3be3c86..eb02439), **NOT YET PUSHED** to origin.
+**Last updated:** 2026-05-30
+**Branch:** `make-it-true` — "make it true" workstream commits on top of `main`.
 **Scope:** local, single-user "engagement engine".
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
@@ -12,26 +12,44 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ## TL;DR
 
-The **Dispatch design system** has been fully applied to the entire app at visual
-parity — all pages, all primitives, all shared components, plus three hand-rolled
-SVG charts. The app now looks and feels like the Dispatch prototype spec.
+**"Make it true" workstream:** the app was visually reskinned but displayed
+fabricated metrics and persisted nothing the user did. That gap is now closed.
+The dashboard derives every card from real DB rows with honest empty states, the
+Performance page lets you enter real per-post metrics, and the weekly composer +
+reply queue persist generated content into the sign-off queue on demand.
 
 > **▶ DO THIS NEXT:**
-> The 14 commits are on `main` locally but **not pushed**. Run:
-> ```bash
-> git push origin main
-> ```
-> Then optionally: verify visuals by running `npm run dev` and checking each page.
+> Verify the closed loop with real data: `npm run dev`, then
+> generate → **Save to queue** → **Mark posted** → enter metrics on
+> `/performance` → watch the dashboard fill in. Then merge `make-it-true`.
+
+**The closed loop now works end-to-end (no fabrication):**
+generate (weekly/reply) → Save to queue → pending count → Mark posted →
+Performance → enter real numbers → dashboard reach/top-post/strategy fill in.
 
 **Secondary next-session options:**
-- Wire `buildAlgorithmRulesBlock()` (in `src/lib/voice-prompt.ts`) — it's a stub
-  returning `""`, two tests fail because of this (pre-existing, not caused by us).
+- **Feed the board's free targets into the dashboard.** "Today's targets" reads
+  the `candidates` table, which only the Apify cron fills (can't run locally).
+  The free `claude-p` board path (`generateTargetQueue`) doesn't persist yet —
+  add a persistence step so the board's results surface on the dashboard.
+- **Apify stack** is kept (decision: keep & improve), but is non-functional
+  locally — crons need a deployed env. Improving it into a real pipeline is a
+  separate workstream.
 - Continue the ViewCreator.ai-style cockpit pivot brainstorm:
   `docs/superpowers/notes/2026-05-28-viewcreator-cockpit-brainstorm.md`
-- Fix the 3 remaining Codex adversarial findings from a prior session (§4 in old handoff).
 
-**Suggested skills next session:** `superpowers:brainstorming` if continuing the
-cockpit pivot, `handoff:handoff-memory` to reload context, or just push and verify.
+### "Make it true" — what changed (branch `make-it-true`)
+
+| Area | Change | Files |
+|------|--------|-------|
+| Pending count | Was filtering `status='pending'` (never written) → always 0. Now filters real unposted statuses (`draft`/`approved`). | `src/server/posts.ts` |
+| Metrics source | New `updatePostMetrics` (zod-validated `posts.metrics`; the single seam the X API swaps into later) + `saveDraftToQueue` + `PostMetrics` schema. | `posts.ts`, `lib/schemas.ts` |
+| Performance | Read-only table → inline `MetricsRow` editor (likes/reposts/replies/views → Save). | `performance/page.tsx`, `components/metrics-row.tsx` |
+| Dashboard | Dropped fake `REACH/STRATEGY/TOP_POST/TARGETS`. New `getDashboardData()` derives reach, top post, data-only strategy insight, and real candidates; honest empty states. `formatCount` → `lib/format`. | `page.tsx`, `server/dashboard.ts`, `lib/format.ts` |
+| New flows persist | Weekly composer + reply queue got "Save to queue" + "Mark posted". | `weekly-composer.tsx`, `reply-queue.tsx` |
+
+Build green; 128 tests pass (1 skipped). The 2 pre-existing failures from the
+prior handoff (`buildAlgorithmRulesBlock` stub) are resolved.
 
 ---
 
