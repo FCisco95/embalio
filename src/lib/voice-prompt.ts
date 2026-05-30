@@ -1,3 +1,5 @@
+import { frameUntrusted, sanitizeForPrompt, UNTRUSTED_DATA_NOTICE } from "@/lib/generate/sanitize";
+
 export interface VoiceProfile {
   handle: string;
   niche_description: string | null;
@@ -18,11 +20,11 @@ export function buildVoiceSystem(p: VoiceProfile): string {
 }
 
 export function buildReplyPrompt(targetTweet: string): string {
-  return `Write a reply to this tweet that adds genuine value (a take, a question, or data), in the account's voice:\n\n"""${targetTweet}"""\n\nAlso suggest one visual that would strengthen the reply (a recommendation or an image-generation prompt), or omit if none fits.`;
+  return `${UNTRUSTED_DATA_NOTICE}\n\nWrite a reply to the tweet below that adds genuine value (a take, a question, or data), in the account's voice:\n\n${frameUntrusted(targetTweet)}\n\nAlso suggest one visual that would strengthen the reply (a recommendation or an image-generation prompt), or omit if none fits.`;
 }
 
 export function buildOriginalPrompt(topic: string): string {
-  return `Write an original post about: ${topic}\n\nIn the account's voice. Also suggest one visual (recommendation or image prompt) that would strengthen it, or omit if none fits.`;
+  return `${UNTRUSTED_DATA_NOTICE}\n\nWrite an original post about the topic below:\n\n${frameUntrusted(topic, 1000)}\n\nIn the account's voice. Also suggest one visual (recommendation or image prompt) that would strengthen it, or omit if none fits.`;
 }
 
 import type { Angle } from "@/lib/schemas";
@@ -41,11 +43,11 @@ export function buildSynthesisPrompt(a: {
 }): string {
   return [
     `Synthesize a reusable X brand-voice spec from this onboarding interview.`,
-    `Niche: ${a.niche}`,
-    `Goals/audience: ${a.goals}`,
-    `Desired tone/style: ${a.tone}`,
-    a.doDont ? `Do/Don't: ${a.doDont}` : "",
-    a.admired ? `Admired accounts: ${a.admired}` : "",
+    `Niche: ${sanitizeForPrompt(a.niche, 1000)}`,
+    `Goals/audience: ${sanitizeForPrompt(a.goals, 1000)}`,
+    `Desired tone/style: ${sanitizeForPrompt(a.tone, 1000)}`,
+    a.doDont ? `Do/Don't: ${sanitizeForPrompt(a.doDont, 1000)}` : "",
+    a.admired ? `Admired accounts: ${sanitizeForPrompt(a.admired, 500)}` : "",
     `Produce a concrete voiceSpec (casing, length, emoji/hashtag policy, cadence of ideas, what to avoid),`,
     `content pillars, seed accounts (@handles worth engaging in this niche, researched), and 2-3 sample posts in the voice.`,
     `Return exactly this JSON shape, where every array is an array of PLAIN STRINGS (not objects):`,
@@ -55,7 +57,7 @@ export function buildSynthesisPrompt(a: {
 
 export function buildAnglesPrompt(pillars: string[]): string {
   return [
-    `Research the web for recent (last 7 days) developments across these niche pillars: ${pillars.join(", ")}.`,
+    `Research the web for recent (last 7 days) developments across these niche pillars: ${pillars.map((p) => sanitizeForPrompt(p, 200)).join(", ")}.`,
     `Propose 3-5 distinct post angles. "experiment" = suggest a concrete thing to test and post about.`,
     `Write hooks as plain, direct sentences. No em dashes (—). No colons as drama. No "discover", "dive into", "explore", "game-changer", or hype words. Sound like a dev texting a peer, not a newsletter subject line.`,
     `Return exactly this JSON shape:`,
@@ -68,8 +70,8 @@ export function buildOriginalFromAnglePrompt(voiceSystem: string, angle: Angle):
   return [
     voiceSystem,
     ``,
-    `Write an original X post for this angle (mode: ${angle.mode}): "${angle.hook}".`,
-    angle.source ? `Source: ${angle.source}` : "",
+    `Write an original X post for this angle (mode: ${angle.mode}): "${sanitizeForPrompt(angle.hook, 500)}".`,
+    angle.source ? `Source: ${sanitizeForPrompt(angle.source, 500)}` : "",
     `Informative and specific. No generic filler. 1 post, or 2-5 for a short thread only if it genuinely needs it; each <=280 chars.`,
     `Capitalization: capitalize the first word of each sentence and each new line. Keep everything else lowercase except proper nouns, model names, repo names, and acronyms.`,
     `Anti-AI-tell rules: no em dashes (—), no "delve", "dive into", "explore", "tapestry", "game-changer", "revolutionary", "it's worth noting", "in conclusion". No rhetorical questions as hooks. Write like a human dev texting a peer — concrete, no performance.`,
@@ -143,8 +145,8 @@ export function buildWeeklyDraftPrompt(
 ): string {
   return [
     voiceSystem,
-    `Write a post for this angle (format: ${angle.format}): "${angle.hook}"`,
-    angle.source ? `Source: ${angle.source}${angle.sourceDate ? ` (${angle.sourceDate})` : ""}` : "",
+    `Write a post for this angle (format: ${angle.format}): "${sanitizeForPrompt(angle.hook, 500)}"`,
+    angle.source ? `Source: ${sanitizeForPrompt(angle.source, 500)}${angle.sourceDate ? ` (${sanitizeForPrompt(angle.sourceDate, 100)})` : ""}` : "",
     FORMAT_INSTRUCTIONS[angle.format] ?? "",
     algorithmRules,
     `Anti-AI-tell rules: no em dashes (—), no "delve", "game-changer", "revolutionary", "it's worth noting", "in conclusion". No rhetorical questions as hooks. Write like a builder texting a peer.`,
@@ -183,7 +185,8 @@ export function buildAlgorithmReplyRulesBlock(): string {
 export function buildThreadPrompt(voiceSystem: string, topic: string, algorithmRules: string): string {
   return [
     voiceSystem,
-    `Draft a Twitter thread on this topic: "${topic}"`,
+    UNTRUSTED_DATA_NOTICE,
+    `Draft a Twitter thread on the topic below:\n${frameUntrusted(topic, 1000)}`,
     `Thread rules:`,
     `- 5-8 tweets total. If the content is genuinely thin (can be said in one tweet), set thin=true and give a single-tweet alternative in thin_suggestion.`,
     `- Tweet 1 (type "hook"): works as a standalone tweet. NO "a thread:" or 🧵 opener. The first tweet is the only one most people see — make it the full payoff, not a teaser.`,
@@ -199,7 +202,7 @@ export function buildThreadPrompt(voiceSystem: string, topic: string, algorithmR
 
 export function buildTrendRadarPrompt(pillars: string[], date: string): string {
   return [
-    `Search X/Twitter, tech news, and GitHub for concrete trends relevant to these content pillars: ${pillars.join(", ")}.`,
+    `Search X/Twitter, tech news, and GitHub for concrete trends relevant to these content pillars: ${pillars.map((p) => sanitizeForPrompt(p, 200)).join(", ")}.`,
     `Today is ${date}. Focus on signal from the last 48 hours only — skip evergreen topics.`,
     `Find 2-3 real, specific trends. Each must have a "why_now": what actually changed this week (a release, an announcement, a spike in discussion).`,
     `For each trend propose one concrete post angle — a specific thing a builder in this space could say from their own experience.`,
@@ -215,11 +218,13 @@ export function buildTargetFinderPrompt(
   northStarMetric: string | null,
   date: string
 ): string {
+  const safePillars = pillars.map((p) => sanitizeForPrompt(p, 200)).join(", ");
+  const safeHandles = seedHandles.slice(0, 20).map((h) => sanitizeForPrompt(h, 100)).join(", ");
   return [
-    `Today is ${date}. I want to grow my X/Twitter account in these niches: ${pillars.join(", ")}.`,
-    northStarMetric ? `North-star metric: ${northStarMetric}` : "",
+    `Today is ${date}. I want to grow my X/Twitter account in these niches: ${safePillars}.`,
+    northStarMetric ? `North-star metric: ${sanitizeForPrompt(northStarMetric, 300)}` : "",
     seedHandles.length > 0
-      ? `My current seed accounts: ${seedHandles.slice(0, 20).join(", ")}`
+      ? `My current seed accounts: ${safeHandles}`
       : "I don't have seed accounts yet.",
     `Find 5-10 X/Twitter accounts I should prioritize engaging with right now. These should be:`,
     `- Active in my niche (posting regularly, getting real engagement)`,
@@ -254,8 +259,9 @@ export function buildBreakoutPrompt(draft: string): string {
 }
 
 export function buildSeedScanPrompt(handles: string[], date: string): string {
+  const safeHandles = handles.map((h) => sanitizeForPrompt(h, 100));
   return [
-    `Search X/Twitter for recent posts from these accounts: ${handles.join(", ")}.`,
+    `Search X/Twitter for recent posts from these accounts: ${safeHandles.join(", ")}.`,
     `Today is ${date}. Only include posts from the last 24 hours — skip anything older.`,
     `For each post found, give: author handle, the post text, approximate like count, post date/time, and post URL if available.`,
     `Focus on posts that ask questions, make technical claims, share data, or make statements that a builder in AI/dev/crypto could add genuine technical information to.`,
@@ -267,7 +273,8 @@ export function buildReplyFilterPrompt(scannedPosts: string, ciscoContext: strin
   return [
     ciscoContext,
     `---`,
-    `Here are recent posts from seed accounts:\n${scannedPosts}`,
+    UNTRUSTED_DATA_NOTICE,
+    `Here are recent posts from seed accounts:\n${frameUntrusted(scannedPosts, 8000)}`,
     `---`,
     `Select 3-5 posts worth replying to. A post is worth replying to if:`,
     `1. This person has direct technical knowledge about the topic`,
@@ -286,7 +293,8 @@ export function buildReplyDraftPrompt(
 ): string {
   return [
     voiceSystem,
-    `Draft a reply to this post by ${opportunity.targetHandle}:\n"${opportunity.targetPost}"`,
+    UNTRUSTED_DATA_NOTICE,
+    `Draft a reply to this post by ${sanitizeForPrompt(opportunity.targetHandle, 100)}:\n${frameUntrusted(opportunity.targetPost)}`,
     `Reply rules:`,
     `- Start with the core technical fact. No "great question", no wind-up, no restating what they said.`,
     `- Second sentence explains the implication of that fact, or gives a contrast.`,
