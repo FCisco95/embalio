@@ -3,6 +3,7 @@ import {
   Plus,
   TrendingUp,
   ArrowUp,
+  ArrowDown,
   Eye,
   Sparkles,
   Zap,
@@ -25,29 +26,38 @@ import { ScorePill } from "@/components/ui/score-bar"
 import { AreaChart } from "@/components/charts/area-chart"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
-import {
-  REACH,
-  STRATEGY,
-  TOP_POST,
-  TARGETS,
-  formatCount,
-} from "@/lib/dashboard-seed"
+import { formatCount } from "@/lib/format"
 import { listProfiles } from "@/server/profiles"
 import { listPendingDrafts } from "@/server/posts"
+import { getDashboardData, type DashboardData } from "@/server/dashboard"
 
 const CARD = "rounded-xl border border-border bg-card"
+
+const EMPTY_DASHBOARD: DashboardData = {
+  reach: { total: 0, delta: null, series: [] },
+  topPost: null,
+  strategy: null,
+  targets: [],
+}
 
 export default async function DashboardPage() {
   let handle = BRAND.handle
   let pending: Awaited<ReturnType<typeof listPendingDrafts>> = []
+  let data: DashboardData = EMPTY_DASHBOARD
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
-    if (profile?.id) pending = await listPendingDrafts(profile.id)
+    if (profile?.id) {
+      pending = await listPendingDrafts(profile.id)
+      data = await getDashboardData(profile.id)
+    }
   } catch {
-    // Render with seed/fallback if the DB is unavailable.
+    // Render with empty states if the DB is unavailable.
   }
+
+  const { reach, topPost, strategy, targets } = data
+  const hasReach = reach.series.some((d) => d.y > 0)
 
   const hour = new Date().getHours()
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
@@ -89,20 +99,25 @@ export default async function DashboardPage() {
               </div>
               <div className="mt-2 flex flex-wrap items-baseline gap-3">
                 <div className="text-[40px] font-bold leading-none tracking-[-0.03em]">
-                  {formatCount(REACH.total)}
+                  {formatCount(reach.total)}
                 </div>
-                <Badge variant="good">
-                  <ArrowUp strokeWidth={2} />
-                  {REACH.delta}% WoW
-                </Badge>
+                {reach.delta !== null && (
+                  <Badge variant={reach.delta >= 0 ? "good" : "bad"}>
+                    {reach.delta >= 0 ? <ArrowUp strokeWidth={2} /> : <ArrowDown strokeWidth={2} />}
+                    {Math.abs(reach.delta)}% WoW
+                  </Badge>
+                )}
               </div>
             </div>
-            <Badge variant="accent">
-              <Eye strokeWidth={1.8} />
-              across {REACH.platforms} platforms
-            </Badge>
           </div>
-          <AreaChart data={REACH.series} height={150} />
+          {hasReach ? (
+            <AreaChart data={reach.series} height={150} />
+          ) : (
+            <div className="flex h-[150px] flex-col items-center justify-center gap-1 text-center text-[13px] text-muted-foreground">
+              <Eye className="size-5 opacity-60" strokeWidth={1.6} />
+              No reach yet — mark a post as posted and add its numbers to see this fill in.
+            </div>
+          )}
         </div>
 
         {/* Strategy of the week */}
@@ -124,13 +139,24 @@ export default async function DashboardPage() {
             <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-brand-text">
               Strategy of the week
             </span>
-            <Badge variant="accent" className="ml-auto">
-              <TrendingUp strokeWidth={1.8} />
-              {STRATEGY.lift}
-            </Badge>
+            {strategy?.lift && (
+              <Badge variant="accent" className="ml-auto">
+                <TrendingUp strokeWidth={1.8} />
+                {strategy.lift}
+              </Badge>
+            )}
           </div>
-          <h3 className="mb-2 text-[18px] font-bold tracking-[-0.01em]">{STRATEGY.title}</h3>
-          <p className="mb-4 text-[13.5px] leading-[1.55] text-muted-foreground">{STRATEGY.body}</p>
+          {strategy ? (
+            <>
+              <h3 className="mb-2 text-[18px] font-bold tracking-[-0.01em]">{strategy.title}</h3>
+              <p className="mb-4 text-[13.5px] leading-[1.55] text-muted-foreground">{strategy.body}</p>
+            </>
+          ) : (
+            <p className="mb-4 text-[13.5px] leading-[1.55] text-muted-foreground">
+              Once you&apos;ve posted a few originals and replies, this will surface what&apos;s
+              actually working for you — no guesses.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Link href="/compose" className={cn(buttonVariants({ size: "lg" }))}>
               <Zap className="size-4" strokeWidth={1.6} />
@@ -202,33 +228,44 @@ export default async function DashboardPage() {
               <Flame className="size-4 text-warning" strokeWidth={1.6} />
               Top post
             </div>
-            <Badge variant="warn">{TOP_POST.when}</Badge>
+            {topPost && <Badge variant="warn">{topPost.when}</Badge>}
           </div>
-          <div className="mb-3 flex gap-2.5">
-            <BrandAvatar name={BRAND.name} size={34} gradient={BRAND_GRADIENT} initials="C" />
-            <div>
-              <div className="flex items-center gap-1.5 text-[13px] font-semibold">
-                {BRAND.name}
-                <PlatformGlyph id={TOP_POST.platform} size={14} />
+          {topPost ? (
+            <>
+              <div className="mb-3 flex gap-2.5">
+                <BrandAvatar name={BRAND.name} size={34} gradient={BRAND_GRADIENT} initials="C" />
+                <div>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+                    {BRAND.name}
+                    <PlatformGlyph id="x" size={14} />
+                  </div>
+                  <div className="text-[12px] text-muted-foreground">{handle}</div>
+                </div>
               </div>
-              <div className="text-[12px] text-muted-foreground">{handle}</div>
+              <p className="mb-4 flex-1 text-[13.5px] leading-[1.55]">{topPost.body}</p>
+              <div className="flex items-center gap-[18px] border-t border-border pt-3.5">
+                {([
+                  [Heart, topPost.likes],
+                  [Repeat2, topPost.reposts],
+                  [Reply, topPost.replies],
+                  [Eye, topPost.views],
+                ] as const).map(([Icon, v], i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
+                    <Icon className="size-[14px]" strokeWidth={1.6} />
+                    {formatCount(v)}
+                  </div>
+                ))}
+                {topPost.er !== null && (
+                  <Badge variant="accent" className="ml-auto">{topPost.er}% ER</Badge>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 py-8 text-center text-[13px] text-muted-foreground">
+              <Flame className="size-5 opacity-60" strokeWidth={1.6} />
+              Your best-performing post will show up here.
             </div>
-          </div>
-          <p className="mb-4 flex-1 text-[13.5px] leading-[1.55]">{TOP_POST.text}</p>
-          <div className="flex items-center gap-[18px] border-t border-border pt-3.5">
-            {([
-              [Heart, TOP_POST.likes],
-              [Repeat2, TOP_POST.reposts],
-              [Reply, TOP_POST.replies],
-              [Eye, TOP_POST.views],
-            ] as const).map(([Icon, v], i) => (
-              <div key={i} className="flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
-                <Icon className="size-[14px]" strokeWidth={1.6} />
-                {formatCount(v)}
-              </div>
-            ))}
-            <Badge variant="accent" className="ml-auto">{TOP_POST.er}% ER</Badge>
-          </div>
+          )}
         </div>
 
         {/* Today's targets */}
@@ -242,28 +279,40 @@ export default async function DashboardPage() {
               Open board
             </Link>
           </div>
-          <div className="flex flex-col gap-1">
-            {TARGETS.map((t) => (
-              <Link
-                key={t.id}
-                href="/board"
-                className="flex items-center gap-2.5 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-surface-2"
-              >
-                <PersonAvatar handle={t.handle} size={32} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[12.5px] font-semibold">{t.author}</span>
-                    <PlatformGlyph id={t.platform} size={12} />
+          {targets.length ? (
+            <div className="flex flex-col gap-1">
+              {targets.map((t) => (
+                <Link
+                  key={t.handle + t.when}
+                  href="/board"
+                  className="flex items-center gap-2.5 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-surface-2"
+                >
+                  <PersonAvatar handle={t.handle.replace(/^@/, "")} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[12.5px] font-semibold">{t.handle}</span>
+                      <PlatformGlyph id="x" size={12} />
+                    </div>
+                    <div className="truncate text-[12px] text-muted-foreground">{t.text}</div>
                   </div>
-                  <div className="truncate text-[12px] text-muted-foreground">{t.text}</div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <ScorePill value={t.score} />
-                  <span className="text-[10.5px] text-muted-foreground">{t.postedAgo}</span>
-                </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <ScorePill value={t.score} />
+                    <span className="text-[10.5px] text-muted-foreground">{t.when}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="px-2 py-6 text-center text-[13px] text-muted-foreground">
+              <div className="mb-2 flex justify-center opacity-60">
+                <Target className="size-6" strokeWidth={1.6} />
+              </div>
+              No targets surfaced yet.{" "}
+              <Link href="/board" className="text-brand-text underline underline-offset-2">
+                Find who to engage
               </Link>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
