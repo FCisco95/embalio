@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseService } from "@/lib/supabase/server";
 import { scanTargetsForProfile } from "@/server/targeting";
+import { cronAuthError } from "@/lib/cron-auth";
 
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  if (!process.env.CRON_SECRET)
-    return NextResponse.json({ error: "misconfigured" }, { status: 500 });
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const authError = cronAuthError(req);
+  if (authError) return authError;
   const sb = supabaseService();
   const { data: profiles } = await sb.from("profiles").select("id");
   const results: Record<string, number> = {};

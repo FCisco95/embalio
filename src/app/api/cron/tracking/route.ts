@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseService } from "@/lib/supabase/server";
 import { makeApify, scrapeMetrics } from "@/lib/apify";
 import type { Json } from "@/lib/supabase/types";
+import { cronAuthError } from "@/lib/cron-auth";
 
 export const maxDuration = 300;
 const MAX_POSTS_PER_RUN = 50;
 const STALE_DAYS = 7;
 
 export async function GET(req: NextRequest) {
-  if (!process.env.CRON_SECRET)
-    return NextResponse.json({ error: "misconfigured" }, { status: 500 });
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const authError = cronAuthError(req);
+  if (authError) return authError;
   const sb = supabaseService();
   const cutoff = new Date(Date.now() - STALE_DAYS * 86400_000).toISOString();
   const { data: posts } = await sb.from("posts")
