@@ -10,6 +10,16 @@ export const TweetUrl = z
   .url()
   .refine((u) => /(?:twitter|x)\.com\/[^/]+\/status\/\d+/.test(u), "not a tweet URL");
 
+// Per-post engagement metrics. Entered manually at first; the X API will
+// populate the same shape later, so this is the single seam to swap.
+export const PostMetrics = z.object({
+  likes: z.coerce.number().int().min(0).default(0),
+  reposts: z.coerce.number().int().min(0).default(0),
+  replies: z.coerce.number().int().min(0).default(0),
+  views: z.coerce.number().int().min(0).default(0),
+});
+export type PostMetrics = z.infer<typeof PostMetrics>;
+
 export const PersonaSynthesis = z.object({
   voiceSpec: z.string().min(1),
   contentPillars: z.array(z.string()).min(1),
