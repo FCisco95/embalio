@@ -1,9 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import { generateWeeklyPosts } from "@/server/original";
+import { saveDraftToQueue, markPosted } from "@/server/posts";
 import type { WeeklyPost, WeeklyPostPlan } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -27,8 +29,40 @@ const PROGRESS_MESSAGES = [
   "Drafting...",
 ];
 
-function PostCard({ post }: { post: WeeklyPost }) {
+function PostCard({ post, profileId }: { post: WeeklyPost; profileId: string }) {
   const [body, setBody] = useState(post.posts.join("\n\n"));
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [url, setUrl] = useState("");
+  const [pending, start] = useTransition();
+
+  function save() {
+    start(async () => {
+      try {
+        const id = await saveDraftToQueue(profileId, {
+          kind: "original",
+          body,
+          suggested_visual: post.suggestedVisual,
+        });
+        setDraftId(id);
+        toast.success("Saved to queue");
+      } catch (e) {
+        toast.error(String(e));
+      }
+    });
+  }
+
+  function post_() {
+    start(async () => {
+      try {
+        if (!draftId) return;
+        await markPosted(draftId, url);
+        toast.success("Marked posted");
+      } catch (e) {
+        toast.error(String(e));
+      }
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -56,6 +90,13 @@ function PostCard({ post }: { post: WeeklyPost }) {
           >
             Copy
           </Button>
+          {draftId ? (
+            <span className="inline-flex items-center text-[12px] text-success font-medium px-1">Saved ✓</span>
+          ) : (
+            <Button size="sm" variant="secondary" disabled={pending || !profileId || !body.trim()} onClick={save}>
+              {pending ? "Saving…" : "Save to queue"}
+            </Button>
+          )}
           {post.source && (
             <a
               href={post.source}
@@ -70,6 +111,14 @@ function PostCard({ post }: { post: WeeklyPost }) {
             <span className="text-xs text-muted-foreground">Visual: {post.suggestedVisual}</span>
           )}
         </div>
+        {draftId && (
+          <div className="flex gap-2">
+            <Input placeholder="paste posted tweet URL" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <Button size="sm" variant="secondary" disabled={pending || !url} onClick={post_}>
+              Mark posted
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -148,7 +197,7 @@ export function WeeklyComposer({ profiles }: { profiles: { id: string; handle: s
         <div className="space-y-4">
           <p className="text-[13px] text-muted-foreground">Week of {plan.weekOf} · {plan.posts.length} posts</p>
           {plan.posts.map((post, i) => (
-            <PostCard key={i} post={post} />
+            <PostCard key={i} post={post} profileId={profileId} />
           ))}
         </div>
       )}
