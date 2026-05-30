@@ -32,9 +32,9 @@ export async function listPerformance(profileId: string) {
 export async function listPendingDrafts(profileId: string) {
   const sb = await supabaseServer();
   const { data, error } = await sb.from("drafts")
-    .select("id, body, kind, suggested_visual, created_at")
+    .select("id, body, kind, suggested_visual, status, created_at")
     .eq("profile_id", profileId)
-    .eq("status", "draft")
+    .in("status", ["draft", "approved"])
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
