@@ -143,9 +143,15 @@ describe("buildWeeklyDraftPrompt", () => {
 });
 
 describe("buildAlgorithmRulesBlock", () => {
-  it("returns empty string (stub)", () => {
-    expect(buildAlgorithmRulesBlock("quick-take")).toBe("");
-    expect(buildAlgorithmRulesBlock("experiment")).toBe("");
+  it("includes the base 2026 algorithm rules for any format", () => {
+    const block = buildAlgorithmRulesBlock("experiment");
+    expect(block).toContain("2026 X algorithm rules");
+    expect(block).toContain("Replies > reposts > likes");
+  });
+  it("appends format-specific guidance for quick-take", () => {
+    const block = buildAlgorithmRulesBlock("quick-take");
+    expect(block).toContain("Format-specific:");
+    expect(block).toContain("200 chars");
   });
 });
 

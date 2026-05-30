@@ -8,6 +8,10 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+// Live-integration test: only runs when Supabase creds are present (e.g. a real
+// .env.local). Skips cleanly on fresh clones / CI so `npm test` stays green.
+const hasCreds = Boolean(url && anon && service);
+
 async function makeUser(email: string) {
   const admin = createClient(url, service, { auth: { persistSession: false } });
   await admin.auth.admin.createUser({ email, password: "passw0rd!", email_confirm: true });
@@ -16,7 +20,7 @@ async function makeUser(email: string) {
   return client;
 }
 
-describe("RLS isolation", () => {
+describe.skipIf(!hasCreds)("RLS isolation", () => {
   let a: Awaited<ReturnType<typeof makeUser>>;
   let b: Awaited<ReturnType<typeof makeUser>>;
   beforeAll(async () => {
