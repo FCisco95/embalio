@@ -9,10 +9,13 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Live-integration test: only runs when Supabase creds are present (e.g. a real
-// .env.local). Skips cleanly on fresh clones / CI so `npm test` stays green, but
-// runs as a real cross-tenant isolation gate wherever the env is configured.
+// Live-integration test: it creates real users and writes to the live Supabase
+// project, so it is OFF by default — even when creds are present — and must be
+// opted into explicitly with RUN_RLS_INTEGRATION=1 (e.g. a dedicated test DB).
+// This keeps `npm test` from polluting the live DB. The read-isolation gate this
+// asserts is still RED pending multi-tenant read-RLS (tracked in the auth lane).
 const hasCreds = Boolean(url && anon && service);
+const runIntegration = process.env.RUN_RLS_INTEGRATION === "1" && hasCreds;
 
 async function makeUser(email: string) {
   const admin = createClient(url!, service!, { auth: { persistSession: false } });
@@ -25,7 +28,7 @@ async function makeUser(email: string) {
   return { client, userId: created.user.id };
 }
 
-describe.skipIf(!hasCreds)("RLS isolation", () => {
+describe.skipIf(!runIntegration)("RLS isolation", () => {
   let a: Awaited<ReturnType<typeof makeUser>>;
   let b: Awaited<ReturnType<typeof makeUser>>;
   beforeAll(async () => {
