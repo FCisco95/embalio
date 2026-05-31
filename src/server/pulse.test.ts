@@ -54,8 +54,9 @@ describe("runPulse", () => {
     const [text, opts] = sendTelegram.mock.calls[0];
     expect(text).toContain("@a");
     expect(text).toContain("hot take");
-    expect(text).toContain("sharp reply");
+    expect(text).toContain("<code>sharp reply</code>"); // tap-to-copy
     expect(text).toContain("https://x.com/a/1");
+    expect(opts.parseMode).toBe("HTML");
     expect(opts.buttons[0][0]).toEqual({ text: "✅ Posted", data: "posted:c1" });
     expect(opts.buttons[0][1]).toEqual({ text: "⏭️ Skip", data: "skip:c1" });
   });

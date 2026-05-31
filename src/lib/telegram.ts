@@ -14,6 +14,8 @@ export interface SendOpts {
   buttons?: TelegramButton[][];
   /** Suppress the link preview card (tweets render their own). Default true. */
   disablePreview?: boolean;
+  /** Telegram formatting. "HTML" enables <b>/<code> (code = tap-to-copy on mobile). */
+  parseMode?: "HTML" | "MarkdownV2";
   /** Injectable for tests. Defaults to global fetch. */
   fetchImpl?: typeof fetch;
 }
@@ -40,6 +42,7 @@ export async function sendTelegram(text: string, opts: SendOpts = {}): Promise<v
     text,
     disable_web_page_preview: opts.disablePreview ?? true,
   };
+  if (opts.parseMode) body.parse_mode = opts.parseMode;
   if (opts.buttons) {
     body.reply_markup = {
       inline_keyboard: opts.buttons.map((row) =>

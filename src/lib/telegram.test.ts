@@ -40,6 +40,13 @@ describe("sendTelegram", () => {
     });
   });
 
+  it("sets parse_mode when provided", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse());
+    await sendTelegram("<b>hi</b>", { fetchImpl, parseMode: "HTML" });
+    const body = JSON.parse((fetchImpl.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.parse_mode).toBe("HTML");
+  });
+
   it("throws a clear error when credentials are missing", async () => {
     vi.stubEnv("TELEGRAM_BOT_TOKEN", "");
     await expect(sendTelegram("x")).rejects.toThrow("TELEGRAM_BOT_TOKEN");

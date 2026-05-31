@@ -14,6 +14,10 @@ function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /**
  * The apex loop: refresh reply opportunities, then push the top ones to Telegram
  * with a ready-to-post comment + action buttons.
@@ -57,18 +61,20 @@ export async function runPulse(
     const comment = drafts?.[0]?.body;
     if (!comment) continue; // no pre-written reply yet — skip until drafted
 
+    // Comment wrapped in <code> so a single tap on mobile copies it to clipboard.
     const text = [
-      `🎯 ${c.author_handle}`,
+      `🎯 <b>${escapeHtml(c.author_handle)}</b>`,
       "",
-      truncate(c.tweet_text, 240),
+      escapeHtml(truncate(c.tweet_text, 240)),
       "",
-      "💬 Your reply:",
-      comment,
+      "💬 <b>Your reply</b> — tap to copy:",
+      `<code>${escapeHtml(comment)}</code>`,
       "",
-      c.tweet_url,
+      escapeHtml(c.tweet_url),
     ].join("\n");
 
     await sendTelegram(text, {
+      parseMode: "HTML",
       buttons: [[
         { text: "✅ Posted", data: `posted:${c.id}` },
         { text: "⏭️ Skip", data: `skip:${c.id}` },
