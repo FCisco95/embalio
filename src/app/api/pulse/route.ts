@@ -12,8 +12,10 @@ const PROFILE_ID = process.env.FIXED_PROFILE_ID!;
 export async function GET(req: NextRequest) {
   const authError = cronAuthError(req);
   if (authError) return authError;
+  // ?refresh=0 → deliver-only (skip the Apify/claude scan; just push what's in the DB).
+  const refresh = req.nextUrl.searchParams.get("refresh") !== "0";
   try {
-    const result = await runPulse(PROFILE_ID);
+    const result = await runPulse(PROFILE_ID, { refresh });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     console.error("pulse failed", e);
