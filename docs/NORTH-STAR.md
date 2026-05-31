@@ -1,4 +1,4 @@
-# Resonance — North Star
+# Embalio — North Star
 
 **Last updated:** 2026-05-30
 **Status:** Direction locked; Stage 1 ("Pulse") in build.

@@ -1,4 +1,4 @@
-# Resonance — Handoff (canonical)
+# Embalio — Handoff (canonical)
 
 **Last updated:** 2026-05-30
 **Branch:** `make-it-true` — "make it true" workstream commits on top of `main`.

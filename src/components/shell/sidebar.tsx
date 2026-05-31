@@ -47,7 +47,7 @@ export function Sidebar({ collapsed = false, badges }: SidebarProps) {
           <Send className="size-[17px] text-primary-foreground" strokeWidth={1.6} />
         </div>
         {!collapsed && (
-          <span className="text-[17px] font-bold tracking-[-0.02em]">dispatchAI</span>
+          <span className="text-[17px] font-bold tracking-[-0.02em]">Embalio</span>
         )}
       </div>
 

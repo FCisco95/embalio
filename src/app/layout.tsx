@@ -3,8 +3,8 @@ import { ThemeProvider } from "next-themes"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "dispatchAI",
-  description: "Your personal content cockpit",
+  title: "Embalio",
+  description: "Momentum for your X presence",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

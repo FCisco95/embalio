@@ -1,4 +1,4 @@
-# Resonance — Strategy Roadmap
+# Embalio — Strategy Roadmap
 
 Each plan below is a one-session interview that produces a strategic document.
 Pick one plan at a time. Answer the questions in `/compose` (or copy them into
