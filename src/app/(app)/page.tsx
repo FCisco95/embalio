@@ -27,6 +27,8 @@ import { AreaChart } from "@/components/charts/area-chart"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/brand"
 import { formatCount } from "@/lib/format"
+import { redirect } from "next/navigation"
+import { needsSetup } from "@/lib/setup-logic"
 import { listProfiles } from "@/server/profiles"
 import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
@@ -47,12 +49,17 @@ export default async function DashboardPage() {
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
+    if (needsSetup(profile)) redirect("/setup")
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
     if (profile?.id) {
       pending = await listPendingDrafts(profile.id)
       data = await getDashboardData(profile.id)
     }
-  } catch {
+  } catch (e) {
+    // Let Next.js redirects propagate; only swallow real DB errors.
+    if (e && typeof e === "object" && "digest" in e && String((e as { digest?: string }).digest).startsWith("NEXT_REDIRECT")) {
+      throw e
+    }
     // Render with empty states if the DB is unavailable.
   }
 
