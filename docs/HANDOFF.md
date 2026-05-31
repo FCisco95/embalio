@@ -1,8 +1,10 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-05-30
-**Branch:** `make-it-true` — "make it true" workstream commits on top of `main`.
-**Scope:** local, single-user "engagement engine".
+**Last updated:** 2026-05-31
+**Branch:** `make-it-true` — integration tip; three workstreams converged on `main`:
+`make-it-solid` (resilience), `harden/make-it-safe` (security/RLS), `make-it-true`
+(real-data dashboard). Pushed to `origin/make-it-true`. See `docs/NORTH-STAR.md`.
+**Scope:** local single-user X growth engine → growing toward a multi-user product.
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
@@ -10,18 +12,37 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
-## TL;DR
+## TL;DR — Embalio, 2026-05-31
 
-**"Make it true" workstream:** the app was visually reskinned but displayed
-fabricated metrics and persisted nothing the user did. That gap is now closed.
-The dashboard derives every card from real DB rows with honest empty states, the
-Performance page lets you enter real per-post metrics, and the weekly composer +
-reply queue persist generated content into the sign-off queue on demand.
+Rebranded **dispatchAI/Resonance → Embalio** (`embalio.com`). Local single-user X
+growth engine; generation = `claude -p` on the owner's Claude **Max** plan (free, Opus).
 
-> **▶ DO THIS NEXT:**
-> Verify the closed loop with real data: `npm run dev`, then
-> generate → **Save to queue** → **Mark posted** → enter metrics on
-> `/performance` → watch the dashboard fill in. Then merge `make-it-true`.
+**Apex feature "Pulse" is built + proven live:** scan opportunity → draft comment
+(claude) → push to **Telegram** with a **tap-to-copy reply + ✅Posted/⏭️Skip** buttons.
+Files: `src/lib/telegram.ts`, `src/server/pulse.ts`, `src/app/api/pulse/route.ts`
+(`?refresh=0` = deliver-only). Verified with a seeded ping to the owner's phone.
+
+**Resilience (make-it-solid):** `withRetry` on the claude runner + Apify; research
+briefing cache (research once/day); UI error boundaries; targeting split so the
+**scan cron is cloud-safe** (claude drafting is local-only); tracking cron → daily.
+
+**Env (`.env.local`, per-machine, gitignored):** ✅ Telegram, ✅ Supabase (Embalio
+project, schema live, `FIXED_PROFILE_ID` = fcisco95 profile), ✅ CRON_SECRET.
+⏳ Pending for REAL opportunities: `APIFY_TOKEN`, `APIFY_TWEET_SCRAPER_ACTOR`,
+`OPENAI_API_KEY`, and `seed_targets` rows. Pulse is demo-seeded until then.
+
+**Status:** build green; tests 146 pass / 1 skipped (`rls.test.ts` gated behind
+`RUN_RLS_INTEGRATION=1`). Open security item: multi-tenant read-RLS on `profiles`
+(the gated test is the canary — user B can still read user A's profile).
+
+**Earlier "make it true" workstream (still valid):** dashboard derives every card
+from real DB rows with honest empty states; Performance accepts real per-post metrics;
+weekly composer + reply queue persist to the sign-off queue.
+
+> **▶ DO THIS NEXT (Pulse tasks #7–10):**
+> 1. Make Pulse real — wire Apify + OpenAI + add `seed_targets` (accounts to watch).
+> 2. Schedule Pulse via launchd. 3. Wire Posted/Skip callbacks. 4. Pulse dedup
+> (don't re-ping the same opportunity) + delete the demo @naval seed row.
 
 **The closed loop now works end-to-end (no fabrication):**
 generate (weekly/reply) → Save to queue → pending count → Mark posted →
@@ -110,8 +131,9 @@ src/components/charts/area-chart.tsx  → AreaChart ("use client", ResizeObserve
 - **Voice:** built by onboarding interview → `voice_spec` in Supabase.
 - **Human-in-the-loop:** nothing auto-posts; engine drafts, owner copies.
 - **X API:** still declined (cost); posting stays AdsPower-only (opt-in, untested).
-- **Constraint:** only works locally where `claude` is authenticated. Not compatible
-  with Vercel cron.
+- **Generation** is local-only (`claude -p`). **Scan + tracking crons are cloud-safe**
+  (Apify + OpenAI, no claude) and can deploy to Vercel; the **Pulse** route + claude
+  drafting stay local. Stage 2 (product) swaps generation to an API — see NORTH-STAR.
 
 ---
 
@@ -130,7 +152,13 @@ src/components/charts/area-chart.tsx  → AreaChart ("use client", ResizeObserve
 
 ```bash
 npm run dev          # start dev server (localhost:3000)
-npm run build        # production build (all routes green as of eb02439)
-npm test             # 97/99 pass; 2 pre-existing failures unrelated to UI
-git push origin main # push the 14 uncommitted session commits
+npm run build        # production build — green
+npm test             # 146 pass / 1 skipped (RLS integration gated)
 ```
+
+### Resume on another machine (e.g. Windows)
+1. `git fetch origin && git checkout make-it-true && git pull`
+2. That machine needs its **own** `.env.local` (gitignored — never synced by git),
+   with matching values, and the `claude` CLI logged in (Max plan) for generation.
+3. Pulse deliver-only smoke test: `npm run dev`, then GET
+   `http://localhost:3000/api/pulse?refresh=0` with header `Authorization: Bearer <CRON_SECRET>`.
