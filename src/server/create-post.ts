@@ -1,18 +1,15 @@
 "use server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { generateStructured } from "@/lib/generate";
-import { TrendReport, OriginalDraft } from "@/lib/schemas";
-import { buildTrendRadarPrompt, buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
+import { OriginalDraft } from "@/lib/schemas";
+import { buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
 import { buildEngagementPostPrompt } from "@/lib/engagement/post-craft";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
+import { generateTrendRadar } from "@/server/trends";
 
 export async function findHotTopics(profileId: string) {
-  const sb = await supabaseServer();
-  const { data: profile } = await sb.from("profiles").select("content_pillars").eq("id", profileId).single();
-  const date = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const r = await generateStructured(TrendReport, buildTrendRadarPrompt(profile?.content_pillars ?? [], date), { research: true });
-  if (!r.data) throw new Error("could not fetch hot topics — try again");
-  return r.data.trends;
+  const report = await generateTrendRadar(profileId);
+  return report.trends;
 }
 
 export async function draftPostFromAngle(profileId: string, hook: string, source?: string) {
