@@ -5,7 +5,7 @@ import { compositeScore } from "@/lib/scoring";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
 import { buildEngagementReplyPrompt } from "@/lib/engagement/reply-craft";
 import { buildVoiceSystem } from "@/lib/voice-prompt";
-import { generateStructured } from "@/lib/generate";
+import { generateStructured, type StructuredResult } from "@/lib/generate";
 import { ReplyDraft } from "@/lib/schemas";
 import type { Json } from "@/lib/supabase/types";
 
@@ -104,12 +104,22 @@ export async function draftRepliesForProfile(profileId: string, limit = TOP_N): 
     voice_corpus: profile.voice_corpus,
     voice_notes: profile.voice_notes,
   });
+  const candList = cands ?? [];
+  const ids = candList.map((c) => c.id);
+  const { data: existingDrafts } = await sb.from("drafts").select("candidate_id").in("candidate_id", ids);
+  const alreadyDrafted = new Set((existingDrafts ?? []).map((d) => d.candidate_id));
+
   let drafted = 0;
-  for (const c of cands ?? []) {
-    const { count } = await sb.from("drafts").select("id", { count: "exact", head: true }).eq("candidate_id", c.id);
-    if ((count ?? 0) > 0) continue;
+  for (const c of candList) {
+    if (alreadyDrafted.has(c.id)) continue;
     const prompt = buildEngagementReplyPrompt(voiceSystem, { authorHandle: c.author_handle, post: c.tweet_text, reason: "surfaced opportunity" }, knobs);
-    const r = await generateStructured(ReplyDraft, prompt);
+    let r: StructuredResult<ReplyDraft>;
+    try {
+      r = await generateStructured(ReplyDraft, prompt);
+    } catch (err) {
+      console.error(`[targeting] reply generation failed for candidate ${c.id}:`, err);
+      continue;
+    }
     if (!r.data || r.data.skip || !r.data.reply) continue;
     await sb.from("drafts").insert({
       profile_id: profileId, kind: "reply", candidate_id: c.id,
