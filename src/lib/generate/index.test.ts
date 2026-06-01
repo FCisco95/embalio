@@ -30,4 +30,14 @@ describe("generateStructured", () => {
     expect(r.data).toBeNull();
     expect(runner).toHaveBeenCalledTimes(2);
   });
+  it("feeds the validation error into the retry so a schema violation can be fixed", async () => {
+    const runner = vi.fn()
+      .mockResolvedValueOnce('{"a":123}')      // valid JSON, wrong type
+      .mockResolvedValueOnce('{"a":"fixed"}'); // corrected on retry
+    const r = await generateStructured(S, "make a", { backend: "subscription" }, runner);
+    expect("data" in r && r.data && (r.data as { a: string }).a).toBe("fixed");
+    expect(runner).toHaveBeenCalledTimes(2);
+    const retryPrompt = runner.mock.calls[1][1] as string;
+    expect(retryPrompt).toMatch(/did not satisfy the required shape/);
+  });
 });

@@ -36,7 +36,14 @@ export async function generateStructured<T>(
   let raw = await generateText(ask, opts, runner);
   let parsed = parseStructured(schema, raw);
   if (!parsed.ok) {
-    raw = await generateText(`${ask}\n\nYour previous reply was not valid JSON. Return ONLY the JSON object.`, opts, runner);
+    // Feed the actual validation error back so the model fixes the specific
+    // problem (e.g. a string over its max length) instead of repeating it — a
+    // plain "not valid JSON" nudge can't fix a schema-constraint violation.
+    raw = await generateText(
+      `${ask}\n\nYour previous reply did not satisfy the required shape.\nError: ${parsed.error}\nReturn ONLY a corrected JSON object that satisfies every constraint (including any string length limits).`,
+      opts,
+      runner,
+    );
     parsed = parseStructured(schema, raw);
   }
   return parsed.ok ? { data: parsed.data } : { data: null, raw };
