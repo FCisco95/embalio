@@ -71,7 +71,7 @@ export async function finalizeSetup(
     goals: interview.goals,
     contentPillars: payload.contentPillars,
     answers: interview,
-    seedAccounts: [...new Set([...payload.seedHandles, ...a.inspirations])],
+    seedAccounts: [...new Set([...payload.seedHandles, ...a.inspirations, ...a.engageNow])],
     northStarMetric: interview.northStarMetric,
     premiumAccount: a.premium,
   });

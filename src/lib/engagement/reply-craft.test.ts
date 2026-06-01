@@ -10,7 +10,7 @@ const knobs: EngagementKnobs = {
   replyPlaybook: "never reply to drama",
 };
 
-const target = { authorHandle: "@naval", post: "shipping fast beats planning", reason: "rising, in-niche", scenarioHint: "" };
+const target = { authorHandle: "@naval", post: "shipping fast beats planning", reason: "rising, in-niche" };
 
 describe("buildEngagementReplyPrompt", () => {
   const p = buildEngagementReplyPrompt("VOICE_SYSTEM", target, knobs);

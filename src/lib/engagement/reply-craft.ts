@@ -5,7 +5,6 @@ export interface ReplyTarget {
   authorHandle: string;
   post: string;
   reason: string;
-  scenarioHint?: string;
 }
 
 const GOAL_EMPHASIS: Record<EngagementGoal, string> = {
