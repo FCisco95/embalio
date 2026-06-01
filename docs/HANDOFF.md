@@ -13,27 +13,52 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
-## ⏭️ CURRENT DIRECTION (2026-06-01, session 2) — read this first
+## ⏭️ CURRENT DIRECTION (2026-06-01, session 3) — read this first
 
-**Pivot:** the "make Pulse real" work below is **PARKED** behind a product reframe.
-Embalio is being designed as a **coach** whose value is **engagement quality** — the
-setup quiz becomes the **control panel for a real Engagement Engine** that drafts
-non-slop, scenario-aware replies engineered to make the original author reply back
-(X weights that ≈150× a like). Full state in the snapshot:
-**`docs/handoffs/2026-06-01-engagement-engine-and-quiz-redesign.md`**.
+**Engine + Quiz + Growth Plan are BUILT and MERGED to `make-it-true`** (fast-forward,
+tip `736f28b`, local only — **not pushed**). The product reframe (Embalio = a coach whose
+value is **engagement quality**: non-slop, scenario-aware replies engineered to make the
+author reply back — X weights that ≈150× a like) is now real code. Background/spec in the
+snapshot **`docs/handoffs/2026-06-01-engagement-engine-and-quiz-redesign.md`** + spec
+`docs/superpowers/specs/2026-06-01-engagement-engine-and-quiz-design.md`.
 
-- **Design (uncommitted):** research `docs/superpowers/notes/2026-06-01-x-growth-playbook-research.md`;
-  spec `docs/superpowers/specs/2026-06-01-engagement-engine-and-quiz-design.md`
-  (supersedes the 2026-05-31 quiz spec).
-- **Plans:** A `docs/superpowers/plans/2026-06-01-engagement-engine-core.md` + B
-  `docs/superpowers/plans/2026-06-01-flows-ui.md` are **written, not executed**.
-  **Plan C (quiz + Growth Plan) is NOT written — deferred to a fresh session.**
-- **Keys are now provisioned** (`APIFY_TOKEN`, `OPENAI_API_KEY`,
-  `APIFY_TWEET_SCRAPER_ACTOR=apidojo/tweet-scraper`); `claude -p` verified. The live
-  `/setup` + Pulse run is still PARKED (no DB writes happened; demo `@naval` rows untouched).
-- **Next:** write Plan C (writing-plans) → execute A then B (subagent-driven-development /
-  executing-plans) → later resume the live run. Quiz `goalOpen` "Next"-disabled bug
-  folds into Plan C.
+**What shipped (3 plans, 24 TDD tasks, two-stage reviewed + multi-reviewer pass):**
+- **Plan A — Engagement Engine Core** (`docs/superpowers/plans/2026-06-01-engagement-engine-core.md`):
+  Apify author-follower capture (`apify.ts`); `knobsFromProfile` (`src/lib/engagement/knobs.ts`);
+  size-fit (author 5–20×) + crowding (<20 replies) in `compositeScore` (`scoring.ts`);
+  scenario-aware anti-slop reply prompt (`src/lib/engagement/reply-craft.ts`) + `ReplyDraft.scenario`;
+  wired into `targeting.ts` (resilient draft loop + batched dedup; persists `engagement_scenario`).
+- **Plan C1 — Quiz redesign** (`docs/superpowers/plans/2026-06-01-quiz-redesign.md`):
+  chaptered, **archetype-branched** step config + `activeSteps` (`setup-steps.ts`); **the
+  `goalOpen` "Next"-disabled bug is FIXED** in a tested pure `stepComplete` (`setup-logic.ts`);
+  reflective interstitials; richer persisted answers; rebuilt `setup-quiz.tsx` (chapters,
+  branching, interstitials, animated "crafting your growth plan" moment).
+- **Plan C2 — Growth Plan artifact** (`docs/superpowers/plans/2026-06-01-growth-plan-artifact.md`):
+  `GrowthPlan` zod schema; **dedicated `claude -p` synthesis** (`buildGrowthPlanPrompt` +
+  `src/server/growth-plan.ts`); reveal at the quiz climax + dashboard `GrowthPlanCard` + `/plan` page.
+- **Plan B (flows UI: Scan→Engage + Create-a-Post) was NOT in scope this session** — still
+  written-not-executed at `docs/superpowers/plans/2026-06-01-flows-ui.md`.
+
+**DB:** migrations **0007** (`account_size`/`daily_capacity`/`reply_playbook` + `drafts.engagement_scenario`)
+and **0008** (`profiles.growth_plan jsonb`) are **applied live** to the Embalio Supabase
+project (`vzxpakxjnuaesfxihyvl`). `types.ts` matches. Tests: **210 pass / 1 skip** (RLS gated); build clean.
+
+**▶ NEXT (in priority order):**
+1. **Live `/setup` → engine → Growth Plan smoke test** (now unblocked; keys ready). This is the
+   real validation — the path has never run end-to-end. **Verify the Apify author-follower field
+   name** (`apify.ts` uses a `??` fallback guess: `author.followers ?? author.followersCount ?? authorFollowers`)
+   against one real actor item, and confirm the **two sequential `claude -p` calls** at the crafting
+   screen (synth+recommend, then `generateGrowthPlan`) work. Then clean up the demo `@naval` rows.
+2. **Execute Plan B** (Scan→Engage + Create-a-Post UI) via subagent-driven-development.
+3. **Tracked follow-ups from the multi-reviewer (deferred, code is correct — these are polish):**
+   - *Tests:* `getGrowthPlan` malformed-jsonb→null path; `finalizeSetup` growthPlan-save assertion;
+     `knobsFromProfile` unknown-bucket; `answersToInterview` goalOpen-fallback; `interstitialFor` goalOpen branch.
+   - *Perf:* dashboard does 3 serial DB reads + a redundant `profiles` fetch (`getGrowthPlan` re-reads the
+     row `listProfiles` already loaded) → `Promise.all` or add `growth_plan` to the `listProfiles` select;
+     and parallelize `recommendTargets` + `generateGrowthPlan` on the crafting screen (both depend only on `synth`).
+   - *Minor:* `ARCHETYPE_LABEL` is duplicated in `setup-logic.ts` (lowercase) vs `growth-plan.ts` (title-case)
+     → consolidate into one export; bound `targeting.ts` `console.error(... err)` with `String(err).slice(0,200)`.
+4. **Not pushed** — `make-it-true` is ahead of `origin/make-it-true`; push when ready.
 
 ---
 
