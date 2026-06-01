@@ -13,7 +13,7 @@ export interface DashboardData {
     when: string;
   } | null;
   strategy: { title: string; body: string; lift: string | null } | null;
-  targets: { handle: string; text: string; score: number; when: string }[];
+  targets: { sourceTweetId: string; handle: string; text: string; score: number; when: string }[];
 }
 
 function engagement(m: Record<string, number> | null | undefined): number {
@@ -118,12 +118,13 @@ export async function getDashboardData(profileId: string): Promise<DashboardData
 
   // --- Today's targets: real surfaced candidates by score ---
   const { data: cands } = await sb.from("candidates")
-    .select("author_handle, tweet_text, score_composite, pulled_at")
+    .select("source_tweet_id, author_handle, tweet_text, score_composite, pulled_at")
     .eq("profile_id", profileId)
     .eq("status", "surfaced")
     .order("score_composite", { ascending: false })
     .limit(3);
   const targets = (cands ?? []).map((c) => ({
+    sourceTweetId: c.source_tweet_id,
     handle: c.author_handle.startsWith("@") ? c.author_handle : `@${c.author_handle}`,
     text: c.tweet_text,
     score: Math.round((c.score_composite ?? 0) * 100),

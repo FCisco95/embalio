@@ -297,7 +297,7 @@ export default async function DashboardPage() {
             <div className="flex flex-col gap-1">
               {targets.map((t) => (
                 <Link
-                  key={t.handle + t.when}
+                  key={t.sourceTweetId}
                   href="/board"
                   className="flex items-center gap-2.5 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-surface-2"
                 >

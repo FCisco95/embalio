@@ -3,6 +3,7 @@ import { EngageQueuePanel } from "@/components/engage-queue-panel";
 import { ReplyQueuePanel } from "@/components/reply-queue";
 import { TrendRadarPanel } from "@/components/trend-radar";
 import { PageShell } from "@/components/shell/page-shell";
+import { tabClass } from "@/lib/tab-class";
 
 export default async function EngagePage({
   searchParams,
@@ -14,24 +15,16 @@ export default async function EngagePage({
   const activeTab =
     tab === "deepscan" ? "deepscan" : tab === "trends" ? "trends" : "engage";
 
-  const tabClass = (name: string) =>
-    [
-      "relative px-4 py-2 text-[13.5px] font-medium transition-colors",
-      activeTab === name
-        ? "text-brand-text font-semibold after:absolute after:bottom-0 after:inset-x-0 after:h-0.5 after:bg-primary after:rounded-t"
-        : "text-muted-foreground hover:text-foreground",
-    ].join(" ");
-
   return (
     <PageShell title="Engage">
       <div className="flex gap-1 border-b border-border mb-6">
-        <a href="/engage" className={tabClass("engage")}>
+        <a href="/engage" className={tabClass("engage", activeTab)}>
           Engage
         </a>
-        <a href="/engage?tab=deepscan" className={tabClass("deepscan")}>
+        <a href="/engage?tab=deepscan" className={tabClass("deepscan", activeTab)}>
           Deep scan
         </a>
-        <a href="/engage?tab=trends" className={tabClass("trends")}>
+        <a href="/engage?tab=trends" className={tabClass("trends", activeTab)}>
           Trend radar
         </a>
       </div>

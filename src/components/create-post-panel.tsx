@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { findHotTopics, draftPostFromAngle } from "@/server/create-post";
 import { saveDraftToQueue } from "@/server/posts";
 
-type Trend = { topic: string; why_now: string; angle: string; source?: string };
+// Derive the trend shape from the server action so it can never drift from the schema.
+type Trend = Awaited<ReturnType<typeof findHotTopics>>[number];
 
 export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: string }[] }) {
   const [profileId, setProfileId] = useState(profiles[0]?.id ?? "");

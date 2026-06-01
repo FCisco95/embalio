@@ -3,6 +3,7 @@ import { WeeklyComposer } from "@/components/weekly-composer";
 import { ThreadComposer } from "@/components/thread-composer";
 import { CreatePostPanel } from "@/components/create-post-panel";
 import { PageShell } from "@/components/shell/page-shell";
+import { tabClass } from "@/lib/tab-class";
 
 export default async function ComposePage({
   searchParams,
@@ -14,23 +15,15 @@ export default async function ComposePage({
 
   const activeTab = tab === "create" ? "create" : "compose";
 
-  const tabClass = (name: string) =>
-    [
-      "relative px-4 py-2 text-[13.5px] font-medium transition-colors",
-      activeTab === name
-        ? "text-brand-text font-semibold after:absolute after:bottom-0 after:inset-x-0 after:h-0.5 after:bg-primary after:rounded-t"
-        : "text-muted-foreground hover:text-foreground",
-    ].join(" ");
-
   const isThread = activeTab === "compose" && mode === "thread";
 
   return (
     <PageShell title="Composer">
       <div className="flex gap-1 border-b border-border mb-6">
-        <a href="/compose" className={tabClass("compose")}>
+        <a href="/compose" className={tabClass("compose", activeTab)}>
           Composer
         </a>
-        <a href="/compose?tab=create" className={tabClass("create")}>
+        <a href="/compose?tab=create" className={tabClass("create", activeTab)}>
           Create post
         </a>
       </div>
