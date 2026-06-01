@@ -60,6 +60,7 @@ export async function finalizeSetup(
       voice_notes: a.voiceMethod === "tags" ? a.voiceTags.join(", ") : "",
       account_size: a.accountSize,
       daily_capacity: a.capacity,
+      reply_playbook: a.replyPlaybook?.trim() || null,
     })
     .eq("id", profileId);
   if (upErr) throw new Error(upErr.message);
@@ -69,7 +70,7 @@ export async function finalizeSetup(
     goals: interview.goals,
     contentPillars: payload.contentPillars,
     answers: interview,
-    seedAccounts: payload.seedHandles,
+    seedAccounts: [...new Set([...payload.seedHandles, ...a.inspirations])],
     northStarMetric: interview.northStarMetric,
     premiumAccount: a.premium,
   });
