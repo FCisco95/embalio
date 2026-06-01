@@ -28,4 +28,12 @@ describe("apify client", () => {
     const m = await scrapeMetrics(client, "actor", "https://x.com/a/status/9");
     expect(m).toEqual({ likes: 5, views: 50, replies: 1 });
   });
+
+  it("maps author follower count into metrics_snapshot", async () => {
+    const client = fakeClient([
+      { id: "1", url: "https://x.com/a/status/1", text: "hi", author: { userName: "a", followers: 1234 }, likeCount: 2, viewCount: 9, replyCount: 1, createdAt: "2026-05-30T00:00:00Z" },
+    ]);
+    const out = await pullTweets(client, "actor", { handles: ["@a"] });
+    expect(out[0].metrics_snapshot.authorFollowers).toBe(1234);
+  });
 });

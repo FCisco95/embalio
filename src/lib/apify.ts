@@ -8,7 +8,7 @@ export interface CandidateInput {
   author_handle: string;
   tweet_text: string;
   tweet_url: string;
-  metrics_snapshot: { likes: number; views: number; replies: number; createdAt: string };
+  metrics_snapshot: { likes: number; views: number; replies: number; authorFollowers: number; createdAt: string };
 }
 
 export function makeApify(): ApifyClient {
@@ -48,6 +48,7 @@ export async function pullTweets(
         likes: t.likeCount ?? 0,
         views: t.viewCount ?? 0,
         replies: t.replyCount ?? 0,
+        authorFollowers: t.author?.followers ?? t.author?.followersCount ?? t.authorFollowers ?? 0,
         createdAt: t.createdAt ?? new Date().toISOString(),
       },
     };

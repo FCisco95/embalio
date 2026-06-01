@@ -30,7 +30,7 @@ vi.mock("@/lib/apify", () => ({
   pullTweets: vi.fn().mockResolvedValue([
     {
       source_tweet_id: "1", author_handle: "a", tweet_text: "t1", tweet_url: "https://x.com/a/status/1",
-      metrics_snapshot: { likes: 5, views: 50, replies: 1, createdAt: new Date().toISOString() },
+      metrics_snapshot: { likes: 5, views: 50, replies: 1, authorFollowers: 0, createdAt: new Date().toISOString() },
     },
   ]),
 }));

@@ -5,7 +5,7 @@ import type { CandidateInput } from "@/lib/apify";
 const now = Date.now();
 const mk = (id: string, likes: number, ageH: number): CandidateInput => ({
   source_tweet_id: id, author_handle: "a", tweet_text: `t${id}`, tweet_url: `https://x.com/a/status/${id}`,
-  metrics_snapshot: { likes, views: likes * 10, replies: 1, createdAt: new Date(now - ageH * 3600_000).toISOString() },
+  metrics_snapshot: { likes, views: likes * 10, replies: 1, authorFollowers: 0, createdAt: new Date(now - ageH * 3600_000).toISOString() },
 });
 
 describe("rankCandidates", () => {
