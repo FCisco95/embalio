@@ -1,4 +1,4 @@
-import { sanitizeForPrompt } from "@/lib/generate/sanitize";
+import { sanitizeForPrompt, UNTRUSTED_DATA_NOTICE, frameUntrusted } from "@/lib/generate/sanitize";
 
 export interface GrowthPlanPromptInput {
   handle: string;
@@ -18,9 +18,10 @@ export function buildGrowthPlanPrompt(i: GrowthPlanPromptInput): string {
     : "(none recommended — leave whoToWatch empty)";
   return [
     `You are writing a personalized 90-day X growth plan for @${sanitizeForPrompt(i.handle, 60)} — a ${sanitizeForPrompt(i.archetypeLabel, 60)}.`,
-    `Their voice spec (write the plan IN this voice where prose appears):\n${sanitizeForPrompt(i.voiceSpec, 1200)}`,
+    UNTRUSTED_DATA_NOTICE,
+    `Their voice spec (write the plan IN this voice where prose appears):\n${frameUntrusted(i.voiceSpec, 1200)}`,
     `Their content pillars: ${i.pillars.map((p) => sanitizeForPrompt(p, 40)).join(", ") || "(unspecified)"}.`,
-    `Their edge (why follow THEM): ${sanitizeForPrompt(i.angle, 400) || "(unspecified)"}.`,
+    `Their edge (why follow THEM): ${frameUntrusted(i.angle, 400) || "(unspecified)"}.`,
     `Their goal narrative: ${sanitizeForPrompt(i.goalNarrative, 200)}. North-star target: ${sanitizeForPrompt(i.northStarTarget, 120)}.`,
     `Their capacity supports about ${i.dailyReplyTarget} strategic replies/day — ground the "rhythm" section in that (e.g. "${i.dailyReplyTarget}/day strategic replies", plus a realistic original-post + thread cadence).`,
     `Accounts to watch (rewrite each "why" as a sharp one-liner about why THIS account matters FOR THEM — do NOT invent follower counts or "x your size" multiples; we have no follower data):\n${accounts}`,

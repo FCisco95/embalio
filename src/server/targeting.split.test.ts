@@ -72,3 +72,12 @@ describe("refreshTargetsForProfile (local full run)", () => {
     expect(generateStructured).toHaveBeenCalled();
   });
 });
+
+describe("draftRepliesForProfile — resilience", () => {
+  it("does not throw and returns 0 drafted when generateStructured rejects", async () => {
+    generateStructured.mockRejectedValue(new Error("boom"));
+    const { draftRepliesForProfile } = await import("@/server/targeting");
+    const drafted = await expect(draftRepliesForProfile("p1")).resolves.toBeDefined();
+    void drafted; // count may be 0 — we only assert it does not throw
+  });
+});

@@ -23,7 +23,7 @@ export async function generateGrowthPlan(
   const knobs = knobsFromProfile({
     account_size: answers.accountSize || null,
     daily_capacity: answers.capacity || null,
-    north_star_metric: answers.goalTarget || null,
+    north_star_metric: answers.goal || answers.goalTarget || null,
     reply_playbook: answers.replyPlaybook || null,
   });
   const prompt = buildGrowthPlanPrompt({
