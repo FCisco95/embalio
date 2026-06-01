@@ -14,12 +14,23 @@ export function normHandle(h: string): string {
 
 export function answersToInterview(a: SetupAnswers): InterviewAnswers {
   const goal = a.goalOpen?.trim() || GOAL_TO_NORTHSTAR[a.goal] || a.goal;
+  const clean = (s: string) => (s.trim() ? s.trim() : undefined);
+  const arr = (xs: string[]) => (xs.length ? xs : undefined);
   return {
     niche: a.pillars.join(", "),
     goals: goal,
     tone: a.voiceMethod === "tags" ? a.voiceTags.join(", ") : "",
-    northStarMetric: goal,
+    northStarMetric: clean(a.goalTarget) ?? goal,
     premiumAccount: a.premium,
+    archetype: a.archetype || undefined,
+    archetypeDetail: clean(a.archetypeDetail),
+    angle: clean(a.angle),
+    zoneOfGenius: clean(a.zoneOfGenius),
+    motive: clean(a.motive),
+    platforms: arr(a.platforms),
+    formats: arr(a.formats),
+    replyPlaybook: clean(a.replyPlaybook),
+    inspirations: arr(a.inspirations),
   };
 }
 

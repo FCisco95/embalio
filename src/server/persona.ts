@@ -7,8 +7,23 @@ import { revalidatePath } from "next/cache";
 import type { Json } from "@/lib/supabase/types";
 
 export interface InterviewAnswers {
-  niche: string; goals: string; tone: string; doDont?: string; admired?: string;
-  northStarMetric?: string; premiumAccount?: boolean;
+  niche: string;
+  goals: string;
+  tone: string;
+  doDont?: string;
+  admired?: string;
+  northStarMetric?: string;
+  premiumAccount?: boolean;
+  // Engagement-engine context (capture-now, wire-later — persisted in onboarding_answers jsonb)
+  archetype?: string;
+  archetypeDetail?: string;
+  angle?: string;
+  zoneOfGenius?: string;
+  motive?: string;
+  platforms?: string[];
+  formats?: string[];
+  replyPlaybook?: string;
+  inspirations?: string[];
 }
 
 // Research + synthesize the persona (web tools enabled for seed-account suggestions).

@@ -107,3 +107,27 @@ describe("interstitialFor", () => {
     expect(i!.body.toLowerCase()).toContain("founder");
   });
 });
+
+describe("answersToInterview — extended fields", () => {
+  const a = {
+    ...EMPTY_ANSWERS,
+    archetype: "dev" as const, angle: "I ship agent infra and show the failure modes",
+    pillars: ["AI agents"], goal: "authority", goalTarget: "2000 engaged followers",
+    platforms: ["x", "linkedin"], formats: ["threads"], replyPlaybook: "never dunk on people",
+    inspirations: ["@swyx", "@hwchase17"], voiceMethod: "tags" as const, voiceTags: ["technical", "lowercase"],
+  };
+
+  it("carries archetype, angle, platforms, formats, replyPlaybook, inspirations into the interview", () => {
+    const iv = answersToInterview(a);
+    expect(iv.archetype).toBe("dev");
+    expect(iv.angle).toContain("agent infra");
+    expect(iv.platforms).toEqual(["x", "linkedin"]);
+    expect(iv.formats).toEqual(["threads"]);
+    expect(iv.replyPlaybook).toBe("never dunk on people");
+    expect(iv.inspirations).toEqual(["@swyx", "@hwchase17"]);
+  });
+
+  it("uses goalTarget as the north-star metric when present", () => {
+    expect(answersToInterview(a).northStarMetric).toBe("2000 engaged followers");
+  });
+});
