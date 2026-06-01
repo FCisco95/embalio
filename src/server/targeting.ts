@@ -2,7 +2,11 @@ import { supabaseService } from "@/lib/supabase/server";
 import { makeApify, pullTweets, type CandidateInput } from "@/lib/apify";
 import { embedText, embedTexts, relevanceFromVectors } from "@/lib/embeddings";
 import { compositeScore } from "@/lib/scoring";
-import { draftReply } from "@/lib/drafting";
+import { knobsFromProfile } from "@/lib/engagement/knobs";
+import { buildEngagementReplyPrompt } from "@/lib/engagement/reply-craft";
+import { buildVoiceSystem } from "@/lib/voice-prompt";
+import { generateStructured } from "@/lib/generate";
+import { ReplyDraft } from "@/lib/schemas";
 import type { Json } from "@/lib/supabase/types";
 
 const TOP_N = 10;
@@ -20,11 +24,19 @@ export function rankCandidates(
   cands: CandidateInput[],
   relevanceOf: (c: CandidateInput) => number,
   topN: number,
+  ownerFollowerEstimate?: number,
 ): RankedCandidate[] {
   const scored = cands.map((c) => {
     const ageHours = (Date.now() - new Date(c.metrics_snapshot.createdAt).getTime()) / 3600_000;
     const likesPerHour = c.metrics_snapshot.likes / Math.max(1, ageHours);
-    const s = compositeScore({ relevance: relevanceOf(c), likesPerHour, ageHours });
+    const s = compositeScore({
+      relevance: relevanceOf(c),
+      likesPerHour,
+      ageHours,
+      authorFollowers: c.metrics_snapshot.authorFollowers,
+      ownerFollowerEstimate,
+      replyCount: c.metrics_snapshot.replies,
+    });
     return { ...c, score_relevance: s.relevance, score_velocity: s.velocity, score_recency: s.recency, score_composite: s.composite };
   });
   return scored.sort((a, b) => b.score_composite - a.score_composite).slice(0, topN);
@@ -53,7 +65,8 @@ export async function scanTargetsForProfile(profileId: string): Promise<number> 
   const tweetVecs = await embedTexts(raw.map((r) => r.tweet_text));
   const relevanceById = new Map(raw.map((r, i) => [r.source_tweet_id, relevanceFromVectors(voiceVec, tweetVecs[i])]));
 
-  const ranked = rankCandidates(raw, (c) => relevanceById.get(c.source_tweet_id) ?? 0, TOP_N);
+  const knobs = knobsFromProfile(profile);
+  const ranked = rankCandidates(raw, (c) => relevanceById.get(c.source_tweet_id) ?? 0, TOP_N, knobs.ownerFollowerEstimate);
 
   await sb.from("candidates").upsert(
     ranked.map((c) => ({
@@ -81,23 +94,27 @@ export async function draftRepliesForProfile(profileId: string, limit = TOP_N): 
   const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
   if (!profile) return 0;
   const { data: cands } = await sb.from("candidates")
-    .select("id, tweet_text").eq("profile_id", profileId).eq("status", "surfaced")
+    .select("id, tweet_text, author_handle").eq("profile_id", profileId).eq("status", "surfaced")
     .order("score_composite", { ascending: false }).limit(limit);
 
-  const voiceProfile = {
+  const knobs = knobsFromProfile(profile);
+  const voiceSystem = buildVoiceSystem({
     handle: profile.handle,
     niche_description: profile.niche_description,
     voice_corpus: profile.voice_corpus,
     voice_notes: profile.voice_notes,
-  };
+  });
   let drafted = 0;
   for (const c of cands ?? []) {
     const { count } = await sb.from("drafts").select("id", { count: "exact", head: true }).eq("candidate_id", c.id);
     if ((count ?? 0) > 0) continue;
-    const d = await draftReply(voiceProfile, c.tweet_text);
+    const prompt = buildEngagementReplyPrompt(voiceSystem, { authorHandle: c.author_handle, post: c.tweet_text, reason: "surfaced opportunity" }, knobs);
+    const r = await generateStructured(ReplyDraft, prompt);
+    if (!r.data || r.data.skip || !r.data.reply) continue;
     await sb.from("drafts").insert({
       profile_id: profileId, kind: "reply", candidate_id: c.id,
-      body: d.body, suggested_visual: d.suggestedVisual, model_used: d.model_used,
+      body: r.data.reply, model_used: process.env.GEN_BACKEND ?? "subscription",
+      engagement_scenario: r.data.scenario ?? null,
     });
     drafted++;
   }

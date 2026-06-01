@@ -22,9 +22,9 @@ function makeSupabase(byTable: Record<string, unknown>) {
   };
 }
 
-const draftReply = vi.fn().mockResolvedValue({ body: "reply", suggestedVisual: undefined, model_used: "subscription" });
+const generateStructured = vi.fn().mockResolvedValue({ data: { reply: "great take", scenario: "supportive", skip: false } });
 
-vi.mock("@/lib/drafting", () => ({ draftReply }));
+vi.mock("@/lib/generate", () => ({ generateStructured }));
 vi.mock("@/lib/apify", () => ({
   makeApify: () => ({}),
   pullTweets: vi.fn().mockResolvedValue([
@@ -41,7 +41,7 @@ vi.mock("@/lib/embeddings", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({ supabaseService: vi.fn() }));
 
-const profile = { id: "p1", handle: "@me", niche_description: "ai", voice_corpus: ["x"], voice_notes: "" };
+const profile = { id: "p1", handle: "@me", niche_description: "ai", voice_corpus: ["x"], voice_notes: "", account_size: "500-5k", daily_capacity: "30m", north_star_metric: "followers", reply_playbook: "" };
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -50,25 +50,25 @@ beforeEach(async () => {
     makeSupabase({
       profiles: { data: profile },
       seed_targets: { data: [{ handle: "@seed" }] },
-      candidates: { data: [{ id: "c1", tweet_text: "t1" }] },
+      candidates: { data: [{ id: "c1", tweet_text: "t1", author_handle: "@target" }] },
       drafts: { count: 0, data: null },
     }) as never,
   );
 });
 
 describe("scanTargetsForProfile (cron path)", () => {
-  it("surfaces candidates without ever invoking claude/draftReply", async () => {
+  it("surfaces candidates without ever invoking generateStructured", async () => {
     const { scanTargetsForProfile } = await import("@/server/targeting");
     const n = await scanTargetsForProfile("p1");
     expect(n).toBeGreaterThan(0);
-    expect(draftReply).not.toHaveBeenCalled();
+    expect(generateStructured).not.toHaveBeenCalled();
   });
 });
 
 describe("refreshTargetsForProfile (local full run)", () => {
-  it("scans and then drafts via claude", async () => {
+  it("scans and then drafts via generateStructured", async () => {
     const { refreshTargetsForProfile } = await import("@/server/targeting");
     await refreshTargetsForProfile("p1");
-    expect(draftReply).toHaveBeenCalled();
+    expect(generateStructured).toHaveBeenCalled();
   });
 });

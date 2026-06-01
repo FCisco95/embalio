@@ -18,3 +18,18 @@ describe("rankCandidates", () => {
     expect(ranked[0].score_composite).toBeGreaterThan(ranked[1].score_composite!);
   });
 });
+
+function cand(id: string, authorFollowers: number, replies: number): CandidateInput {
+  return {
+    source_tweet_id: id, author_handle: "@x", tweet_text: "t", tweet_url: "u",
+    metrics_snapshot: { likes: 50, views: 0, replies, authorFollowers, createdAt: new Date().toISOString() },
+  };
+}
+
+describe("rankCandidates with owner size", () => {
+  it("ranks an in-band, uncrowded post above a mega-account crowded one", () => {
+    const cands = [cand("mega", 5_000_000, 200), cand("inband", 25_000, 3)];
+    const ranked = rankCandidates(cands, () => 1, 2, 2750);
+    expect(ranked[0].source_tweet_id).toBe("inband");
+  });
+});

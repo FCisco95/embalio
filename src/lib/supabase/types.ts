@@ -95,6 +95,7 @@ export type Database = {
           body: string
           candidate_id: string | null
           created_at: string
+          engagement_scenario: string | null
           id: string
           kind: string
           model_used: string | null
@@ -106,6 +107,7 @@ export type Database = {
           body: string
           candidate_id?: string | null
           created_at?: string
+          engagement_scenario?: string | null
           id?: string
           kind: string
           model_used?: string | null
@@ -117,6 +119,7 @@ export type Database = {
           body?: string
           candidate_id?: string | null
           created_at?: string
+          engagement_scenario?: string | null
           id?: string
           kind?: string
           model_used?: string | null

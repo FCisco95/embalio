@@ -3,3 +3,4 @@
 alter table profiles add column if not exists account_size text;
 alter table profiles add column if not exists daily_capacity text;
 alter table profiles add column if not exists reply_playbook text;
+alter table drafts add column if not exists engagement_scenario text;
