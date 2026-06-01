@@ -40,8 +40,22 @@ with ZERO code changes needed.** What was proven:
   `seed_targets` preserved. **5 `@a` junk profiles remain** (safety classifier blocked auto-delete;
   owner has a one-liner to run, non-blocking).
 
-**▶ NOW: executing Plan B** (`docs/superpowers/plans/2026-06-01-flows-ui.md`) — Scan→Engage +
-Create-a-Post UI, 8 TDD tasks, via subagent-driven-development. Engine underneath is proven.
+**✅ Plan B COMPLETE** (`docs/superpowers/plans/2026-06-01-flows-ui.md`) — Scan→Engage +
+Create-a-Post UI shipped via subagent-driven-development (8 tasks, each spec+quality reviewed;
+5 needed review-driven fixes, all resolved; final integration review = READY TO MERGE).
+13 commits `e553fbb..dde7a23`. **222 pass / 1 skip, build clean.** New surface:
+- **Scan→Engage** (primary tab on `/engage`): `src/lib/engagement/present.ts` (fitBadge/freshness),
+  `src/server/engage-queue.ts` (getEngageQueue/scanNow; `dismissCandidate` consolidated into
+  `posts.ts`, now revalidates board+engage), `src/components/engage-queue-panel.tsx`.
+- **Create-a-Post** (tab on `/compose`): `src/lib/engagement/post-craft.ts` (reach-optimized prompt
+  + full GOAL_EMPHASIS table), `src/server/create-post.ts` (findHotTopics delegates to
+  `generateTrendRadar`; draftPostFromAngle), `src/components/create-post-panel.tsx`.
+- **Not yet exercised in a real browser** — screens build + render in tests, but the live
+  click-through (scan → ready replies UI; hot-topics → draft → save) hasn't been driven. Engine
+  underneath IS proven (session-4 smoke test).
+- **Non-blocking follow-ups** (final review): import canonical `Trend` type in create-post-panel;
+  extract shared `tabClass` helper (dup in engage+compose pages); `getEngageQueue` N+1 (≤11 reads).
+- **Not pushed** — `make-it-true` is ahead of `origin`; push needs owner say-so.
 
 ---
 
@@ -79,7 +93,9 @@ project (`vzxpakxjnuaesfxihyvl`). `types.ts` matches. Tests: **210 pass / 1 skip
 1. ✅ **DONE (session 4)** — Live `/setup` → engine → Growth Plan smoke test passed; Apify field
    verified correct; `finalizeSetup` persistence confirmed; demo `@naval` rows cleaned. See the
    "SESSION 4" block at the top. (Open: 5 `@a` junk profiles; quiz UI→server-action wiring unverified.)
-2. **Execute Plan B** (Scan→Engage + Create-a-Post UI) via subagent-driven-development — **IN PROGRESS (session 4)**.
+2. ✅ **DONE (session 4)** — Plan B (Scan→Engage + Create-a-Post UI) shipped via
+   subagent-driven-development. See the "SESSION 4" block. Next: real browser click-through of the
+   two new screens; then push when owner approves.
 3. **Tracked follow-ups from the multi-reviewer (deferred, code is correct — these are polish):**
    - *Tests:* `getGrowthPlan` malformed-jsonb→null path; `finalizeSetup` growthPlan-save assertion;
      `knobsFromProfile` unknown-bucket; `answersToInterview` goalOpen-fallback; `interstitialFor` goalOpen branch.
