@@ -146,3 +146,23 @@ export const BreakoutScore = z.object({
   fixes: z.array(z.string()).default([]),
 });
 export type BreakoutScore = z.infer<typeof BreakoutScore>;
+
+export const GrowthPlanWatch = z.object({
+  handle: z.string(),
+  why: z.string(),
+});
+
+export const GrowthPlan = z.object({
+  archetypeLabel: z.string().min(1),
+  headline: z.string().min(1),
+  voiceSummary: z.string().min(1),
+  voiceTags: z.array(z.string()).max(8).default([]),
+  pillars: z.array(z.string()).max(8).default([]),
+  edge: z.string().min(1),
+  whoToWatch: z.array(GrowthPlanWatch).max(10).default([]),
+  rhythm: z.array(z.object({ count: z.string(), label: z.string() })).max(4).default([]),
+  northStar: z.object({ metric: z.string(), detail: z.string() }),
+  embalioDoes: z.array(z.string()).max(6).default([]),
+  firstMoves: z.array(z.string()).max(5).default([]),
+});
+export type GrowthPlan = z.infer<typeof GrowthPlan>;
