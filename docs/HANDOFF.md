@@ -13,6 +13,38 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
+## ✅ SESSION 4 (2026-06-01) — LIVE SMOKE TEST PASSED; Plan B in progress
+
+**Goal A (live end-to-end smoke test) is COMPLETE — the engine works against live data,
+with ZERO code changes needed.** What was proven:
+- **Apify author-follower field** (`apify.ts:51`): the `??`-fallback guess was **correct** —
+  real items use `author.followers` (verified: 888,035 for levelsio). Bonus findings: `text`
+  (not `fullText`) is the *complete* tweet body — `fullText` is the misleadingly-named
+  *truncated* legacy field, so "switch to fullText" would have **introduced** a bug; and
+  `createdAt` (Twitter date string) parses fine for recency. **No `apify.ts` change made.**
+- **Apify required a paid plan:** the account was FREE; `apidojo/tweet-scraper` blocks API use
+  on free. Owner upgraded to **Starter ($29/mo)** — gate lifted, real data flows.
+- **Quiz crafting (3× `claude -p`)**: `synthesizePersona` + `recommendTargets` + `generateGrowthPlan`
+  all fire and produce **non-slop, on-thesis** output (anti-slop voiceSpec, ICP targets engineered
+  for the 150× reply-back, a real capacity-aware Growth Plan).
+- **Live reply-craft engine** (real `/api/cron/targeting` path via a throwaway profile): Apify →
+  embeddings → 5–20×/crowding/recency scoring → scenario detection → reply-craft produced
+  **genuinely non-slop, scenario-tagged, reply-back-engineered** drafts, and correctly **skipped**
+  a low-value banter post. authorFollowers flows correctly (swyx 162k/arvidkahl 199k land in the
+  5k-50k band → sizeFit=1).
+- **`finalizeSetup` persistence**: validated via a temp route handler in a real request — **every**
+  write lands, including the flagged anon-path (`save_persona` RPC + `north_star`/`premium` update).
+  The RLS concern is confirmed **future-only**, not a current bug. (The only unverified bit is the
+  quiz's client→server-action payload assembly — needs a real browser pass; Playwright MCP was down.)
+- **Cleanup**: demo `@naval` candidate+draft deleted; throwaway test profiles deleted; the 10 real
+  `seed_targets` preserved. **5 `@a` junk profiles remain** (safety classifier blocked auto-delete;
+  owner has a one-liner to run, non-blocking).
+
+**▶ NOW: executing Plan B** (`docs/superpowers/plans/2026-06-01-flows-ui.md`) — Scan→Engage +
+Create-a-Post UI, 8 TDD tasks, via subagent-driven-development. Engine underneath is proven.
+
+---
+
 ## ⏭️ CURRENT DIRECTION (2026-06-01, session 3) — read this first
 
 **Engine + Quiz + Growth Plan are BUILT and MERGED to `make-it-true`** (fast-forward,
@@ -44,12 +76,10 @@ and **0008** (`profiles.growth_plan jsonb`) are **applied live** to the Embalio 
 project (`vzxpakxjnuaesfxihyvl`). `types.ts` matches. Tests: **210 pass / 1 skip** (RLS gated); build clean.
 
 **▶ NEXT (in priority order):**
-1. **Live `/setup` → engine → Growth Plan smoke test** (now unblocked; keys ready). This is the
-   real validation — the path has never run end-to-end. **Verify the Apify author-follower field
-   name** (`apify.ts` uses a `??` fallback guess: `author.followers ?? author.followersCount ?? authorFollowers`)
-   against one real actor item, and confirm the **two sequential `claude -p` calls** at the crafting
-   screen (synth+recommend, then `generateGrowthPlan`) work. Then clean up the demo `@naval` rows.
-2. **Execute Plan B** (Scan→Engage + Create-a-Post UI) via subagent-driven-development.
+1. ✅ **DONE (session 4)** — Live `/setup` → engine → Growth Plan smoke test passed; Apify field
+   verified correct; `finalizeSetup` persistence confirmed; demo `@naval` rows cleaned. See the
+   "SESSION 4" block at the top. (Open: 5 `@a` junk profiles; quiz UI→server-action wiring unverified.)
+2. **Execute Plan B** (Scan→Engage + Create-a-Post UI) via subagent-driven-development — **IN PROGRESS (session 4)**.
 3. **Tracked follow-ups from the multi-reviewer (deferred, code is correct — these are polish):**
    - *Tests:* `getGrowthPlan` malformed-jsonb→null path; `finalizeSetup` growthPlan-save assertion;
      `knobsFromProfile` unknown-bucket; `answersToInterview` goalOpen-fallback; `interstitialFor` goalOpen branch.
