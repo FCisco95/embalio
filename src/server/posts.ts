@@ -75,6 +75,8 @@ export async function saveDraftToQueue(
 
 export async function dismissCandidate(candidateId: string) {
   const sb = await supabaseServer();
-  await sb.from("candidates").update({ status: "dismissed" }).eq("id", candidateId);
+  const { error } = await sb.from("candidates").update({ status: "dismissed" }).eq("id", candidateId);
+  if (error) throw new Error(error.message);
   revalidatePath("/board");
+  revalidatePath("/engage");
 }

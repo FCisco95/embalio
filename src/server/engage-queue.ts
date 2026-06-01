@@ -61,12 +61,6 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
   return items;
 }
 
-export async function dismissCandidate(candidateId: string): Promise<void> {
-  const sb = await supabaseServer();
-  await sb.from("candidates").update({ status: "dismissed" }).eq("id", candidateId);
-  revalidatePath("/engage");
-}
-
 /** Local-only: re-scan + re-draft (claude). Returns surfaced count. */
 export async function scanNow(profileId: string): Promise<number> {
   const n = await refreshTargetsForProfile(profileId);
