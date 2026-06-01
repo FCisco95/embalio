@@ -2,9 +2,10 @@
 import { supabaseService } from "@/lib/supabase/server";
 import { synthesizePersona, savePersona } from "@/server/persona";
 import { recommendTargets } from "@/server/target-queue";
+import { saveGrowthPlan } from "@/server/growth-plan";
 import { answersToInterview, normHandle } from "@/lib/setup-logic";
 import type { SetupAnswers } from "@/lib/setup-steps";
-import type { PersonaSynthesis, TargetQueue } from "@/lib/schemas";
+import type { PersonaSynthesis, TargetQueue, GrowthPlan } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 
 export async function getSetupProfileId(): Promise<string> {
@@ -45,7 +46,7 @@ export async function buildSetupPreview(a: SetupAnswers): Promise<SetupPreview> 
 
 export async function finalizeSetup(
   profileId: string,
-  payload: { answers: SetupAnswers; voiceSpec: string; contentPillars: string[]; seedHandles: string[] },
+  payload: { answers: SetupAnswers; voiceSpec: string; contentPillars: string[]; seedHandles: string[]; growthPlan?: GrowthPlan },
 ): Promise<void> {
   const a = payload.answers;
   const interview = answersToInterview(a);
@@ -74,6 +75,8 @@ export async function finalizeSetup(
     northStarMetric: interview.northStarMetric,
     premiumAccount: a.premium,
   });
+
+  if (payload.growthPlan) await saveGrowthPlan(profileId, payload.growthPlan);
 
   revalidatePath("/");
 }
