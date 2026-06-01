@@ -84,7 +84,6 @@ function EngageCard({ item }: { item: EngageItem }) {
   const [reply, setReply] = useState(item.reply ?? "");
   const [done, setDone] = useState(false);
   const [url, setUrl] = useState("");
-  const [draftId] = useState<string | null>(item.draftId);
   const [pending, start] = useTransition();
 
   if (done) return null;
@@ -168,31 +167,33 @@ function EngageCard({ item }: { item: EngageItem }) {
           </Button>
         </div>
 
-        <div className="flex gap-2">
-          <Input
-            placeholder="paste posted reply URL to mark done"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={pending || !url}
-            onClick={() =>
-              start(async () => {
-                try {
-                  if (draftId) await markPosted(draftId, url);
-                  toast.success("Marked posted");
-                  setDone(true);
-                } catch (e) {
-                  toast.error(String(e));
-                }
-              })
-            }
-          >
-            Mark posted
-          </Button>
-        </div>
+        {item.draftId && (
+          <div className="flex gap-2">
+            <Input
+              placeholder="paste posted reply URL to mark done"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={pending || !url}
+              onClick={() =>
+                start(async () => {
+                  try {
+                    await markPosted(item.draftId!, url);
+                    toast.success("Marked posted");
+                    setDone(true);
+                  } catch (e) {
+                    toast.error(String(e));
+                  }
+                })
+              }
+            >
+              Mark posted
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
