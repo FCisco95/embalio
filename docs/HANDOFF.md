@@ -50,12 +50,41 @@ Create-a-Post UI shipped via subagent-driven-development (8 tasks, each spec+qua
 - **Create-a-Post** (tab on `/compose`): `src/lib/engagement/post-craft.ts` (reach-optimized prompt
   + full GOAL_EMPHASIS table), `src/server/create-post.ts` (findHotTopics delegates to
   `generateTrendRadar`; draftPostFromAngle), `src/components/create-post-panel.tsx`.
-- **Not yet exercised in a real browser** — screens build + render in tests, but the live
-  click-through (scan → ready replies UI; hot-topics → draft → save) hasn't been driven. Engine
-  underneath IS proven (session-4 smoke test).
-- **Non-blocking follow-ups** (final review): import canonical `Trend` type in create-post-panel;
-  extract shared `tabClass` helper (dup in engage+compose pages); `getEngageQueue` N+1 (≤11 reads).
 - **Not pushed** — `make-it-true` is ahead of `origin`; push needs owner say-so.
+
+**✅ LIVE BROWSER VERIFICATION (session 4, via Playwright) — all 3 flows work end-to-end:**
+- **`/setup`**: drove the FULL quiz (founder archetype → branching, interstitials, the
+  `goalOpen` Next-enable fix confirmed live, optional skips) → crafting screen → **voice-pull
+  (Apify @fcisco95, 8s) + 3 `claude -p` calls** (synth+recommend 2.2min, growth plan 42s) →
+  Growth Plan reveal (all 7 sections, grounded in fcisco95's real pulled tweets) → curate →
+  **`finalizeSetup` persisted everything** (voice_spec 1902 chars, 5 pillars, account_size/
+  capacity/reply_playbook, growth_plan jsonb, 14 seed_targets) → redirect to dashboard which
+  renders the GrowthPlanCard. **The client→finalizeSetup wiring gap is now CLOSED.**
+  ⚠️ **`fcisco95` was intentionally overwritten** with this real /setup run (owner-approved) —
+  it is now a properly configured profile (no longer demo data). 10 drafts in the sign-off queue
+  (9 engage replies + 1 create-post draft) + scanned candidates on the board.
+- **`/engage`**: live scan → 10 cards with fit badges, freshness, all 5 scenario tags,
+  non-slop reply-back replies; correctly skipped an emoji-only post.
+- **`/compose`**: hot topics → draft → Save to queue (full post persisted).
+
+**🐛 3 real bugs the live run caught + fixed (committed):**
+1. `fix(engage)` `f9e5b72` — scan 500'd: OpenAI embeddings rejects empty strings; a text-less
+   tweet failed the whole batch. Scan now skips text-less tweets + `embedTexts` is defensive.
+2. `fix(generate)` `01c0a60` — Create-a-Post intermittently failed: claude sometimes emits a
+   >280-char post (valid JSON, invalid schema) and the retry only said "not valid JSON". Retry
+   now feeds back the actual zod error (helps every structured call) + post-craft enforces 280.
+3. `fix(create-post)` `3d4aa4d` (during Plan B) — full-thread save, per-action busy labels.
+
+**▶ Minor follow-ups surfaced by the live run (non-blocking, NOT yet fixed):**
+- Dashboard "Today's targets" has a **duplicate React key** when one author has multiple
+  same-date candidates (key collides on `@author + date`; e.g. several `@damengchen`). 1-line
+  fix: key by candidate id. (Pre-existing dashboard code.)
+- A controlled/uncontrolled `FieldControl` React warning on some input (Base UI). Minor hygiene.
+- Plan B review notes still open: import canonical `Trend` type in create-post-panel; extract
+  shared `tabClass` helper (dup in engage+compose); `getEngageQueue` N+1 (≤11 reads).
+- **Dev gotcha reconfirmed:** `npm run build` while `npm run dev` is up clashes on `.next` and
+  orphans the dev process (zombie on the port). Stop dev → kill port listener → `rm -rf .next`
+  → restart when switching between build and browser testing.
 
 ---
 
