@@ -7,12 +7,15 @@ import {
 import { curatedSeedHandles, stepComplete, interstitialFor } from "@/lib/setup-logic";
 import { buildSetupPreview, finalizeSetup, type SetupPreview } from "@/server/setup";
 import { pullOwnVoiceCorpus } from "@/server/voice-pull";
+import { generateGrowthPlan } from "@/server/growth-plan";
+import { GrowthPlanReveal } from "@/components/growth-plan-reveal";
+import type { GrowthPlan } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-type Phase = "questions" | "interstitial" | "crafting" | "review" | "saving";
+type Phase = "questions" | "interstitial" | "crafting" | "plan" | "review" | "saving";
 
 export function SetupQuiz({ profileId, onDone }: { profileId: string; onDone?: () => void }) {
   const [answers, setAnswers] = useState<SetupAnswers>(EMPTY_ANSWERS);
@@ -21,6 +24,7 @@ export function SetupQuiz({ profileId, onDone }: { profileId: string; onDone?: (
   const [interChapter, setInterChapter] = useState<ChapterId | null>(null);
   const [preview, setPreview] = useState<SetupPreview | null>(null);
   const [voiceSpec, setVoiceSpec] = useState("");
+  const [plan, setPlan] = useState<GrowthPlan | null>(null);
   const [off, setOff] = useState<Set<string>>(new Set());
   const [added, setAdded] = useState("");
 
@@ -75,7 +79,14 @@ export function SetupQuiz({ profileId, onDone }: { profileId: string; onDone?: (
       const p = await buildSetupPreview(answers);
       setPreview(p);
       setVoiceSpec(p.synth.voiceSpec);
-      setPhase("review");
+      try {
+        const gp = await generateGrowthPlan(answers, p.synth, p.targets);
+        setPlan(gp);
+        setPhase("plan");
+      } catch {
+        // plan is a bonus; if it fails, fall straight through to review
+        setPhase("review");
+      }
     } catch (e) {
       toast.error(String(e));
       setPhase("questions");
@@ -92,7 +103,7 @@ export function SetupQuiz({ profileId, onDone }: { profileId: string; onDone?: (
       added: [...added.split(","), ...answers.inspirations].map((s) => s.trim()).filter(Boolean),
     });
     try {
-      await finalizeSetup(profileId, { answers, voiceSpec, contentPillars: preview.synth.contentPillars, seedHandles });
+      await finalizeSetup(profileId, { answers, voiceSpec, contentPillars: preview.synth.contentPillars, seedHandles, growthPlan: plan ?? undefined });
       toast.success("Account is set up");
       onDone?.();
       window.location.href = "/";
@@ -156,6 +167,10 @@ export function SetupQuiz({ profileId, onDone }: { profileId: string; onDone?: (
       })()}
 
       {phase === "crafting" && <CraftingMoment />}
+
+      {phase === "plan" && plan && (
+        <GrowthPlanReveal plan={plan} onStart={() => setPhase("review")} ctaLabel="Looks right → curate accounts" />
+      )}
 
       {phase === "review" && preview && (
         <div className="space-y-5">
