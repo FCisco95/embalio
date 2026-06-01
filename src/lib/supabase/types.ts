@@ -274,8 +274,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_size: string | null
           content_pillars: string[]
           created_at: string
+          daily_capacity: string | null
           display_name: string | null
           goals: string | null
           handle: string
@@ -284,14 +286,17 @@ export type Database = {
           north_star_metric: string | null
           onboarding_answers: Json
           premium_account: boolean
+          reply_playbook: string | null
           user_id: string | null
           voice_corpus: string[]
           voice_notes: string | null
           voice_spec: string | null
         }
         Insert: {
+          account_size?: string | null
           content_pillars?: string[]
           created_at?: string
+          daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
           handle: string
@@ -300,14 +305,17 @@ export type Database = {
           north_star_metric?: string | null
           onboarding_answers?: Json
           premium_account?: boolean
+          reply_playbook?: string | null
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
           voice_spec?: string | null
         }
         Update: {
+          account_size?: string | null
           content_pillars?: string[]
           created_at?: string
+          daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
           handle?: string
@@ -316,6 +324,7 @@ export type Database = {
           north_star_metric?: string | null
           onboarding_answers?: Json
           premium_account?: boolean
+          reply_playbook?: string | null
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
