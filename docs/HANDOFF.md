@@ -75,16 +75,29 @@ Create-a-Post UI shipped via subagent-driven-development (8 tasks, each spec+qua
    now feeds back the actual zod error (helps every structured call) + post-craft enforces 280.
 3. `fix(create-post)` `3d4aa4d` (during Plan B) — full-thread save, per-action busy labels.
 
-**▶ Minor follow-ups surfaced by the live run (non-blocking, NOT yet fixed):**
-- Dashboard "Today's targets" has a **duplicate React key** when one author has multiple
-  same-date candidates (key collides on `@author + date`; e.g. several `@damengchen`). 1-line
-  fix: key by candidate id. (Pre-existing dashboard code.)
-- A controlled/uncontrolled `FieldControl` React warning on some input (Base UI). Minor hygiene.
-- Plan B review notes still open: import canonical `Trend` type in create-post-panel; extract
-  shared `tabClass` helper (dup in engage+compose); `getEngageQueue` N+1 (≤11 reads).
-- **Dev gotcha reconfirmed:** `npm run build` while `npm run dev` is up clashes on `.next` and
-  orphans the dev process (zombie on the port). Stop dev → kill port listener → `rm -rf .next`
-  → restart when switching between build and browser testing.
+**✅ PUSHED to `origin/make-it-true`** (tip `63cc008`). 225 pass / 1 skip, build clean.
+
+**✅ Follow-ups DONE (session 4, after push):**
+- Dashboard "Today's targets" duplicate React key → keyed on `source_tweet_id` (`fix(ui)` `f7b4efc`).
+- create-post-panel `Trend` type derived from the server action (no drift) (`f7b4efc`).
+- Shared `tabClass` extracted to `src/lib/tab-class.ts` (engage + compose) (`f7b4efc`).
+- Test coverage: `interstitialFor` goalOpen branch + `knobsFromProfile` unknown bucket (`63cc008`).
+
+**▶ Still open (non-blocking polish):**
+- A controlled/uncontrolled `FieldControl` React warning on some input (Base UI). Minor hygiene —
+  not yet located/fixed.
+- `getEngageQueue` N+1 (≤11 reads per load) — accepted for V1; a join would be cleaner.
+- Dashboard perf (HANDOFF §3): 3 serial DB reads + redundant `profiles` fetch → `Promise.all`;
+  parallelize `recommendTargets` + `generateGrowthPlan` on the crafting screen.
+- 5 `@a` junk profiles in the DB (owner has a one-liner; safety classifier blocks agent auto-delete).
+
+**▶ NEXT BIG WORKSTREAM (needs plan-first):** spec build-sequence item 7 — **Platform skill
+scaffolding** (X active; LinkedIn/YouTube defined-but-inactive, structure-ready for later).
+See `docs/superpowers/specs/2026-06-01-engagement-engine-and-quiz-design.md` §4.4.
+
+**Dev gotcha reconfirmed:** `npm run build` while `npm run dev` is up clashes on `.next` and
+orphans the dev process (zombie on the port). Stop dev → kill port listener → `rm -rf .next`
+→ restart when switching between build and browser testing.
 
 ---
 
