@@ -24,3 +24,31 @@ describe("compositeScore", () => {
     expect(s.velocity).toBeLessThanOrEqual(1);
   });
 });
+
+describe("compositeScore — engagement targeting factors", () => {
+  const strong = { relevance: 1, likesPerHour: 50, ageHours: 1 };
+
+  it("is unchanged when the new factors are absent (backward compatible)", () => {
+    const a = compositeScore(strong);
+    const b = compositeScore({ ...strong });
+    expect(a.composite).toBeCloseTo(b.composite);
+  });
+
+  it("full credit when author is inside the 5-20x band", () => {
+    const inBand = compositeScore({ ...strong, authorFollowers: 25000, ownerFollowerEstimate: 2750 });
+    const baseline = compositeScore(strong);
+    expect(inBand.composite).toBeCloseTo(baseline.composite);
+  });
+
+  it("downranks an author far above the band", () => {
+    const huge = compositeScore({ ...strong, authorFollowers: 5_000_000, ownerFollowerEstimate: 2750 });
+    const baseline = compositeScore(strong);
+    expect(huge.composite).toBeLessThan(baseline.composite);
+  });
+
+  it("downranks a crowded post (>20 replies)", () => {
+    const crowded = compositeScore({ ...strong, replyCount: 100 });
+    const baseline = compositeScore(strong);
+    expect(crowded.composite).toBeLessThan(baseline.composite);
+  });
+});
