@@ -11,4 +11,15 @@ describe("buildEngagementPostPrompt", () => {
   it("enforces link-in-reply (no link in body)", () => expect(p.toLowerCase()).toContain("link"));
   it("demands a first-line hook", () => expect(p.toLowerCase()).toMatch(/first line|hook/));
   it("asks for the OriginalDraft JSON shape", () => expect(p).toMatch(/"posts"/));
+
+  it("injects the source with a link-in-reply instruction", () => {
+    const ps = buildEngagementPostPrompt("VOICE", { hook: "agents fail on recovery", source: "https://example.com/post" }, knobs);
+    expect(ps).toContain("https://example.com/post");
+    expect(ps).toMatch(/url in a reply/i);
+  });
+
+  it("emits a goal-emphasis line for reach goal", () => {
+    const pr = buildEngagementPostPrompt("VOICE", { hook: "agents fail on recovery", source: "" }, knobs);
+    expect(pr.toLowerCase()).toMatch(/repost|bookmark/);
+  });
 });
