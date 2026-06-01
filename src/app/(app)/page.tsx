@@ -32,6 +32,8 @@ import { needsSetup } from "@/lib/setup-logic"
 import { listProfiles } from "@/server/profiles"
 import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
+import { getGrowthPlan } from "@/server/growth-plan"
+import { GrowthPlanCard } from "@/components/growth-plan-card"
 
 const CARD = "rounded-xl border border-border bg-card"
 
@@ -46,6 +48,7 @@ export default async function DashboardPage() {
   let handle = BRAND.handle
   let pending: Awaited<ReturnType<typeof listPendingDrafts>> = []
   let data: DashboardData = EMPTY_DASHBOARD
+  let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
@@ -54,6 +57,7 @@ export default async function DashboardPage() {
     if (profile?.id) {
       pending = await listPendingDrafts(profile.id)
       data = await getDashboardData(profile.id)
+      growthPlan = await getGrowthPlan(profile.id)
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
@@ -126,6 +130,9 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* Growth plan card */}
+        {growthPlan && <GrowthPlanCard plan={growthPlan} />}
 
         {/* Strategy of the week */}
         <div
