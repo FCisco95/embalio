@@ -58,6 +58,8 @@ export async function finalizeSetup(
       niche_description: a.pillars.join(", "),
       voice_corpus: a.voiceCorpus ?? [],
       voice_notes: a.voiceMethod === "tags" ? a.voiceTags.join(", ") : "",
+      account_size: a.accountSize,
+      daily_capacity: a.capacity,
     })
     .eq("id", profileId);
   if (upErr) throw new Error(upErr.message);
