@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { answersToInterview, needsSetup, curatedSeedHandles, stepComplete } from "@/lib/setup-logic";
+import { answersToInterview, needsSetup, curatedSeedHandles, stepComplete, interstitialFor } from "@/lib/setup-logic";
 import { EMPTY_ANSWERS, STEPS, type SetupAnswers } from "@/lib/setup-steps";
 
 const base: SetupAnswers = {
@@ -88,5 +88,22 @@ describe("stepComplete", () => {
 
   it("a required toggle (premium) counts as complete (default is a real answer)", () => {
     expect(stepComplete(stepById("premium"), EMPTY_ANSWERS)).toBe(true);
+  });
+});
+
+describe("interstitialFor", () => {
+  it("mirrors the goal back as a piece of the plan forming", () => {
+    const i = interstitialFor("goal", { ...EMPTY_ANSWERS, goal: "reach" });
+    expect(i).not.toBeNull();
+    expect(i!.body.toLowerCase()).toContain("rising");
+  });
+
+  it("returns null for a chapter with no interstitial copy", () => {
+    expect(interstitialFor("channels", EMPTY_ANSWERS)).toBeNull();
+  });
+
+  it("names the archetype in the 'you' interstitial", () => {
+    const i = interstitialFor("you", { ...EMPTY_ANSWERS, archetype: "founder" });
+    expect(i!.body.toLowerCase()).toContain("founder");
   });
 });

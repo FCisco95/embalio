@@ -1,5 +1,5 @@
 import type { InterviewAnswers } from "@/server/persona";
-import type { StepDef, SetupAnswers } from "@/lib/setup-steps";
+import type { StepDef, SetupAnswers, ChapterId } from "@/lib/setup-steps";
 
 const GOAL_TO_NORTHSTAR: Record<string, string> = {
   followers: "grow followers",
@@ -41,6 +41,40 @@ export function curatedSeedHandles(opts: {
   const kept = opts.recommended.map(normHandle).filter((h) => h && !off.has(h));
   const added = opts.added.map(normHandle).filter(Boolean);
   return [...new Set([...kept, ...added])];
+}
+
+export interface Interstitial { title: string; body: string }
+
+const ARCHETYPE_LABEL: Record<string, string> = {
+  dev: "developer / builder", founder: "founder / operator",
+  creator: "creator / educator", trader: "trader / investor", protocol: "project / protocol",
+};
+
+const GOAL_MIRROR: Record<string, string> = {
+  followers: "so I'll prioritize peer-tier accounts and replies that earn the profile click.",
+  reach: "so I'll prioritize larger rising posts and write for the repost-and-reply, not the like.",
+  leads: "so I'll favor question- and DM-able posts and position you as the credible practitioner.",
+  authority: "so I'll favor depth — technical replies that bring the precise detail others miss.",
+};
+
+/** A short reflective screen shown after a chapter, mirroring the answer back. */
+export function interstitialFor(chapter: ChapterId, a: SetupAnswers): Interstitial | null {
+  if (chapter === "you" && a.archetype) {
+    return {
+      title: "Got it.",
+      body: `You're a ${ARCHETYPE_LABEL[a.archetype] ?? a.archetype} — I'll tune what "good engagement" means to that.`,
+    };
+  }
+  if (chapter === "goal") {
+    const key = a.goalOpen?.trim() ? "" : a.goal;
+    const mirror = GOAL_MIRROR[key];
+    if (mirror) return { title: "That changes the play.", body: `Goal: ${a.goal} — ${mirror}` };
+    if (a.goalOpen?.trim()) return { title: "That changes the play.", body: `Goal: ${a.goalOpen.trim()} — I'll point the engine at exactly that.` };
+  }
+  if (chapter === "niche" && a.angle.trim()) {
+    return { title: "That's your edge.", body: "Every draft will lean on it instead of saying what everyone else says." };
+  }
+  return null;
 }
 
 /** Pure step-completion check. Fixes the goalOpen bug: a custom goal counts. */
