@@ -82,8 +82,10 @@ export const ReplyCandidateList = z.object({ opportunities: z.array(ReplyCandida
 export type ReplyCandidate = z.infer<typeof ReplyCandidate>;
 export type ReplyCandidateList = z.infer<typeof ReplyCandidateList>;
 
+export const ENGAGEMENT_SCENARIOS = ["supportive", "contrarian", "witty", "technical", "question"] as const;
 export const ReplyDraft = z.object({
   reply: z.string().min(1).max(560).optional(),
+  scenario: z.enum(ENGAGEMENT_SCENARIOS).optional(),
   skip: z.boolean().default(false),
 });
 export type ReplyDraft = z.infer<typeof ReplyDraft>;
