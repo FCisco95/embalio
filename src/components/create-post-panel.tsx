@@ -14,10 +14,11 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
   const [profileId, setProfileId] = useState(profiles[0]?.id ?? "");
   const [trends, setTrends] = useState<Trend[] | null>(null);
   const [draft, setDraft] = useState<string>("");
-  const [busy, start] = useTransition();
+  const [finding, startFind] = useTransition();
+  const [working, startWork] = useTransition();
 
   function topics() {
-    start(async () => {
+    startFind(async () => {
       try {
         setTrends(await findHotTopics(profileId));
       } catch (e) {
@@ -27,7 +28,7 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
   }
 
   function draftIt(t: Trend) {
-    start(async () => {
+    startWork(async () => {
       try {
         const d = await draftPostFromAngle(profileId, t.angle, t.source);
         setDraft(d.posts.join("\n\n"));
@@ -38,9 +39,9 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
   }
 
   function save() {
-    start(async () => {
+    startWork(async () => {
       try {
-        await saveDraftToQueue(profileId, { kind: "original", body: draft.split("\n\n")[0] });
+        await saveDraftToQueue(profileId, { kind: "original", body: draft });
         toast.success("Saved to queue");
       } catch (e) {
         toast.error(String(e));
@@ -62,8 +63,8 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
             </option>
           ))}
         </StyledSelect>
-        <Button disabled={busy || !profileId} onClick={topics}>
-          {busy ? "Finding hot topics…" : "Find hot topics"}
+        <Button disabled={finding || !profileId} onClick={topics}>
+          {finding ? "Finding hot topics…" : "Find hot topics"}
         </Button>
       </div>
 
@@ -74,13 +75,17 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
             <div className="text-[12px] text-muted-foreground">why now: {t.why_now}</div>
             <div className="text-[13px]">angle: {t.angle}</div>
             <div>
-              <Button size="sm" disabled={busy} onClick={() => draftIt(t)}>
+              <Button size="sm" disabled={working} onClick={() => draftIt(t)}>
                 Draft this
               </Button>
             </div>
           </CardContent>
         </Card>
       ))}
+
+      {trends && trends.length === 0 && (
+        <p className="text-[13px] text-muted-foreground">No trends found — try again.</p>
+      )}
 
       {draft && (
         <Card>
@@ -96,7 +101,7 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
               >
                 Copy
               </Button>
-              <Button size="sm" variant="secondary" disabled={busy} onClick={save}>
+              <Button size="sm" variant="secondary" disabled={working} onClick={save}>
                 Save to queue
               </Button>
             </div>
