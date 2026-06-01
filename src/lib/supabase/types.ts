@@ -283,6 +283,7 @@ export type Database = {
           daily_capacity: string | null
           display_name: string | null
           goals: string | null
+          growth_plan: Json | null
           handle: string
           id: string
           niche_description: string | null
@@ -302,6 +303,7 @@ export type Database = {
           daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
+          growth_plan?: Json | null
           handle: string
           id?: string
           niche_description?: string | null
@@ -321,6 +323,7 @@ export type Database = {
           daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
+          growth_plan?: Json | null
           handle?: string
           id?: string
           niche_description?: string | null
