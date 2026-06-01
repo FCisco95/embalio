@@ -1,9 +1,10 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-05-31
-**Branch:** `make-it-true` — integration tip; three workstreams converged on `main`:
+**Last updated:** 2026-06-01
+**Branch:** `make-it-true` — integration tip. Workstreams converged here:
 `make-it-solid` (resilience), `harden/make-it-safe` (security/RLS), `make-it-true`
-(real-data dashboard). Pushed to `origin/make-it-true`. See `docs/NORTH-STAR.md`.
+(real-data dashboard), and now `feat/onboarding-quiz` (quiz-style first-account
+setup — merged 2026-06-01). Pushed to `origin/make-it-true`. See `docs/NORTH-STAR.md`.
 **Scope:** local single-user X growth engine → growing toward a multi-user product.
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
@@ -31,9 +32,38 @@ project, schema live, `FIXED_PROFILE_ID` = fcisco95 profile), ✅ CRON_SECRET.
 ⏳ Pending for REAL opportunities: `APIFY_TOKEN`, `APIFY_TWEET_SCRAPER_ACTOR`,
 `OPENAI_API_KEY`, and `seed_targets` rows. Pulse is demo-seeded until then.
 
-**Status:** build green; tests 146 pass / 1 skipped (`rls.test.ts` gated behind
+**Status:** build green; tests 164 pass / 1 skipped (`rls.test.ts` gated behind
 `RUN_RLS_INTEGRATION=1`). Open security item: multi-tenant read-RLS on `profiles`
 (the gated test is the canary — user B can still read user A's profile).
+
+**NEW — Onboarding quiz (`feat/onboarding-quiz`, merged 2026-06-01):** quiz-style
+first-account setup at **`/setup`** (takeover route outside the `(app)` group, so no
+nav chrome; `force-dynamic` so the profile id resolves per-request). One-question-
+per-screen, tap-first (chips/toggles/buttons + optional open text), progress bar.
+Collects handle, account size, X-Premium, pillars, goal, daily capacity, voice
+method. Then the app **synthesizes the voice spec** (`synthesizePersona`) and
+**recommends who to follow** (`recommendTargets`, extracted from `generateTargetQueue`);
+the user curates toggles → persists `voice_spec` + `seed_targets` via `finalizeSetup`
+→ `savePersona`. Voice can be auto-pulled from the user's own posts
+(`pullOwnVoiceCorpus`, Apify). Empty accounts are redirected into `/setup` from the
+dashboard via `needsSetup(profile)`. Spec: `docs/superpowers/specs/2026-05-31-onboarding-quiz-design.md`;
+plan: `docs/superpowers/plans/2026-05-31-onboarding-quiz.md`. No schema migration
+(all columns already existed). New files: `src/lib/setup-steps.ts`, `src/lib/setup-logic.ts`,
+`src/server/voice-pull.ts`, `src/server/setup.ts`, `src/components/setup-quiz.tsx`,
+`src/app/setup/page.tsx`; modified `src/server/target-queue.ts`, `src/app/(app)/page.tsx`.
+
+> **⚠ Tracked follow-ups for the onboarding quiz (don't lose these):**
+> 1. **Client-strategy debt:** `finalizeSetup` (`src/server/setup.ts`) updates the
+>    profile via `supabaseService` (service-role) but calls `savePersona`, which uses
+>    `supabaseServer` (anon/RLS). Harmless in the current local single-user, no-auth
+>    setup, and it mirrors a pre-existing repo-wide split — but **when RLS lands the
+>    anon-path writes could be denied while the service write succeeds, half-finalizing
+>    a profile.** Fix as part of the RLS workstream (unify the client strategy
+>    repo-wide); patching just this spot would duplicate `savePersona` logic.
+> 2. **Unwired inputs:** `accountSize` and `daily capacity` are collected but not yet
+>    wired into recommendation sizing / pulse cadence (deferred in spec §9).
+> 3. **Onboarding voice-pull needs `APIFY_TOKEN`** to work; otherwise it falls back to
+>    paste/tags. Same key gap as Pulse below.
 
 **Earlier "make it true" workstream (still valid):** dashboard derives every card
 from real DB rows with honest empty states; Performance accepts real per-post metrics;
