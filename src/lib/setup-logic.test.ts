@@ -98,6 +98,12 @@ describe("interstitialFor", () => {
     expect(i!.body.toLowerCase()).toContain("rising");
   });
 
+  it("mirrors a custom goalOpen back when no preset goal is chosen", () => {
+    const i = interstitialFor("goal", { ...EMPTY_ANSWERS, goal: "", goalOpen: "get 50 users using Embalio" });
+    expect(i).not.toBeNull();
+    expect(i!.body).toContain("get 50 users using Embalio");
+  });
+
   it("returns null for a chapter with no interstitial copy", () => {
     expect(interstitialFor("channels", EMPTY_ANSWERS)).toBeNull();
   });

@@ -26,4 +26,10 @@ describe("knobsFromProfile", () => {
   it("normalizes the goal", () => {
     expect(knobsFromProfile({ account_size: null, daily_capacity: null, north_star_metric: "generate inbound leads / clients", reply_playbook: null }).goal).toBe("leads");
   });
+
+  it("falls back to the smallest estimate for an unrecognized account_size bucket", () => {
+    const k = knobsFromProfile({ account_size: "not-a-bucket", daily_capacity: null, north_star_metric: null, reply_playbook: null });
+    expect(k.ownerFollowerEstimate).toBe(250);
+    expect(k.targetFollowerBand.min).toBe(250 * 5);
+  });
 });
