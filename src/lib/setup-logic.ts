@@ -1,5 +1,5 @@
 import type { InterviewAnswers } from "@/server/persona";
-import type { SetupAnswers } from "@/lib/setup-steps";
+import type { StepDef, SetupAnswers } from "@/lib/setup-steps";
 
 const GOAL_TO_NORTHSTAR: Record<string, string> = {
   followers: "grow followers",
@@ -41,4 +41,16 @@ export function curatedSeedHandles(opts: {
   const kept = opts.recommended.map(normHandle).filter((h) => h && !off.has(h));
   const added = opts.added.map(normHandle).filter(Boolean);
   return [...new Set([...kept, ...added])];
+}
+
+/** Pure step-completion check. Fixes the goalOpen bug: a custom goal counts. */
+export function stepComplete(step: StepDef, a: SetupAnswers): boolean {
+  if (step.optional || !step.required) return true;
+  if (step.id === "goal") {
+    return a.goal.trim().length > 0 || !!a.goalOpen?.trim();
+  }
+  const v = (a as unknown as Record<string, unknown>)[step.id];
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "boolean") return true; // a toggle always carries a value
+  return typeof v === "string" ? v.trim().length > 0 : Boolean(v);
 }
