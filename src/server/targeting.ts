@@ -59,14 +59,17 @@ export async function scanTargetsForProfile(profileId: string): Promise<number> 
   if (handles.length === 0) return 0;
 
   const raw = await pullTweets(makeApify(), process.env.APIFY_TWEET_SCRAPER_ACTOR!, { handles, maxPerHandle: MAX_PER_HANDLE });
-  if (raw.length === 0) return 0;
+  // Skip text-less tweets (media-only / link-only): they can't be embedded and
+  // aren't reply targets — drafting against an empty post would be slop.
+  const scannable = raw.filter((r) => r.tweet_text.trim().length > 0);
+  if (scannable.length === 0) return 0;
 
   const voiceVec = await embedText([profile.niche_description, ...profile.voice_corpus].filter(Boolean).join(" "));
-  const tweetVecs = await embedTexts(raw.map((r) => r.tweet_text));
-  const relevanceById = new Map(raw.map((r, i) => [r.source_tweet_id, relevanceFromVectors(voiceVec, tweetVecs[i])]));
+  const tweetVecs = await embedTexts(scannable.map((r) => r.tweet_text));
+  const relevanceById = new Map(scannable.map((r, i) => [r.source_tweet_id, relevanceFromVectors(voiceVec, tweetVecs[i])]));
 
   const knobs = knobsFromProfile(profile);
-  const ranked = rankCandidates(raw, (c) => relevanceById.get(c.source_tweet_id) ?? 0, TOP_N, knobs.ownerFollowerEstimate);
+  const ranked = rankCandidates(scannable, (c) => relevanceById.get(c.source_tweet_id) ?? 0, TOP_N, knobs.ownerFollowerEstimate);
 
   await sb.from("candidates").upsert(
     ranked.map((c) => ({

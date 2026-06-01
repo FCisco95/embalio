@@ -19,6 +19,10 @@ export async function embedText(text: string): Promise<number[]> {
 }
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
-  const { embeddings } = await embedMany({ model: openai.embeddingModel(MODELS.embed), values: texts });
+  // OpenAI's embeddings API rejects empty strings inside a batch; substitute a
+  // single space so one text-less item can't fail the whole batch. Index
+  // alignment is preserved. (Callers like the scan also skip empty tweets.)
+  const safe = texts.map((t) => (t && t.trim().length > 0 ? t : " "));
+  const { embeddings } = await embedMany({ model: openai.embeddingModel(MODELS.embed), values: safe });
   return embeddings;
 }
