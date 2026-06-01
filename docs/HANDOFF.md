@@ -13,6 +13,30 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
+## ⏭️ CURRENT DIRECTION (2026-06-01, session 2) — read this first
+
+**Pivot:** the "make Pulse real" work below is **PARKED** behind a product reframe.
+Embalio is being designed as a **coach** whose value is **engagement quality** — the
+setup quiz becomes the **control panel for a real Engagement Engine** that drafts
+non-slop, scenario-aware replies engineered to make the original author reply back
+(X weights that ≈150× a like). Full state in the snapshot:
+**`docs/handoffs/2026-06-01-engagement-engine-and-quiz-redesign.md`**.
+
+- **Design (uncommitted):** research `docs/superpowers/notes/2026-06-01-x-growth-playbook-research.md`;
+  spec `docs/superpowers/specs/2026-06-01-engagement-engine-and-quiz-design.md`
+  (supersedes the 2026-05-31 quiz spec).
+- **Plans:** A `docs/superpowers/plans/2026-06-01-engagement-engine-core.md` + B
+  `docs/superpowers/plans/2026-06-01-flows-ui.md` are **written, not executed**.
+  **Plan C (quiz + Growth Plan) is NOT written — deferred to a fresh session.**
+- **Keys are now provisioned** (`APIFY_TOKEN`, `OPENAI_API_KEY`,
+  `APIFY_TWEET_SCRAPER_ACTOR=apidojo/tweet-scraper`); `claude -p` verified. The live
+  `/setup` + Pulse run is still PARKED (no DB writes happened; demo `@naval` rows untouched).
+- **Next:** write Plan C (writing-plans) → execute A then B (subagent-driven-development /
+  executing-plans) → later resume the live run. Quiz `goalOpen` "Next"-disabled bug
+  folds into Plan C.
+
+---
+
 ## TL;DR — Embalio, 2026-05-31
 
 Rebranded **dispatchAI/Resonance → Embalio** (`embalio.com`). Local single-user X
