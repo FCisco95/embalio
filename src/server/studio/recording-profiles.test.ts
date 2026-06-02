@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defaultSeedProfiles } from "./recording-profiles";
+import { defaultSeedProfiles } from "./recording-profile-seeds";
 
 describe("defaultSeedProfiles", () => {
   it("produces the Home (Windows) and Travel (Mac) profiles for a profile id", () => {

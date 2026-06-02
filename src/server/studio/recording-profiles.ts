@@ -7,8 +7,9 @@ import {
   type RecordingProfileInput,
 } from "./recording-profile-seeds";
 
-// Re-export the pure builder and the input type so callers can import from one place.
-export { defaultSeedProfiles } from "./recording-profile-seeds";
+// A "use server" module may only export async functions, so the sync builder is
+// NOT re-exported here — import it from ./recording-profile-seeds directly.
+// Re-exporting the type is fine (types are erased at runtime).
 export type { RecordingProfileInput } from "./recording-profile-seeds";
 
 export async function getActiveProfile() {
