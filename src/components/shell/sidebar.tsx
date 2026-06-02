@@ -10,6 +10,7 @@ import {
   LineChart,
   Settings2,
   Send,
+  Video,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrandAvatar, BRAND_GRADIENT } from "@/components/ui/brand-avatar"
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/compose",     icon: PenLine,   label: "Composer"    },
   { href: "/board",       icon: Target,    label: "Targeting"   },
   { href: "/engage",      icon: Reply,     label: "Engage"      },
+  { href: "/studio",      icon: Video,     label: "Studio"      },
   { href: "/performance", icon: LineChart, label: "Reach"       },
   { href: "/profiles",    icon: Settings2, label: "Brand Voice" },
 ]
