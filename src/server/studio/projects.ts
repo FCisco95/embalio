@@ -36,8 +36,9 @@ export async function rankTopicsForProject(profileId: string): Promise<RankedTop
   const sb = supabaseService();
   const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
   const voiceSpec = profile ? buildVoiceSystemFromSpec(profile) : undefined;
+  const niche = profile?.niche_description?.trim() || "a vibe-coder who builds on blockchain and builds in public";
   const signals = await withRetry(() => collectTrendSignals({ limit: 25 }));
-  return brain.rankTopics({ niche: "a vibe-coder who builds on blockchain and builds in public", voiceSpec, signals, count: 6 });
+  return brain.rankTopics({ niche, voiceSpec, signals, count: 6 });
 }
 
 /** Human pick gate: store the chosen topic and advance to 'script'. */
@@ -86,5 +87,11 @@ async function patchProject(projectId: string, patch: Record<string, unknown>) {
 
 async function updateProject(projectId: string, from: StudioStage, to: StudioStage, patch: Record<string, unknown>) {
   assertTransition(from, to);
+  // Guard against out-of-order/stale calls: the row must actually be at `from`.
+  const sb = supabaseService();
+  const { data: current } = await sb.from("video_projects").select("stage").eq("id", projectId).single();
+  if (current && current.stage !== from) {
+    throw new Error(`project is at "${current.stage}", not "${from}"`);
+  }
   await patchProject(projectId, { ...patch, stage: to });
 }

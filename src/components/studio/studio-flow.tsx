@@ -70,7 +70,7 @@ export function StudioFlow({
       {stage === "topic" && <TopicBoard profileId={profileId} projectId={active.id} onChosen={() => patchActive({ stage: "script" })} />}
       {stage === "script" && <ScriptStudio projectId={active.id} script={active.script} onAdvance={() => patchActive({ stage: "record" })} onScript={(script) => patchActive({ script })} />}
       {stage === "record" && <RecordHub projectId={active.id} script={active.script} recordingProfiles={recordingProfiles} onConfirmed={() => patchActive({ stage: "publish" })} />}
-      {stage === "publish" && <PublishPanel projectId={active.id} ytConnected={ytConnected} onPublished={(publish) => patchActive({ publish })} />}
+      {stage === "publish" && <PublishPanel projectId={active.id} ytConnected={ytConnected} onPublished={(publish) => patchActive({ publish, stage: "repurposed" })} />}
       {stage === "repurposed" && <RepurposePanel projectId={active.id} publish={active.publish} />}
       {stage === "publish" && <RenderPanel />}
     </div>

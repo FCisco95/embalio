@@ -2,6 +2,7 @@
 import { supabaseService } from "@/lib/supabase/server";
 import { uploadVideo } from "@/lib/youtube";
 import { revalidatePath } from "next/cache";
+import { unlink } from "node:fs/promises";
 
 export async function isYouTubeConnected(profileId: string): Promise<boolean> {
   const sb = supabaseService();
@@ -39,17 +40,27 @@ export async function publishProjectVideo(
     .maybeSingle();
   if (!cred) throw new Error("YouTube not connected — connect first");
 
-  const result = await uploadVideo({
-    refreshToken: cred.refresh_token,
-    filePath,
-    title: script?.title ?? "Untitled",
-    description: script?.hook ?? "",
-    redirectUri: `${origin}/api/youtube/oauth/callback`,
-  });
+  // Always remove the uploaded temp file, whether the upload succeeds or throws,
+  // so recorded videos don't accumulate in the OS temp dir.
+  let result;
+  try {
+    result = await uploadVideo({
+      refreshToken: cred.refresh_token,
+      filePath,
+      title: script?.title ?? "Untitled",
+      description: script?.hook ?? "",
+      redirectUri: `${origin}/api/youtube/oauth/callback`,
+    });
+  } finally {
+    await unlink(filePath).catch(() => {});
+  }
 
+  // Publishing is the last automated step before repurposing, so advance the
+  // stage to 'repurposed' here — otherwise the Repurpose panel is never reached.
   const { error } = await sb
     .from("video_projects")
     .update({
+      stage: "repurposed",
       publish: {
         youtube_video_id: result.videoId,
         url: result.url,
