@@ -74,4 +74,32 @@ describe("runAlgorithmBrief", () => {
     const research = vi.fn().mockRejectedValue(new Error("down"));
     await expect(runAlgorithmBrief("pid", research, { now: new Date() })).rejects.toThrow("down");
   });
+
+  it("returns the fresh brief (not stale) when research succeeds but the cache insert fails", async () => {
+    const { supabaseService } = await import("@/lib/supabase/server");
+    // Build a db mock whose insert resolves with an error.
+    const insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: null, error: { message: "insert boom" } }) }),
+    });
+    const from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { brief: BRIEF, researched_at: "2026-05-01T00:00:00Z" }, error: null }),
+            }),
+          }),
+        }),
+      }),
+      insert,
+    });
+    vi.mocked(supabaseService).mockReturnValue({ from } as never);
+    const { runAlgorithmBrief } = await import("./algorithm-brief");
+    const fresh = { ...BRIEF, summary: "fresh-after-insert-fail" };
+    const research = vi.fn().mockResolvedValue(fresh);
+    const r = await runAlgorithmBrief("pid", research, { freshnessDays: 7, now: new Date("2026-06-05T00:00:00Z") });
+    expect(research).toHaveBeenCalledTimes(1);
+    expect(r.brief).toEqual(fresh);
+    expect(r.stale).toBe(false);
+  });
 });

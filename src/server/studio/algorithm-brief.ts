@@ -26,7 +26,8 @@ export async function getAlgorithmBrief(profileId: string): Promise<BriefRow | n
 /**
  * Return the cached brief if within the freshness window; otherwise run `research`
  * and cache it. On research failure, fall back to the stale cache if one exists,
- * else rethrow. `now` is injectable for tests.
+ * else rethrow. Cache-write failures are best-effort: logged but do NOT discard
+ * the fresh brief. `now` is injectable for tests.
  */
 export async function runAlgorithmBrief(
   profileId: string,
@@ -36,12 +37,24 @@ export async function runAlgorithmBrief(
   const now = opts.now ?? new Date();
   const windowMs = (opts.freshnessDays ?? 7) * 24 * 60 * 60 * 1000;
   const latest = await getAlgorithmBrief(profileId);
-  if (latest && now.getTime() - new Date(latest.researched_at).getTime() < windowMs) {
+  const latestTs = latest ? new Date(latest.researched_at).getTime() : NaN;
+  if (latest && !Number.isNaN(latestTs) && now.getTime() - latestTs < windowMs) {
     return { ...latest, stale: false };
   }
+
+  // Research is the valuable step. If it fails, fall back to a stale cached brief
+  // if we have one; otherwise rethrow.
+  let fresh: AlgorithmBrief;
   try {
-    const fresh = await research();
-    const researched_at = now.toISOString();
+    fresh = await research();
+  } catch (err) {
+    if (latest) return { ...latest, stale: true };
+    throw err;
+  }
+
+  // Caching is best-effort — a write failure must NOT discard the fresh research.
+  const researched_at = now.toISOString();
+  try {
     const sb = supabaseService();
     const { error } = await sb
       .from("algorithm_briefs")
@@ -49,9 +62,8 @@ export async function runAlgorithmBrief(
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { brief: fresh, researched_at, stale: false };
   } catch (err) {
-    if (latest) return { ...latest, stale: true };
-    throw err;
+    console.error("algorithm_briefs insert failed:", String(err).slice(0, 200));
   }
+  return { brief: fresh, researched_at, stale: false };
 }
