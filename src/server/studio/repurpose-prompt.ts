@@ -12,6 +12,7 @@ export function buildVideoThreadPrompt(
     `Video URL: ${video.url}`,
     `The video's beats (teleprompter lines):\n${beatLines}`,
     `Write a tight thread: a scroll-stopping hook tweet, 2-5 body tweets distilling the most valuable beats, and a final CTA tweet linking the video (${video.url}).`,
-    `Each tweet <=280 chars. Respond as JSON: { tweets: { tweet, type }[] } where type is "hook" | "body" | "cta".`,
+    `HARD LIMIT: every tweet — including the CTA with its URL (the URL counts toward the limit) — must be 280 characters or fewer. Count each one and trim ruthlessly; a single over-length tweet makes the whole thread invalid.`,
+    `Respond as JSON: { tweets: { tweet, type }[] } where type is "hook" | "body" | "cta".`,
   ].join("\n\n");
 }

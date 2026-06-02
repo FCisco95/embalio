@@ -20,9 +20,13 @@ export async function createXThreadFromVideo(projectId: string): Promise<{ draft
   const { data: profile } = await sb.from("profiles").select("*").eq("id", project.profile_id).single();
   const voiceSystem = profile ? buildVoiceSystemFromSpec(profile) : "";
 
+  // A thread is several tweets, each under its own 280-char limit, so any one of
+  // them can blow the constraint on a given attempt — give the model a larger
+  // correction budget than the single-shot default so it converges reliably.
   const r = await generateStructured(
     ThreadDraft,
     buildVideoThreadPrompt(voiceSystem, { title: script.title, url: publish.url, beats: script.beats }),
+    { attempts: 4 },
   );
   if (!r.data) throw new Error("could not draft the thread — try again");
 

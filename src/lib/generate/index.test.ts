@@ -40,4 +40,23 @@ describe("generateStructured", () => {
     const retryPrompt = runner.mock.calls[1][1] as string;
     expect(retryPrompt).toMatch(/did not satisfy the required shape/);
   });
+  it("honors a higher attempts budget for constraint-heavy schemas", async () => {
+    // Fails the first 3 attempts, succeeds on the 4th — a multi-item schema
+    // (e.g. a thread where any one tweet can blow a length limit) needs more
+    // than the default single retry to converge.
+    const runner = vi.fn()
+      .mockResolvedValueOnce("not json")
+      .mockResolvedValueOnce("still not json")
+      .mockResolvedValueOnce('{"a":123}')
+      .mockResolvedValueOnce('{"a":"ok"}');
+    const r = await generateStructured(S, "make a", { backend: "subscription", attempts: 4 }, runner);
+    expect("data" in r && r.data && (r.data as { a: string }).a).toBe("ok");
+    expect(runner).toHaveBeenCalledTimes(4);
+  });
+  it("gives up after the attempts budget is exhausted", async () => {
+    const runner = vi.fn().mockResolvedValue("never valid");
+    const r = await generateStructured(S, "make a", { backend: "subscription", attempts: 3 }, runner);
+    expect(r.data).toBeNull();
+    expect(runner).toHaveBeenCalledTimes(3);
+  });
 });
