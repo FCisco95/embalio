@@ -15,9 +15,6 @@ create index if not exists video_projects_profile_id_idx on video_projects(profi
 
 alter table video_projects enable row level security;
 drop policy if exists video_projects_owner on video_projects;
-create policy video_projects_owner on video_projects
-  for all using (
-    profile_id in (select id from profiles where user_id = auth.uid())
-  ) with check (
-    profile_id in (select id from profiles where user_id = auth.uid())
-  );
+create policy video_projects_owner on video_projects for all
+  using (exists (select 1 from profiles p where p.id = video_projects.profile_id and p.user_id = auth.uid()))
+  with check (exists (select 1 from profiles p where p.id = video_projects.profile_id and p.user_id = auth.uid()));

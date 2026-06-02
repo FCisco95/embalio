@@ -19,9 +19,6 @@ create index if not exists recording_profiles_profile_id_idx on recording_profil
 
 alter table recording_profiles enable row level security;
 drop policy if exists recording_profiles_owner on recording_profiles;
-create policy recording_profiles_owner on recording_profiles
-  for all using (
-    profile_id in (select id from profiles where user_id = auth.uid())
-  ) with check (
-    profile_id in (select id from profiles where user_id = auth.uid())
-  );
+create policy recording_profiles_owner on recording_profiles for all
+  using (exists (select 1 from profiles p where p.id = recording_profiles.profile_id and p.user_id = auth.uid()))
+  with check (exists (select 1 from profiles p where p.id = recording_profiles.profile_id and p.user_id = auth.uid()));
