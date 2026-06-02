@@ -13,6 +13,48 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
+## ✅ SESSION 5 (2026-06-02) — YouTube Engine slice 1 (branch `feat/youtube-engine`)
+
+Built the **first thin vertical slice of the YouTube Engine** (a feature of Embalio, not a
+standalone product) on branch `feat/youtube-engine` (off `make-it-true`). Brainstorm → spec →
+plan → subagent-driven execution (17 tasks, each TDD + reviewed). **253 tests pass / 1 gated
+skip; `npm run build` green; `tsc` clean.** New studio files lint clean (the repo's other
+pre-existing lint errors are untouched).
+
+- **Spec:** `docs/superpowers/specs/2026-06-02-youtube-engine-thin-slice-design.md`
+- **Plan:** `docs/superpowers/plans/2026-06-02-youtube-engine-thin-slice.md`
+
+**What shipped (project-centric pipeline at `/studio`):** a stage rail
+`topic → script → record → publish → repurposed` driven by one `video_projects` row.
+- **Topic Board** — free Hacker News Algolia signals (`src/lib/studio/signals.ts`) ranked by the
+  brain → ~30s human pick gate.
+- **Script Studio** — real editable script (title + <15s hook + teleprompter beats ‖ per-line
+  visual prompts).
+- **Record Hub** — per-device `recording_profiles` (Home/Windows/Rapidemo + Travel/Mac/OBS, seeded)
+  drive the teleprompter + beat checklist; active device resolved via a localStorage deviceId map
+  (`src/lib/studio/recording-profile.ts`). Orchestrates external OBS (no in-app capture).
+- **Publish** — REAL YouTube OAuth + `videos.insert`, **`privacyStatus: "private"` hardcoded**
+  (single seam to relax later). File-picker upload via `/api/studio/upload` → `src/lib/youtube.ts`.
+- **Repurpose** — `createXThreadFromVideo` reuses the existing `ThreadDraft` schema +
+  `saveDraftToQueue`, dropping an X thread into the existing Engage/Compose sign-off queue.
+- **Render** — scaffold only (Shotstack deferred to slice 2).
+
+**The "brain" boundary:** `src/lib/studio/brain.ts` exposes a `BrainClient` interface backed in
+slice 1 by local `claude -p` (`makeLocalClaudeBrain`). The exported `brain` singleton is the ONLY
+line to change when the external Agent-SDK skill chain exists — UI/server untouched.
+
+**▶ DEFERRED / DO NEXT (owner-gated):**
+1. **Apply the 3 migrations to the live Supabase project** (`vzxpakxjnuaesfxihyvl`):
+   `0009_recording_profiles`, `0010_video_projects`, `0011_youtube_credentials`. They were written +
+   hand-reflected into `types.ts` but **NOT applied to the live DB** (intentionally — autonomous run
+   never touched prod). Until applied, `/studio` renders its empty state (page wraps reads in
+   try/catch). Apply via the Supabase MCP `apply_migration` or `supabase db push`.
+2. **Set `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET`** (see env note below) to exercise real publish.
+3. Manual end-to-end pass once 1+2 are done; then decide on merge to `make-it-true`.
+4. Slice 2 candidates: Shotstack render wiring, Scoreboard/Retro, Opus Clip Shorts.
+
+---
+
 ## ✅ SESSION 4 (2026-06-01) — LIVE SMOKE TEST PASSED; Plan B in progress
 
 **Goal A (live end-to-end smoke test) is COMPLETE — the engine works against live data,
@@ -168,6 +210,10 @@ briefing cache (research once/day); UI error boundaries; targeting split so the
 project, schema live, `FIXED_PROFILE_ID` = fcisco95 profile), ✅ CRON_SECRET.
 ⏳ Pending for REAL opportunities: `APIFY_TOKEN`, `APIFY_TWEET_SCRAPER_ACTOR`,
 `OPENAI_API_KEY`, and `seed_targets` rows. Pulse is demo-seeded until then.
+
+**YouTube OAuth env vars (Task 9, `feat/youtube-engine`):** `YOUTUBE_CLIENT_ID` and
+`YOUTUBE_CLIENT_SECRET` — create a Google Cloud OAuth 2.0 Client (Web application) with
+YouTube Data API v3 enabled; add redirect URI `http://localhost:3000/api/youtube/oauth/callback`.
 
 **Status:** build green; tests 164 pass / 1 skipped (`rls.test.ts` gated behind
 `RUN_RLS_INTEGRATION=1`). Open security item: multi-tenant read-RLS on `profiles`
