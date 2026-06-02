@@ -56,3 +56,26 @@ export const PublishState = z.object({
   published_at: z.string(),
 });
 export type PublishState = z.infer<typeof PublishState>;
+
+export const AlgorithmBrief = z.object({
+  packaging: z.array(z.string()).min(1),
+  retention: z.array(z.string()).min(1),
+  formats: z.array(z.string()).default([]),
+  cadence: z.string().min(1),
+  authenticity: z.array(z.string()).default([]),
+  summary: z.string().min(1),
+  sources: z.array(z.object({ title: z.string(), url: z.string() })).default([]),
+});
+export type AlgorithmBrief = z.infer<typeof AlgorithmBrief>;
+
+export const ChannelPlaybook = z.object({
+  positioning: z.string().min(1),
+  northStar: z.object({ devBrand: z.string(), organic: z.string() }),
+  pillars: z.array(z.object({ name: z.string(), why: z.string() })).min(1).max(6),
+  packagingFormulas: z.array(z.string()).min(1),
+  retentionRules: z.array(z.string()).min(1),
+  cadence: z.string().min(1),
+  nextMoves: z.array(z.string()).min(1),
+  briefResearchedAt: z.string().optional(),
+});
+export type ChannelPlaybook = z.infer<typeof ChannelPlaybook>;
