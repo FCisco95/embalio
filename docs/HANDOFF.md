@@ -169,6 +169,10 @@ project, schema live, `FIXED_PROFILE_ID` = fcisco95 profile), ✅ CRON_SECRET.
 ⏳ Pending for REAL opportunities: `APIFY_TOKEN`, `APIFY_TWEET_SCRAPER_ACTOR`,
 `OPENAI_API_KEY`, and `seed_targets` rows. Pulse is demo-seeded until then.
 
+**YouTube OAuth env vars (Task 9, `feat/youtube-engine`):** `YOUTUBE_CLIENT_ID` and
+`YOUTUBE_CLIENT_SECRET` — create a Google Cloud OAuth 2.0 Client (Web application) with
+YouTube Data API v3 enabled; add redirect URI `http://localhost:3000/api/youtube/oauth/callback`.
+
 **Status:** build green; tests 164 pass / 1 skipped (`rls.test.ts` gated behind
 `RUN_RLS_INTEGRATION=1`). Open security item: multi-tenant read-RLS on `profiles`
 (the gated test is the canary — user B can still read user A's profile).
