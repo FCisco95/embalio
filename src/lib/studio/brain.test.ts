@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { makeLocalClaudeBrain, buildRankPrompt, buildScriptPrompt } from "./brain";
-import type { ChannelPlaybook, RankedTopic, TrendSignal } from "./schemas";
+import { makeLocalClaudeBrain, buildRankPrompt, buildScriptPrompt, buildBriefPrompt, buildPlaybookPrompt } from "./brain";
+import type { AlgorithmBrief, ChannelPlaybook, RankedTopic, TrendSignal } from "./schemas";
 
 const playbook: ChannelPlaybook = {
   positioning: "Vibe-coder on blockchain",
@@ -65,5 +65,26 @@ describe("buildScriptPrompt", () => {
   it("omits the playbook block cleanly when absent", () => {
     const p = buildScriptPrompt({ topic });
     expect(p).not.toContain("Channel playbook");
+  });
+});
+
+const brief: AlgorithmBrief = {
+  packaging: ["front-load the payoff"], retention: ["15s hook"], formats: ["build logs"],
+  cadence: "2/week", authenticity: ["real face"], summary: "sum", sources: [],
+};
+
+describe("buildBriefPrompt", () => {
+  it("asks for current, sourced best practices for the niche", () => {
+    const p = buildBriefPrompt("vibe-coder on blockchain");
+    expect(p).toContain("vibe-coder on blockchain");
+    expect(p.toLowerCase()).toContain("source");
+  });
+});
+
+describe("buildPlaybookPrompt", () => {
+  it("includes the niche and the brief's guidance", () => {
+    const p = buildPlaybookPrompt({ niche: "vibe-coder", brief });
+    expect(p).toContain("vibe-coder");
+    expect(p).toContain("front-load the payoff");
   });
 });
