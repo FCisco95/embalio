@@ -1,4 +1,4 @@
-import { buildClaudeArgs, claudeCliRunner, type CliRunner } from "./runner";
+import { buildClaudeArgs, claudeCliRunner, RESEARCH_TIMEOUT_MS, type CliRunner } from "./runner";
 import { generateTextGemini } from "./gemini";
 import type { ZodType } from "zod";
 import { parseStructured } from "./parse";
@@ -30,7 +30,11 @@ export async function generateText(
   runner: CliRunner = claudeCliRunner,
 ): Promise<string> {
   if (backend(opts) === "gemini") return (await generateTextGemini(prompt)).trim();
-  const out = await runner(buildClaudeArgs(opts), prompt);
+  // Research calls get a longer timeout (live web tools are slow); plain calls keep
+  // the runner's default by omitting the arg entirely.
+  const out = opts.research
+    ? await runner(buildClaudeArgs(opts), prompt, RESEARCH_TIMEOUT_MS)
+    : await runner(buildClaudeArgs(opts), prompt);
   return out.trim();
 }
 

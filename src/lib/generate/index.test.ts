@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { generateText, generateStructured } from "@/lib/generate";
+import { RESEARCH_TIMEOUT_MS } from "@/lib/generate/runner";
 
 describe("generateText (subscription backend)", () => {
   it("pipes the prompt to the claude runner and returns trimmed stdout", async () => {
@@ -9,10 +10,10 @@ describe("generateText (subscription backend)", () => {
     expect(out).toBe("hello world");
     expect(runner).toHaveBeenCalledWith(["-p"], "say hi");
   });
-  it("passes research flags through", async () => {
+  it("passes research flags through with a longer timeout", async () => {
     const runner = vi.fn().mockResolvedValue("ok");
     await generateText("research X", { backend: "subscription", research: true }, runner);
-    expect(runner).toHaveBeenCalledWith(["-p", "--allowedTools", "WebSearch", "WebFetch"], "research X");
+    expect(runner).toHaveBeenCalledWith(["-p", "--allowedTools", "WebSearch", "WebFetch"], "research X", RESEARCH_TIMEOUT_MS);
   });
 });
 

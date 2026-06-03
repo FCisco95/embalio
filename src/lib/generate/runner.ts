@@ -6,6 +6,10 @@ export type CliRunner = (args: string[], stdin: string, timeoutMs?: number) => P
 
 // Research calls (web tools) legitimately take longer than plain generation.
 const DEFAULT_TIMEOUT_MS = 120_000;
+// Live web research (WebSearch/WebFetch — e.g. the brain's Algorithm Brief) routinely
+// blows past the plain-gen budget. Generation runs locally via `claude -p` (not under
+// Vercel's 300s function ceiling), so a generous timeout is safe for these calls.
+export const RESEARCH_TIMEOUT_MS = 300_000;
 
 export function buildClaudeArgs(opts: RunnerOpts): string[] {
   const args = ["-p"];
