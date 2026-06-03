@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { withRetry } from "@/lib/retry";
 import { collectTrendSignals } from "@/lib/studio/signals";
 import { brain } from "@/lib/studio/brain";
+import { ChannelPlaybook } from "@/lib/studio/schemas";
 import type { StudioStage, RankedTopic, VideoScript } from "@/lib/studio/schemas";
 import { buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
 import { assertTransition, mergeProjectPatch } from "./project-helpers";
@@ -37,8 +38,9 @@ export async function rankTopicsForProject(profileId: string): Promise<RankedTop
   const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
   const voiceSpec = profile ? buildVoiceSystemFromSpec(profile) : undefined;
   const niche = profile?.niche_description?.trim() || "a vibe-coder who builds on blockchain and builds in public";
+  const playbook = playbookFrom(profile);
   const signals = await withRetry(() => collectTrendSignals({ limit: 25 }));
-  return brain.rankTopics({ niche, voiceSpec, signals, count: 6 });
+  return brain.rankTopics({ niche, voiceSpec, signals, count: 6, playbook });
 }
 
 /** Human pick gate: store the chosen topic and advance to 'script'. */
@@ -53,7 +55,8 @@ export async function writeScriptForProject(projectId: string): Promise<VideoScr
   if (!project?.topic) throw new Error("choose a topic first");
   const { data: profile } = await sb.from("profiles").select("*").eq("id", project.profile_id).single();
   const voiceSpec = profile ? buildVoiceSystemFromSpec(profile) : undefined;
-  const script = await brain.writeScript({ topic: project.topic as RankedTopic, voiceSpec });
+  const playbook = playbookFrom(profile);
+  const script = await brain.writeScript({ topic: project.topic as RankedTopic, voiceSpec, playbook });
   await patchProject(projectId, { script: script as never });
   return script;
 }
@@ -94,4 +97,10 @@ async function updateProject(projectId: string, from: StudioStage, to: StudioSta
     throw new Error(`project is at "${current.stage}", not "${from}"`);
   }
   await patchProject(projectId, { ...patch, stage: to });
+}
+
+function playbookFrom(profile: { channel_playbook?: unknown } | null) {
+  if (!profile?.channel_playbook) return undefined;
+  const parsed = ChannelPlaybook.safeParse(profile.channel_playbook);
+  return parsed.success ? parsed.data : undefined;
 }

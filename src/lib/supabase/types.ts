@@ -34,6 +34,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      algorithm_briefs: {
+        Row: {
+          brief: Json
+          created_at: string
+          id: string
+          profile_id: string
+          researched_at: string
+        }
+        Insert: {
+          brief: Json
+          created_at?: string
+          id?: string
+          profile_id: string
+          researched_at?: string
+        }
+        Update: {
+          brief?: Json
+          created_at?: string
+          id?: string
+          profile_id?: string
+          researched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "algorithm_briefs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidates: {
         Row: {
           author_handle: string
@@ -278,6 +310,7 @@ export type Database = {
       profiles: {
         Row: {
           account_size: string | null
+          channel_playbook: Json | null
           content_pillars: string[]
           created_at: string
           daily_capacity: string | null
@@ -298,6 +331,7 @@ export type Database = {
         }
         Insert: {
           account_size?: string | null
+          channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
           daily_capacity?: string | null
@@ -318,6 +352,7 @@ export type Database = {
         }
         Update: {
           account_size?: string | null
+          channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
           daily_capacity?: string | null

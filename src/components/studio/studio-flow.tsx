@@ -11,6 +11,8 @@ import { RecordHub } from "./record-hub";
 import { PublishPanel } from "./publish-panel";
 import { RepurposePanel } from "./repurpose-panel";
 import { RenderPanel } from "./render-panel";
+import { PlaybookPanel, type BriefMeta } from "./playbook-panel";
+import type { ChannelPlaybook } from "@/lib/studio/schemas";
 
 type Project = { id: string; stage: string; topic: unknown; script: unknown; recording: unknown; publish: unknown };
 
@@ -19,12 +21,14 @@ const STAGE_LABEL: Record<StudioStage, string> = {
 };
 
 export function StudioFlow({
-  profileId, recordingProfiles, initialProjects, ytConnected,
+  profileId, recordingProfiles, initialProjects, ytConnected, playbook, briefMeta,
 }: {
   profileId: string;
   recordingProfiles: { id: string; device_label: string; os: string; capture_tool: string; teleprompter_placement: string; scene_presets: unknown; export_path: string | null }[];
   initialProjects: Project[];
   ytConnected: boolean;
+  playbook: ChannelPlaybook | null;
+  briefMeta: BriefMeta | null;
 }) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [activeId, setActiveId] = useState<string | null>(initialProjects[0]?.id ?? null);
@@ -44,9 +48,12 @@ export function StudioFlow({
 
   if (!active) {
     return (
-      <div className="rounded-xl border border-border p-10 text-center">
-        <p className="mb-4 text-sm text-muted-foreground">No video in progress.</p>
-        <Button onClick={newProject} disabled={!profileId}>Start a new video</Button>
+      <div className="space-y-5">
+        <PlaybookPanel profileId={profileId} initialPlaybook={playbook} briefMeta={briefMeta} />
+        <div className="rounded-xl border border-border p-10 text-center">
+          <p className="mb-4 text-sm text-muted-foreground">No video in progress.</p>
+          <Button onClick={newProject} disabled={!profileId}>Start a new video</Button>
+        </div>
       </div>
     );
   }
@@ -55,6 +62,7 @@ export function StudioFlow({
 
   return (
     <div className="space-y-5">
+      <PlaybookPanel profileId={profileId} initialPlaybook={playbook} briefMeta={briefMeta} />
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {STUDIO_STAGES.map((s) => (
