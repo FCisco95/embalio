@@ -26,7 +26,8 @@ export async function generateChannelPlaybook(
   const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
   const niche = profile?.niche_description?.trim() || DEFAULT_NICHE;
   const voiceSpec = profile ? buildVoiceSystemFromSpec(profile) : undefined;
-  const northStarContext = (profile?.growth_plan as { northStar?: string } | null)?.northStar ?? undefined;
+  const ns = (profile?.growth_plan as { northStar?: { metric?: string; detail?: string } } | null)?.northStar;
+  const northStarContext = ns ? [ns.metric, ns.detail].filter(Boolean).join(" — ") || undefined : undefined;
 
   const { brief, researched_at } = await runAlgorithmBrief(
     profileId,

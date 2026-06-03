@@ -41,6 +41,39 @@ describe("generateChannelPlaybook", () => {
     expect(update).toHaveBeenCalled();
   });
 
+  it("passes the profile's north-star (metric + detail) into the playbook prompt as text", async () => {
+    const { supabaseService } = await import("@/lib/supabase/server");
+    const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: "pid", niche_description: "vibe", growth_plan: { northStar: { metric: "1k subscribers", detail: "within 90 days" } } },
+            error: null,
+          }),
+        }),
+      }),
+      update,
+    });
+    vi.mocked(supabaseService).mockReturnValue({ from } as never);
+    const { runAlgorithmBrief } = await import("./algorithm-brief");
+    vi.mocked(runAlgorithmBrief).mockResolvedValue({
+      brief: { packaging: ["p"], retention: ["r"], formats: [], cadence: "c", authenticity: [], summary: "s", sources: [] },
+      researched_at: "2026-06-05T00:00:00Z", stale: false,
+    });
+    const { generateStructured } = await import("@/lib/generate");
+    vi.mocked(generateStructured).mockResolvedValue({ data: PLAYBOOK } as never);
+
+    const { generateChannelPlaybook } = await import("./playbook");
+    await generateChannelPlaybook("pid");
+
+    // The playbook-synthesis call is the one whose prompt must carry the north-star text.
+    const prompts = vi.mocked(generateStructured).mock.calls.map((c) => String(c[1]));
+    const joined = prompts.join("\n");
+    expect(joined).toContain("1k subscribers");
+    expect(joined).toContain("within 90 days");
+  });
+
   it("throws and does not persist when synthesis returns no data", async () => {
     const { supabaseService } = await import("@/lib/supabase/server");
     const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
