@@ -3,7 +3,6 @@ import { listPerformance } from "@/server/posts";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -12,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageShell } from "@/components/shell/page-shell";
 import { AreaChart } from "@/components/charts/area-chart";
 import { BarChart } from "@/components/charts/bar-chart";
+import { MetricsRow } from "@/components/metrics-row";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -114,52 +114,43 @@ export default async function PerformancePage({
           </div>
         )}
 
-        {/* Posts table */}
+        {/* Posts table — enter real metrics inline */}
         <Card>
           <CardHeader>
             <CardTitle>All posts</CardTitle>
+            <p className="text-[12px] text-muted-foreground">
+              Enter the real numbers from each post, then Save. These feed your dashboard.
+            </p>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Post</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead className="tabular-nums">Likes</TableHead>
-                  <TableHead className="tabular-nums">Views</TableHead>
-                  <TableHead>Posted</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {posts.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-surface-2">
-                    <TableCell className="max-w-md">
-                      <a
-                        href={p.tweet_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 text-brand-text truncate block"
-                      >
-                        {p.drafts?.body ?? p.tweet_url}
-                      </a>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{p.drafts?.kind}</TableCell>
-                    <TableCell className="tabular-nums">{p.metrics?.likes ?? "—"}</TableCell>
-                    <TableCell className="tabular-nums">{p.metrics?.views ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(p.posted_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {posts.length === 0 && (
+            {posts.length === 0 ? (
+              <div className="py-8 text-center text-[13px] text-muted-foreground">
+                No posts tracked yet — mark a draft as posted to track it here.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No posts tracked yet.
-                    </TableCell>
+                    <TableHead>Post</TableHead>
+                    <TableHead className="text-right">Likes</TableHead>
+                    <TableHead className="text-right">Reposts</TableHead>
+                    <TableHead className="text-right">Replies</TableHead>
+                    <TableHead className="text-right">Views</TableHead>
+                    <TableHead className="text-right">Save</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {posts.map((p) => (
+                    <MetricsRow
+                      key={p.id}
+                      postId={p.id}
+                      body={p.drafts?.body ?? ""}
+                      metrics={p.metrics ?? null}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

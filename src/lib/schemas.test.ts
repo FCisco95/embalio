@@ -129,3 +129,35 @@ describe("ReplyQueue", () => {
     expect(ReplyQueue.safeParse({ generatedAt: "May 27, 2026", opportunities: [] }).success).toBe(true);
   });
 });
+
+import { GrowthPlan } from "@/lib/schemas";
+
+describe("GrowthPlan schema", () => {
+  it("parses a complete plan", () => {
+    const p = GrowthPlan.parse({
+      archetypeLabel: "Developer / Builder · 90-day plan",
+      headline: "@fcisco95 · authority in AI agents → 2,000 engaged followers",
+      voiceSummary: "Technical and concrete. Lowercase, no fluff.",
+      voiceTags: ["technical", "lowercase"],
+      pillars: ["AI agents"],
+      edge: "you ship real agent infra and show the failure modes",
+      whoToWatch: [{ handle: "@swyx", why: "AI-eng audience overlap — high-leverage replies" }],
+      rhythm: [{ count: "5/day", label: "strategic replies" }],
+      northStar: { metric: "2,000 engaged followers in 90 days", detail: "tracked weekly" },
+      embalioDoes: ["Scans your accounts daily and surfaces posts worth your reply"],
+      firstMoves: ["Reply to the 3 rising posts waiting in your scan"],
+    });
+    expect(p.whoToWatch[0].handle).toBe("@swyx");
+    expect(p.rhythm[0].count).toBe("5/day");
+  });
+
+  it("defaults array sections to empty", () => {
+    const p = GrowthPlan.parse({
+      archetypeLabel: "x", headline: "y", voiceSummary: "z", edge: "e",
+      northStar: { metric: "m", detail: "d" },
+    });
+    expect(p.voiceTags).toEqual([]);
+    expect(p.whoToWatch).toEqual([]);
+    expect(p.firstMoves).toEqual([]);
+  });
+});

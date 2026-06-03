@@ -1,0 +1,82 @@
+"use server";
+import { supabaseService } from "@/lib/supabase/server";
+import { synthesizePersona, savePersona } from "@/server/persona";
+import { recommendTargets } from "@/server/target-queue";
+import { saveGrowthPlan } from "@/server/growth-plan";
+import { answersToInterview, normHandle } from "@/lib/setup-logic";
+import type { SetupAnswers } from "@/lib/setup-steps";
+import type { PersonaSynthesis, TargetQueue, GrowthPlan } from "@/lib/schemas";
+import { revalidatePath } from "next/cache";
+
+export async function getSetupProfileId(): Promise<string> {
+  const fixed = process.env.FIXED_PROFILE_ID;
+  if (fixed) return fixed;
+  const sb = supabaseService();
+  const { data } = await sb.from("profiles").select("id").order("created_at").limit(1).maybeSingle();
+  if (data?.id) return data.id;
+  const { data: created, error } = await sb
+    .from("profiles")
+    .insert({ handle: "new-account", voice_corpus: [] })
+    .select("id")
+    .single();
+  if (error || !created) throw new Error("could not create a profile for setup");
+  return created.id;
+}
+
+export interface SetupPreview {
+  synth: PersonaSynthesis;
+  targets: TargetQueue;
+}
+
+export async function buildSetupPreview(a: SetupAnswers): Promise<SetupPreview> {
+  const interview = answersToInterview(a);
+  const synth = await synthesizePersona(interview);
+  let targets: TargetQueue = { targets: [], generatedAt: "" };
+  try {
+    targets = await recommendTargets({
+      existingHandles: [],
+      contentPillars: synth.contentPillars,
+      northStarMetric: interview.northStarMetric ?? null,
+    });
+  } catch {
+    // recommendations are best-effort; setup must proceed without them
+  }
+  return { synth, targets };
+}
+
+export async function finalizeSetup(
+  profileId: string,
+  payload: { answers: SetupAnswers; voiceSpec: string; contentPillars: string[]; seedHandles: string[]; growthPlan?: GrowthPlan },
+): Promise<void> {
+  const a = payload.answers;
+  const interview = answersToInterview(a);
+
+  const sb = supabaseService();
+  const { error: upErr } = await sb
+    .from("profiles")
+    .update({
+      handle: normHandle(a.handle),
+      niche_description: a.pillars.join(", "),
+      voice_corpus: a.voiceCorpus ?? [],
+      voice_notes: a.voiceMethod === "tags" ? a.voiceTags.join(", ") : "",
+      account_size: a.accountSize,
+      daily_capacity: a.capacity,
+      reply_playbook: a.replyPlaybook?.trim() || null,
+    })
+    .eq("id", profileId);
+  if (upErr) throw new Error(upErr.message);
+
+  await savePersona(profileId, {
+    voiceSpec: payload.voiceSpec,
+    goals: interview.goals,
+    contentPillars: payload.contentPillars,
+    answers: interview,
+    seedAccounts: [...new Set([...payload.seedHandles, ...a.inspirations, ...a.engageNow])],
+    northStarMetric: interview.northStarMetric,
+    premiumAccount: a.premium,
+  });
+
+  if (payload.growthPlan) await saveGrowthPlan(profileId, payload.growthPlan);
+
+  revalidatePath("/");
+}

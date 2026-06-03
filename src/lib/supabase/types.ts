@@ -34,6 +34,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      algorithm_briefs: {
+        Row: {
+          brief: Json
+          created_at: string
+          id: string
+          profile_id: string
+          researched_at: string
+        }
+        Insert: {
+          brief: Json
+          created_at?: string
+          id?: string
+          profile_id: string
+          researched_at?: string
+        }
+        Update: {
+          brief?: Json
+          created_at?: string
+          id?: string
+          profile_id?: string
+          researched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "algorithm_briefs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidates: {
         Row: {
           author_handle: string
@@ -95,6 +127,7 @@ export type Database = {
           body: string
           candidate_id: string | null
           created_at: string
+          engagement_scenario: string | null
           id: string
           kind: string
           model_used: string | null
@@ -106,6 +139,7 @@ export type Database = {
           body: string
           candidate_id?: string | null
           created_at?: string
+          engagement_scenario?: string | null
           id?: string
           kind: string
           model_used?: string | null
@@ -117,6 +151,7 @@ export type Database = {
           body?: string
           candidate_id?: string | null
           created_at?: string
+          engagement_scenario?: string | null
           id?: string
           kind?: string
           model_used?: string | null
@@ -274,54 +309,125 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_size: string | null
+          channel_playbook: Json | null
           content_pillars: string[]
           created_at: string
+          daily_capacity: string | null
           display_name: string | null
           goals: string | null
+          growth_plan: Json | null
           handle: string
           id: string
           niche_description: string | null
           north_star_metric: string | null
           onboarding_answers: Json
           premium_account: boolean
+          reply_playbook: string | null
           user_id: string | null
           voice_corpus: string[]
           voice_notes: string | null
           voice_spec: string | null
         }
         Insert: {
+          account_size?: string | null
+          channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
+          daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
+          growth_plan?: Json | null
           handle: string
           id?: string
           niche_description?: string | null
           north_star_metric?: string | null
           onboarding_answers?: Json
           premium_account?: boolean
+          reply_playbook?: string | null
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
           voice_spec?: string | null
         }
         Update: {
+          account_size?: string | null
+          channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
+          daily_capacity?: string | null
           display_name?: string | null
           goals?: string | null
+          growth_plan?: Json | null
           handle?: string
           id?: string
           niche_description?: string | null
           north_star_metric?: string | null
           onboarding_answers?: Json
           premium_account?: boolean
+          reply_playbook?: string | null
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
           voice_spec?: string | null
         }
         Relationships: []
+      }
+      recording_profiles: {
+        Row: {
+          capture_tool: string
+          created_at: string
+          device_label: string
+          export_path: string | null
+          id: string
+          mic: string | null
+          monitors: Json
+          os: string
+          profile_id: string
+          scene_presets: Json
+          sync_target: string | null
+          teleprompter_placement: string
+          webcam: string | null
+        }
+        Insert: {
+          capture_tool: string
+          created_at?: string
+          device_label: string
+          export_path?: string | null
+          id?: string
+          mic?: string | null
+          monitors?: Json
+          os: string
+          profile_id: string
+          scene_presets?: Json
+          sync_target?: string | null
+          teleprompter_placement?: string
+          webcam?: string | null
+        }
+        Update: {
+          capture_tool?: string
+          created_at?: string
+          device_label?: string
+          export_path?: string | null
+          id?: string
+          mic?: string | null
+          monitors?: Json
+          os?: string
+          profile_id?: string
+          scene_presets?: Json
+          sync_target?: string | null
+          teleprompter_placement?: string
+          webcam?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       research_briefings: {
         Row: {
@@ -386,6 +492,79 @@ export type Database = {
             foreignKeyName: "seed_targets_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_projects: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          publish: Json | null
+          recording: Json | null
+          script: Json | null
+          stage: string
+          topic: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          publish?: Json | null
+          recording?: Json | null
+          script?: Json | null
+          stage?: string
+          topic?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          publish?: Json | null
+          recording?: Json | null
+          script?: Json | null
+          stage?: string
+          topic?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_projects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      youtube_credentials: {
+        Row: {
+          obtained_at: string
+          profile_id: string
+          refresh_token: string
+          scope: string | null
+        }
+        Insert: {
+          obtained_at?: string
+          profile_id: string
+          refresh_token: string
+          scope?: string | null
+        }
+        Update: {
+          obtained_at?: string
+          profile_id?: string
+          refresh_token?: string
+          scope?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_credentials_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

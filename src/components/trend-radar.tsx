@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
+import { safeHref } from "@/lib/safe-url";
 
 function TrendCard({ topic, why_now, angle, source }: {
   topic: string; why_now: string; angle: string; source?: string;
@@ -27,7 +28,7 @@ function TrendCard({ topic, why_now, angle, source }: {
           {angle}
         </p>
         {source && (
-          <a href={source} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-text underline underline-offset-2">
+          <a href={safeHref(source)} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-text underline underline-offset-2">
             source →
           </a>
         )}

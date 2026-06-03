@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { markPosted, dismissCandidate } from "@/server/posts";
 import { PostButton } from "@/components/post-button";
+import { safeHref } from "@/lib/safe-url";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function CandidateCard({ candidate, postingEnabled }: { candidate: any; postingEnabled?: boolean }) {
@@ -14,7 +15,7 @@ export function CandidateCard({ candidate, postingEnabled }: { candidate: any; p
   return (
     <Card className="p-4 space-y-2">
       <div className="text-sm text-muted-foreground">@{candidate.author_handle} · score {Number(candidate.score_composite).toFixed(2)}</div>
-      <a href={candidate.tweet_url} target="_blank" className="block text-sm underline">{candidate.tweet_text}</a>
+      <a href={safeHref(candidate.tweet_url)} target="_blank" rel="noopener noreferrer" className="block text-sm underline">{candidate.tweet_text}</a>
       {draft && (
         <>
           <div className="rounded bg-muted p-2 text-sm">{draft.body}</div>

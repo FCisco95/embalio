@@ -1,18 +1,49 @@
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { generateReplyQueue } from "@/server/engage";
+import { saveDraftToQueue, markPosted } from "@/server/posts";
 import type { ReplyOpportunity, ReplyQueue } from "@/lib/schemas";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
+import { safeHref } from "@/lib/safe-url";
 
-function ReplyCard({ opp }: { opp: ReplyOpportunity }) {
+function ReplyCard({ opp, profileId }: { opp: ReplyOpportunity; profileId: string }) {
   const [reply, setReply] = useState(opp.reply);
   const [skipped, setSkipped] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [url, setUrl] = useState(opp.targetUrl ?? "");
+  const [pending, start] = useTransition();
 
   if (skipped) return null;
+
+  function save() {
+    start(async () => {
+      try {
+        const id = await saveDraftToQueue(profileId, { kind: "reply", body: reply });
+        setDraftId(id);
+        toast.success("Saved to queue");
+      } catch (e) {
+        toast.error(String(e));
+      }
+    });
+  }
+
+  function post() {
+    start(async () => {
+      try {
+        if (!draftId) return;
+        await markPosted(draftId, url);
+        toast.success("Marked posted");
+        setSkipped(true);
+      } catch (e) {
+        toast.error(String(e));
+      }
+    });
+  }
 
   return (
     <Card>
@@ -38,16 +69,23 @@ function ReplyCard({ opp }: { opp: ReplyOpportunity }) {
           onChange={(e) => setReply(e.target.value)}
           className="font-mono text-[14px]"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             onClick={() => { navigator.clipboard.writeText(reply); toast.success("Copied"); }}
           >
             Copy reply
           </Button>
+          {draftId ? (
+            <span className="inline-flex items-center text-[12px] text-success font-medium px-1">Saved ✓</span>
+          ) : (
+            <Button size="sm" variant="secondary" disabled={pending || !profileId || !reply.trim()} onClick={save}>
+              {pending ? "Saving…" : "Save to queue"}
+            </Button>
+          )}
           {opp.targetUrl && (
             <a
-              href={opp.targetUrl}
+              href={safeHref(opp.targetUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className={buttonVariants({ size: "sm", variant: "outline" })}
@@ -59,6 +97,14 @@ function ReplyCard({ opp }: { opp: ReplyOpportunity }) {
             Skip
           </Button>
         </div>
+        {draftId && (
+          <div className="flex gap-2">
+            <Input placeholder="paste posted reply URL" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <Button size="sm" variant="secondary" disabled={pending || !url} onClick={post}>
+              Mark posted
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -116,6 +162,7 @@ export function ReplyQueuePanel({ profiles }: { profiles: { id: string; handle: 
             <ReplyCard
               key={opp.targetUrl || `${opp.targetHandle}-${opp.targetPost.slice(0, 40)}`}
               opp={opp}
+              profileId={profileId}
             />
           ))}
         </div>

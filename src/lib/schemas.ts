@@ -10,6 +10,16 @@ export const TweetUrl = z
   .url()
   .refine((u) => /(?:twitter|x)\.com\/[^/]+\/status\/\d+/.test(u), "not a tweet URL");
 
+// Per-post engagement metrics. Entered manually at first; the X API will
+// populate the same shape later, so this is the single seam to swap.
+export const PostMetrics = z.object({
+  likes: z.coerce.number().int().min(0).default(0),
+  reposts: z.coerce.number().int().min(0).default(0),
+  replies: z.coerce.number().int().min(0).default(0),
+  views: z.coerce.number().int().min(0).default(0),
+});
+export type PostMetrics = z.infer<typeof PostMetrics>;
+
 export const PersonaSynthesis = z.object({
   voiceSpec: z.string().min(1),
   contentPillars: z.array(z.string()).min(1),
@@ -72,8 +82,10 @@ export const ReplyCandidateList = z.object({ opportunities: z.array(ReplyCandida
 export type ReplyCandidate = z.infer<typeof ReplyCandidate>;
 export type ReplyCandidateList = z.infer<typeof ReplyCandidateList>;
 
+export const ENGAGEMENT_SCENARIOS = ["supportive", "contrarian", "witty", "technical", "question"] as const;
 export const ReplyDraft = z.object({
   reply: z.string().min(1).max(560).optional(),
+  scenario: z.enum(ENGAGEMENT_SCENARIOS).optional(),
   skip: z.boolean().default(false),
 });
 export type ReplyDraft = z.infer<typeof ReplyDraft>;
@@ -134,3 +146,23 @@ export const BreakoutScore = z.object({
   fixes: z.array(z.string()).default([]),
 });
 export type BreakoutScore = z.infer<typeof BreakoutScore>;
+
+export const GrowthPlanWatch = z.object({
+  handle: z.string(),
+  why: z.string(),
+});
+
+export const GrowthPlan = z.object({
+  archetypeLabel: z.string().min(1),
+  headline: z.string().min(1),
+  voiceSummary: z.string().min(1),
+  voiceTags: z.array(z.string()).max(8).default([]),
+  pillars: z.array(z.string()).max(8).default([]),
+  edge: z.string().min(1),
+  whoToWatch: z.array(GrowthPlanWatch).max(10).default([]),
+  rhythm: z.array(z.object({ count: z.string(), label: z.string() })).max(4).default([]),
+  northStar: z.object({ metric: z.string(), detail: z.string() }),
+  embalioDoes: z.array(z.string()).max(6).default([]),
+  firstMoves: z.array(z.string()).max(5).default([]),
+});
+export type GrowthPlan = z.infer<typeof GrowthPlan>;
