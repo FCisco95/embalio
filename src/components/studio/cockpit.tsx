@@ -13,6 +13,7 @@ import { resolveStore, setPreset, getPreset } from "@/lib/studio/teleprompter-st
 type ElectronBridge = {
   onHotkey: (cb: (action: string) => void) => (() => void) | void;
   exportMarkers: (files: { edl: string; chapters: string }) => void;
+  toggleInteractive?: () => void;
 } | undefined;
 
 export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
@@ -105,7 +106,8 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       else if (action === "prev") goPrev();
       else if (action === "playpause") setVoiceOn((v) => !v);
       else if (action === "mark") stamp(active);
-      else if (action === "interactive") setInteractive((v) => !v);
+      else if (action === "interactive-on") setInteractive(true);
+      else if (action === "interactive-off") setInteractive(false);
     };
     const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
     const off = bridge?.onHotkey(onAction);
@@ -145,14 +147,18 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         <span className={interactive ? "text-amber-300" : "text-white/40"}>{interactive ? "◆ adjust" : "◇ live"}</span>
         <span className="text-white/40">{layout.mode}</span>
         <div className="ml-auto flex gap-2">
-          <button onClick={() => setInteractive((v) => !v)} className="rounded bg-white/10 px-2 py-0.5">{interactive ? "Live" : "Adjust"}</button>
+          <button onClick={() => {
+            const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
+            if (bridge?.toggleInteractive) bridge.toggleInteractive(); // native flags + UI sync via hotkey channel
+            else setInteractive((v) => !v);                            // browser-dev fallback (no native flags)
+          }} className="rounded bg-white/10 px-2 py-0.5">{interactive ? "Live" : "Adjust"}</button>
           <button onClick={() => setMirror((m) => !m)} className="rounded bg-white/10 px-2 py-0.5">{mirror ? "Unmirror" : "Mirror"}</button>
           <button onClick={startSession} className="rounded bg-white/10 px-2 py-0.5">Start session</button>
           <button onClick={exportNow} className="rounded bg-white/10 px-2 py-0.5">Stop &amp; export</button>
         </div>
       </div>
       <div className="rounded-xl bg-black/70 p-4 backdrop-blur"
-           style={{ transform: mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width }}>
+           style={{ transform: mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width, maxHeight: layout.height, overflowY: "auto" }}>
         <div className="font-semibold leading-snug">{shownLine}</div>
         {view.current.do && <div className="mt-3 border-l-2 border-sky-400 pl-3 text-sky-200 text-base">▸ {view.current.do}</div>}
         {view.current.fx && <div className="mt-2 text-[13px] text-amber-300">⚡ {view.current.fx}</div>}

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("embalio", {
     return () => ipcRenderer.off("hotkey", handler);
   },
   exportMarkers: (files) => ipcRenderer.send("export-markers", files),
+  toggleInteractive: () => ipcRenderer.send("overlay:toggle-interactive"),
   getStore: () => ipcRenderer.sendSync("store:get-sync"),
   setStore: (data) => ipcRenderer.send("store:set", data),
 });

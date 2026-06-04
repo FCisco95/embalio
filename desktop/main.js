@@ -81,11 +81,23 @@ function createOverlay(projectId) {
   overlay.setIgnoreMouseEvents(true, { forward: true }); // click-through
 
   overlay.loadURL(`${APP_URL}/overlay/record/${encodeURIComponent(projectId)}`);
-  overlay.on("closed", () => { overlay = null; });
+  overlay.on("closed", () => { overlay = null; interactive = false; }); // reset so state doesn't leak across sessions
 }
 
 function send(action) {
   if (overlay && !overlay.isDestroyed()) overlay.webContents.send("hotkey", action);
+}
+
+// Toggle click-through + focusability (interactive mode). Main is the single
+// source of truth: after flipping native flags, push the EXPLICIT state to the
+// renderer so the in-app label can never desync from the OS-level flags.
+function toggleInteractive() {
+  if (!overlay || overlay.isDestroyed()) return;
+  interactive = !interactive;
+  overlay.setIgnoreMouseEvents(!interactive, { forward: true });
+  overlay.setFocusable(interactive);
+  if (interactive) overlay.focus();
+  send(interactive ? "interactive-on" : "interactive-off");
 }
 
 function registerShortcuts() {
@@ -93,14 +105,7 @@ function registerShortcuts() {
   globalShortcut.register("CommandOrControl+Left", () => send("prev"));
   globalShortcut.register("CommandOrControl+Space", () => send("playpause"));
   globalShortcut.register("CommandOrControl+M", () => send("mark"));
-  globalShortcut.register("CommandOrControl+I", () => {        // toggle click-through + focusability (interactive mode)
-    if (!overlay || overlay.isDestroyed()) return;
-    interactive = !interactive;
-    overlay.setIgnoreMouseEvents(!interactive, { forward: true });
-    overlay.setFocusable(interactive);
-    if (interactive) overlay.focus();
-    send("interactive");
-  });
+  globalShortcut.register("CommandOrControl+I", () => toggleInteractive());
 }
 
 ipcMain.on("overlay:open", (_e, projectId) => {
@@ -110,6 +115,8 @@ ipcMain.on("overlay:open", (_e, projectId) => {
   }
   createOverlay(projectId);
 });
+
+ipcMain.on("overlay:toggle-interactive", () => toggleInteractive());
 
 ipcMain.on("store:get-sync", (e) => {
   try {
