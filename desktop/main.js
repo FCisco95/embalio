@@ -18,6 +18,7 @@ function createMainWindow() {
     webPreferences: { preload: path.join(__dirname, "preload.js") },
   });
   mainWin.loadURL(APP_URL);
+  mainWin.on("closed", () => { mainWin = null; });
 }
 
 function createOverlay(projectId) {
@@ -40,7 +41,7 @@ function createOverlay(projectId) {
   overlay.setContentProtection(true);                  // WDA_EXCLUDEFROMCAPTURE — invisible to OBS/capture
   overlay.setIgnoreMouseEvents(true, { forward: true }); // click-through
 
-  overlay.loadURL(`${APP_URL}/overlay/record/${projectId}`);
+  overlay.loadURL(`${APP_URL}/overlay/record/${encodeURIComponent(projectId)}`);
   overlay.on("closed", () => { overlay = null; });
 }
 
@@ -53,7 +54,7 @@ function registerShortcuts() {
   globalShortcut.register("CommandOrControl+Left", () => send("prev"));
   globalShortcut.register("CommandOrControl+Space", () => send("playpause"));
   globalShortcut.register("CommandOrControl+M", () => send("mark"));
-  globalShortcut.register("CommandOrControl+I", () => {        // toggle click-through
+  globalShortcut.register("CommandOrControl+I", () => {        // toggle click-through + focusability (interactive mode)
     if (!overlay || overlay.isDestroyed()) return;
     interactive = !interactive;
     overlay.setIgnoreMouseEvents(!interactive, { forward: true });
@@ -63,6 +64,7 @@ function registerShortcuts() {
 }
 
 ipcMain.on("overlay:open", (_e, projectId) => {
+  if (typeof projectId !== "string" || !projectId) return;
   if (process.env.EMBALIO_VOICE !== "off" && !sidecar) {
     try { sidecar = startSidecar(); } catch (e) { console.error("sidecar failed", e); }
   }
