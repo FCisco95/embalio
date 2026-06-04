@@ -4,15 +4,25 @@ const fs = require("fs");
 const { startSidecar } = require("./sidecar/server");
 let sidecar = null;
 
-const PROJECT_ID = process.env.EMBALIO_PROJECT_ID || "";
 const APP_URL = process.env.EMBALIO_URL || "http://localhost:3000";
 const EXPORT_DIR = process.env.EMBALIO_EXPORT_DIR || app.getPath("documents");
 
-let win;
+let mainWin = null;
+let overlay = null;
 let interactive = false;
 
-function createWindow() {
-  win = new BrowserWindow({
+function createMainWindow() {
+  mainWin = new BrowserWindow({
+    width: 1280,
+    height: 860,
+    webPreferences: { preload: path.join(__dirname, "preload.js") },
+  });
+  mainWin.loadURL(APP_URL);
+}
+
+function createOverlay(projectId) {
+  if (overlay && !overlay.isDestroyed()) { overlay.focus(); return; }
+  overlay = new BrowserWindow({
     width: 720,
     height: 320,
     x: 40,
@@ -26,15 +36,16 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, "preload.js") },
   });
 
-  win.setAlwaysOnTop(true, "screen-saver");
-  win.setContentProtection(true);                 // WDA_EXCLUDEFROMCAPTURE — invisible to capture
-  win.setIgnoreMouseEvents(true, { forward: true }); // click-through
+  overlay.setAlwaysOnTop(true, "screen-saver");
+  overlay.setContentProtection(true);                  // WDA_EXCLUDEFROMCAPTURE — invisible to OBS/capture
+  overlay.setIgnoreMouseEvents(true, { forward: true }); // click-through
 
-  win.loadURL(`${APP_URL}/overlay/record/${PROJECT_ID}`);
+  overlay.loadURL(`${APP_URL}/overlay/record/${projectId}`);
+  overlay.on("closed", () => { overlay = null; });
 }
 
 function send(action) {
-  if (win && !win.isDestroyed()) win.webContents.send("hotkey", action);
+  if (overlay && !overlay.isDestroyed()) overlay.webContents.send("hotkey", action);
 }
 
 function registerShortcuts() {
@@ -43,28 +54,31 @@ function registerShortcuts() {
   globalShortcut.register("CommandOrControl+Space", () => send("playpause"));
   globalShortcut.register("CommandOrControl+M", () => send("mark"));
   globalShortcut.register("CommandOrControl+I", () => {        // toggle click-through
+    if (!overlay || overlay.isDestroyed()) return;
     interactive = !interactive;
-    win.setIgnoreMouseEvents(!interactive, { forward: true });
-    win.setFocusable(interactive);
+    overlay.setIgnoreMouseEvents(!interactive, { forward: true });
+    overlay.setFocusable(interactive);
+    if (interactive) overlay.focus();
   });
 }
+
+ipcMain.on("overlay:open", (_e, projectId) => {
+  if (process.env.EMBALIO_VOICE !== "off" && !sidecar) {
+    try { sidecar = startSidecar(); } catch (e) { console.error("sidecar failed", e); }
+  }
+  createOverlay(projectId);
+});
 
 ipcMain.on("export-markers", (_e, files) => {
   try {
     fs.writeFileSync(path.join(EXPORT_DIR, "embalio_markers.edl"), files.edl, "utf8");
     fs.writeFileSync(path.join(EXPORT_DIR, "embalio_chapters.txt"), files.chapters, "utf8");
-    dialog.showMessageBox(win, { message: `Markers exported to ${EXPORT_DIR}` });
+    dialog.showMessageBox(overlay || mainWin, { message: `Markers exported to ${EXPORT_DIR}` });
   } catch (err) {
     dialog.showErrorBox("Export failed", String(err));
   }
 });
 
-app.whenReady().then(() => {
-  if (process.env.EMBALIO_VOICE !== "off") {
-    try { sidecar = startSidecar(); } catch (e) { console.error("sidecar failed", e); }
-  }
-  createWindow();
-  registerShortcuts();
-});
+app.whenReady().then(() => { createMainWindow(); registerShortcuts(); });
 app.on("will-quit", () => { globalShortcut.unregisterAll(); if (sidecar) sidecar.stop(); });
 app.on("window-all-closed", () => app.quit());
