@@ -2,7 +2,32 @@ const { app, BrowserWindow, globalShortcut, ipcMain, dialog } = require("electro
 const path = require("path");
 const fs = require("fs");
 const { startSidecar } = require("./sidecar/server");
+const http = require("http");
+const { spawn } = require("child_process");
 let sidecar = null;
+let nextProc = null;
+
+function ping(url) {
+  return new Promise((resolve) => {
+    const req = http.get(url, (res) => { res.destroy(); resolve(true); });
+    req.on("error", () => resolve(false));
+    req.setTimeout(1000, () => { req.destroy(); resolve(false); });
+  });
+}
+
+async function waitForServer(url, tries = 60) {
+  for (let i = 0; i < tries; i++) {
+    if (await ping(url)) return true;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return false;
+}
+
+function startNextIfNeeded() {
+  if (process.env.EMBALIO_NO_SPAWN === "1") return; // dev already runs `npm run dev`
+  const repoRoot = path.join(__dirname, "..");
+  nextProc = spawn("npm", ["run", "dev"], { cwd: repoRoot, shell: true, stdio: "inherit" });
+}
 
 const APP_URL = process.env.EMBALIO_URL || "http://localhost:3000";
 const EXPORT_DIR = process.env.EMBALIO_EXPORT_DIR || app.getPath("documents");
@@ -81,6 +106,15 @@ ipcMain.on("export-markers", (_e, files) => {
   }
 });
 
-app.whenReady().then(() => { createMainWindow(); registerShortcuts(); });
-app.on("will-quit", () => { globalShortcut.unregisterAll(); if (sidecar) sidecar.stop(); });
+app.whenReady().then(async () => {
+  if (!(await ping(APP_URL))) startNextIfNeeded();
+  await waitForServer(APP_URL);
+  createMainWindow();
+  registerShortcuts();
+});
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+  if (sidecar) sidecar.stop();
+  if (nextProc) nextProc.kill();
+});
 app.on("window-all-closed", () => app.quit());
