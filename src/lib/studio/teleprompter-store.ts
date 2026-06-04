@@ -31,15 +31,28 @@ export function makeLocalStore(): TeleprompterStore {
   return {
     load: () => {
       try {
-        return {
-          ...EMPTY,
-          ...JSON.parse(window.localStorage.getItem(LS_KEY) ?? "{}"),
-        };
+        const parsed: unknown = JSON.parse(
+          window.localStorage.getItem(LS_KEY) ?? "{}",
+        );
+        if (
+          parsed !== null &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed)
+        ) {
+          return { ...EMPTY, ...(parsed as Partial<StoreData>) };
+        }
+        return structuredClone(EMPTY);
       } catch {
         return structuredClone(EMPTY);
       }
     },
-    save: (d) => window.localStorage.setItem(LS_KEY, JSON.stringify(d)),
+    save: (d) => {
+      try {
+        window.localStorage.setItem(LS_KEY, JSON.stringify(d));
+      } catch {
+        // QuotaExceededError — discard; stale data on next load is acceptable
+      }
+    },
   };
 }
 
