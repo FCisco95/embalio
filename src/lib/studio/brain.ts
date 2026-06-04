@@ -58,9 +58,19 @@ export function buildScriptPrompt(req: ScriptRequest): string {
     playbookBlock(req.playbook),
     `Target length: ~${req.targetDurationSec ?? 360} seconds.`,
     `Write: a packaging-rule title; a hook that PAYS OFF in the first 15 seconds; then teleprompter "beats".`,
-    `Each beat has: id, say (the exact teleprompter line to read), visualPrompt (the on-screen element/screen-capture for that line), estSeconds.`,
+    `Each beat is one synchronized moment with these fields:`,
+    `- id: a slug like "beat-1".`,
+    `- say: the EXACT teleprompter line to read aloud.`,
+    `- visualPrompt: the on-screen element/screen-capture for that line.`,
+    `- do: a one-line imperative live action with a bracketed target, e.g. "Click [Cookbook] → Run scan" or "Stay on camera, hold frame". Use null if there is no screen action.`,
+    `- fx: the edit cue to apply in post, e.g. "punch-zoom + freeze on \\"No GPU\\"" or "jump cut after this line". Use null if none.`,
+    `- ost: a short on-screen caption (<= 10 words) for this beat. Use null if none.`,
+    `- brollKeywords: up to 3 stock-footage search terms for screen beats, e.g. ["rtx 3080", "task manager gpu"]. Use null for face-only beats.`,
+    `- markerLabel: a short label a creator would stamp at this beat (<= 80 chars), e.g. "B4 punch-zoom + ost: No GPU".`,
+    `- estSeconds: rough duration in seconds.`,
+    `Example beat: { "id": "beat-4", "say": "It looked at my machine and said: no GPU.", "visualPrompt": "Cookbook hardware scan result", "do": "Open [Cookbook] → run hardware scan → rest cursor on \\"No GPU\\"", "fx": "punch-zoom + freeze on \\"No GPU\\"", "ost": "Docker blind spot, not your PC", "brollKeywords": ["rtx 3080", "task manager gpu"], "markerLabel": "B4 punch-zoom + ost", "estSeconds": 12 }`,
     `Front-load the face + payoff; body is screen-only. Keep it tight.`,
-    `Respond as JSON matching: { title, hook, beats: { id, say, visualPrompt, estSeconds }[] }.`,
+    `Respond as JSON matching: { title, hook, beats: { id, say, visualPrompt, do, fx, ost, brollKeywords, markerLabel, estSeconds }[] }.`,
   ].filter(Boolean).join("\n\n");
 }
 

@@ -88,3 +88,14 @@ describe("buildPlaybookPrompt", () => {
     expect(p).toContain("front-load the payoff");
   });
 });
+
+describe("buildScriptPrompt — follow-along fields", () => {
+  const topic = { id: "t1", title: "X", angle: "y", score: 50, rationale: "z", sourceRefs: [] };
+  it("asks the model for do/fx/ost/brollKeywords/markerLabel with an example", () => {
+    const p = buildScriptPrompt({ topic });
+    for (const field of ["do", "fx", "ost", "brollKeywords", "markerLabel"]) {
+      expect(p).toContain(field);
+    }
+    expect(p.toLowerCase()).toContain("example");
+  });
+});
