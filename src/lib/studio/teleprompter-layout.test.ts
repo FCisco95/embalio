@@ -20,4 +20,12 @@ describe("teleprompter-layout", () => {
   it("adjust('opacity', -0.05) reduces", () => {
     expect(adjust(DEFAULT_LAYOUT, "opacity", -0.05).opacity).toBeCloseTo(0.65);
   });
+  it("clamps width and height into range", () => {
+    expect(clampLayout({ ...DEFAULT_LAYOUT, width: 9999 }).width).toBe(3840);
+    expect(clampLayout({ ...DEFAULT_LAYOUT, height: 10 }).height).toBe(70);
+  });
+  it("non-finite values clamp to the floor instead of propagating", () => {
+    expect(adjust(DEFAULT_LAYOUT, "opacity", NaN).opacity).toBeCloseTo(0.2);
+    expect(clampLayout({ ...DEFAULT_LAYOUT, font: Infinity }).font).toBe(60);
+  });
 });

@@ -30,6 +30,7 @@ const RANGES = {
 } as const;
 
 function clampN(v: number, [min, max]: readonly [number, number]): number {
+  if (Number.isNaN(v)) return min;
   return Math.max(min, Math.min(max, v));
 }
 
