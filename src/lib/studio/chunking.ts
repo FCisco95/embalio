@@ -9,14 +9,19 @@ export function toLines(say: string, mode: ChunkMode): string[] {
   if (mode === "para") return [text];
 
   // Protect abbreviations from the splitter, then split on sentence terminators
-  // followed by whitespace and an uppercase/quote/paren start.
+  // followed by whitespace and an uppercase/quote/paren start. The sentinel uses
+  // private-use-area code points (U+E000+) that cannot occur in natural text, so
+  // restore matches exactly without colliding with literal digits or padding.
+  // Note: abbreviation casing intentionally restores to canonical lowercase
+  // (e.g. "E.G." -> "e.g.") — acceptable for a teleprompter.
+  const sentinel = (i: number) => String.fromCharCode(0xe000 + i);
   let guarded = text;
   ABBREVIATIONS.forEach((abbr, i) => {
-    guarded = guarded.replace(new RegExp(escapeRegExp(abbr), "gi"), ` ${i} `);
+    guarded = guarded.replace(new RegExp(escapeRegExp(abbr), "gi"), sentinel(i));
   });
-  const parts = guarded.split(/(?<=[.!?])\s+(?=[A-Z"'(])/);
+  const parts = guarded.split(/(?<=[.!?])\s+(?=[A-Z"'“‘(])/);
   const restore = (s: string) =>
-    ABBREVIATIONS.reduce((acc, abbr, i) => acc.replaceAll(` ${i} `, abbr), s);
+    ABBREVIATIONS.reduce((acc, abbr, i) => acc.replaceAll(sentinel(i), abbr), s);
   return parts.map((p) => restore(p).trim()).filter(Boolean);
 }
 

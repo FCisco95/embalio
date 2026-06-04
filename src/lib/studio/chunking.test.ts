@@ -19,4 +19,15 @@ describe("toLines", () => {
   it("returns a single line when there is no terminal punctuation", () => {
     expect(toLines("no punctuation here", "sent")).toEqual(["no punctuation here"]);
   });
+  it("does not corrupt standalone digits in the text", () => {
+    expect(toLines("I scored 0 points. Then I won.", "sent"))
+      .toEqual(["I scored 0 points.", "Then I won."]);
+  });
+  it("handles an abbreviation at end of text", () => {
+    expect(toLines("Ship it now, etc.", "sent")).toEqual(["Ship it now, etc."]);
+  });
+  it("splits before a smart-quoted sentence", () => {
+    expect(toLines("He said hi. “Hello” back.", "sent"))
+      .toEqual(["He said hi.", "“Hello” back."]);
+  });
 });
