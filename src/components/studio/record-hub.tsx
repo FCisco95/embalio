@@ -27,6 +27,14 @@ export function RecordHub({ projectId, script, recordingProfiles, onConfirmed }:
 
   return (
     <div className="space-y-4">
+      <a
+        href={`/overlay/record/${projectId}`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] hover:border-primary"
+      >
+        🎬 Open follow-along cockpit
+      </a>
       <div className="flex flex-wrap items-center gap-3">
         <DevicePicker recordingProfiles={recordingProfiles} value={deviceProfileId} onChange={setDeviceProfileId} />
         {active && (
