@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { confirmTake } from "@/server/studio/projects";
 import { DevicePicker } from "./device-picker";
+import { PreshootGate } from "./preshoot-gate";
 import type { VideoScript } from "@/lib/studio/schemas";
 
 type RP = { id: string; device_label: string; os: string; capture_tool: string; teleprompter_placement: string; scene_presets: unknown; export_path: string | null };
@@ -27,14 +28,17 @@ export function RecordHub({ projectId, script, recordingProfiles, onConfirmed }:
 
   return (
     <div className="space-y-4">
-      <a
-        href={`/overlay/record/${projectId}`}
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => {
+          const bridge = (globalThis as { embalio?: { openOverlay?: (id: string) => void } }).embalio;
+          if (bridge?.openOverlay) bridge.openOverlay(projectId);                 // Electron: invisible overlay
+          else window.open(`/overlay/record/${projectId}`, "_blank", "noreferrer"); // browser dev: tab
+        }}
         className="inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[13px] hover:border-primary"
       >
-        🎬 Open follow-along cockpit
-      </a>
+        🎬 Launch teleprompter
+      </button>
       <div className="flex flex-wrap items-center gap-3">
         <DevicePicker recordingProfiles={recordingProfiles} value={deviceProfileId} onChange={setDeviceProfileId} />
         {active && (
@@ -45,6 +49,8 @@ export function RecordHub({ projectId, script, recordingProfiles, onConfirmed }:
           </span>
         )}
       </div>
+
+      {active && <PreshootGate captureTool={active.capture_tool} />}
 
       {s && (
         <Card><CardContent className="space-y-3 pt-5">
