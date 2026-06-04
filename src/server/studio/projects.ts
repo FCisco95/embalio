@@ -118,5 +118,3 @@ export async function getProjectForOverlay(projectId: string) {
     .eq("profile_id", project.profile_id);
   return { project, script, recordingProfiles: profiles ?? [] };
 }
-
-export { beatsFromProject } from "./overlay-data";
