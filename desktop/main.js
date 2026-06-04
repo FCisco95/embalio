@@ -5,7 +5,7 @@ const { startSidecar } = require("./sidecar/server");
 const http = require("http");
 const { spawn } = require("child_process");
 const Store = require("electron-store");
-const store = new Store({ name: "teleprompter", defaults: { presets: {}, last: null } });
+const store = new Store({ name: "teleprompter", defaults: { presets: {}, last: null }, accessPropertiesByDotNotation: false });
 let sidecar = null;
 let nextProc = null;
 
@@ -111,13 +111,22 @@ ipcMain.on("overlay:open", (_e, projectId) => {
 });
 
 ipcMain.on("store:get-sync", (e) => {
-  e.returnValue = { presets: store.get("presets"), last: store.get("last") };
+  try {
+    e.returnValue = { presets: store.get("presets"), last: store.get("last") };
+  } catch (err) {
+    console.error("store:get-sync failed", err);
+    e.returnValue = { presets: {}, last: null };
+  }
 });
 
 ipcMain.on("store:set", (_e, data) => {
-  if (typeof data !== "object" || data === null) return;
-  store.set("presets", data.presets ?? {});
-  store.set("last", data.last ?? null);
+  try {
+    if (typeof data !== "object" || data === null) return;
+    store.set("presets", data.presets ?? {});
+    store.set("last", data.last ?? null);
+  } catch (err) {
+    console.error("store:set failed", err);
+  }
 });
 
 ipcMain.on("export-markers", (_e, files) => {
