@@ -27,6 +27,18 @@ function startNextIfNeeded() {
   if (process.env.EMBALIO_NO_SPAWN === "1") return; // dev already runs `npm run dev`
   const repoRoot = path.join(__dirname, "..");
   nextProc = spawn("npm", ["run", "dev"], { cwd: repoRoot, shell: true, stdio: "inherit" });
+  nextProc.on("error", (e) => console.error("next spawn failed", e));
+}
+
+function killNext() {
+  if (!nextProc || nextProc.killed) return;
+  if (process.platform === "win32") {
+    try { spawn("taskkill", ["/pid", String(nextProc.pid), "/T", "/F"]); }
+    catch { nextProc.kill(); }
+  } else {
+    nextProc.kill();
+  }
+  nextProc = null;
 }
 
 const APP_URL = process.env.EMBALIO_URL || "http://localhost:3000";
@@ -108,13 +120,18 @@ ipcMain.on("export-markers", (_e, files) => {
 
 app.whenReady().then(async () => {
   if (!(await ping(APP_URL))) startNextIfNeeded();
-  await waitForServer(APP_URL);
+  const ok = await waitForServer(APP_URL);
+  if (!ok) {
+    dialog.showErrorBox("Embalio", `Dev server did not answer at ${APP_URL} within 60s. Check the terminal for build errors.`);
+    app.quit();
+    return;
+  }
   createMainWindow();
   registerShortcuts();
 });
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   if (sidecar) sidecar.stop();
-  if (nextProc) nextProc.kill();
+  killNext();
 });
 app.on("window-all-closed", () => app.quit());
