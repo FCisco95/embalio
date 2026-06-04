@@ -25,6 +25,8 @@ export function PreshootGate({ captureTool }: { captureTool: string }) {
     setTesting(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      // Interim cleanup: if AudioContext/analyser setup throws below, tracks are still released.
+      cleanup.current = () => stream.getTracks().forEach((t) => t.stop());
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
       const ctx = new AudioContext();
       const src = ctx.createMediaStreamSource(stream);
@@ -40,13 +42,15 @@ export function PreshootGate({ captureTool }: { captureTool: string }) {
         raf = requestAnimationFrame(tick);
       };
       tick();
+      // Full cleanup: widen interim ref to include RAF, timer, and AudioContext.
       cleanup.current = () => {
         cancelAnimationFrame(raf); clearTimeout(timer); stream.getTracks().forEach((t) => t.stop()); ctx.close();
       };
       // Labeled as a "10s test": auto-stop so the stream/mic release on their own.
-      timer = window.setTimeout(() => { cleanup.current(); cleanup.current = () => {}; setTesting(false); }, TEST_MS);
+      timer = window.setTimeout(() => { cleanup.current(); cleanup.current = () => {}; setDb(-100); setTesting(false); }, TEST_MS);
     } catch {
       cleanup.current(); cleanup.current = () => {};
+      setDb(-100);
       setError("Couldn't access camera/mic — close other apps using them and check permissions.");
       setTesting(false);
     }
