@@ -5,6 +5,10 @@ export interface Layout {
   opacity: number; // 0.2 .. 1
   width: number; // px
   height: number; // px
+  // top/left are reserved for restoring the overlay window's on-screen position.
+  // The interactive-mode drag region (-webkit-app-region: drag) moves the native
+  // window, but that position is not yet round-tripped back into the layout, so
+  // these fields are persisted-but-unused for now (schema-only).
   top: number; // px
   left: number; // px
   mode: ChunkMode;

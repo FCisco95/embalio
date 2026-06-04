@@ -24,7 +24,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
 
   const [active, setActive] = useState(0);
   const [voiceOn, setVoiceOn] = useState(false);
-  const [mirror, setMirror] = useState(false);
   const sessionStart = useRef<number | null>(null);
   const markers = useRef<Marker[]>([]);
   const view = selectView(beats, active);
@@ -127,7 +126,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       else if (e.code === "Comma") bump("opacity", -0.05);
       else if (e.code === "Period") bump("opacity", 0.05);
       else if (e.code === "KeyS") setLayout((l) => ({ ...l, mode: l.mode === "para" ? "sent" : "para" }));
-      else if (e.code === "KeyR") setMirror((m) => !m);
+      else if (e.code === "KeyR") setLayout((l) => ({ ...l, mirror: !l.mirror }));
       else if (/^Digit[1-3]$/.test(e.code)) {
         const slot = e.code.slice(5);
         if (e.shiftKey) setPreset(store, slot, layout);
@@ -140,25 +139,36 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
 
   return (
     <div className="flex min-h-screen flex-col bg-transparent p-3 text-white" style={{ opacity: layout.opacity }}>
-      <div className="mb-2 flex items-center gap-3 text-[11px] text-white/60">
+      <div
+        className="mb-2 flex items-center gap-3 text-[11px] text-white/60"
+        // In interactive mode the status row is the Electron window's drag handle
+        // (spec §5: -webkit-app-region: drag). Inert in browser tabs and in
+        // click-through mode (where it's omitted anyway). WebkitAppRegion is a
+        // non-standard CSSProperties field, hence the cast.
+        style={interactive ? ({ WebkitAppRegion: "drag" } as React.CSSProperties) : undefined}
+      >
         <span>BEAT {view.progress.n}/{view.progress.total}</span>
         {layout.mode === "sent" && <span>L {Math.min(lineIdx, lines.length - 1) + 1}/{lines.length}</span>}
         <span className={voiceOn ? "text-emerald-400" : "text-white/40"}>● {voiceOn ? "voice" : "manual"}</span>
         <span className={interactive ? "text-amber-300" : "text-white/40"}>{interactive ? "◆ adjust" : "◇ live"}</span>
         <span className="text-white/40">{layout.mode}</span>
-        <div className="ml-auto flex gap-2">
+        <div
+          className="ml-auto flex gap-2"
+          // Buttons opt out of the drag region so they stay clickable.
+          style={interactive ? ({ WebkitAppRegion: "no-drag" } as React.CSSProperties) : undefined}
+        >
           <button onClick={() => {
             const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
             if (bridge?.toggleInteractive) bridge.toggleInteractive(); // native flags + UI sync via hotkey channel
             else setInteractive((v) => !v);                            // browser-dev fallback (no native flags)
           }} className="rounded bg-white/10 px-2 py-0.5">{interactive ? "Live" : "Adjust"}</button>
-          <button onClick={() => setMirror((m) => !m)} className="rounded bg-white/10 px-2 py-0.5">{mirror ? "Unmirror" : "Mirror"}</button>
+          <button onClick={() => setLayout((l) => ({ ...l, mirror: !l.mirror }))} className="rounded bg-white/10 px-2 py-0.5">{layout.mirror ? "Unmirror" : "Mirror"}</button>
           <button onClick={startSession} className="rounded bg-white/10 px-2 py-0.5">Start session</button>
           <button onClick={exportNow} className="rounded bg-white/10 px-2 py-0.5">Stop &amp; export</button>
         </div>
       </div>
       <div className="rounded-xl bg-black/70 p-4 backdrop-blur"
-           style={{ transform: mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width, maxHeight: layout.height, overflowY: "auto" }}>
+           style={{ transform: layout.mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width, maxHeight: layout.height, overflowY: "auto" }}>
         <div className="font-semibold leading-snug">{shownLine}</div>
         {view.current.do && <div className="mt-3 border-l-2 border-sky-400 pl-3 text-sky-200 text-base">▸ {view.current.do}</div>}
         {view.current.fx && <div className="mt-2 text-[13px] text-amber-300">⚡ {view.current.fx}</div>}

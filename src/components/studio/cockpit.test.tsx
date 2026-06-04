@@ -54,6 +54,24 @@ describe("Cockpit", () => {
     expect(screen.getByText("Next beat.")).toBeTruthy();
   });
 
+  it("mirrors the card from layout.mirror (persisted via store)", () => {
+    seedLayout({ mirror: true });
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    const card = screen.getByText("First line. Second line.")
+      .parentElement as HTMLElement;
+    expect(card.style.transform).toBe("scaleX(-1)");
+  });
+
+  it("renders no mirror transform when layout.mirror is false", () => {
+    seedLayout({ mirror: false });
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    const card = screen.getByText("First line. Second line.")
+      .parentElement as HTMLElement;
+    expect(card.style.transform).toBe("");
+  });
+
   it("applies layout height to the card and opacity to the container", () => {
     seedLayout({ mode: "sent", height: 200, opacity: 0.5 });
     const { container } = render(
