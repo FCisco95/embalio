@@ -32,6 +32,12 @@ export const ScriptBeat = z.object({
   say: z.string().min(1).max(600),
   visualPrompt: z.string().min(1).max(400),
   estSeconds: z.number().min(1).max(120).optional(),
+  // Follow-along recording cockpit (all optional → old scripts still parse)
+  do: z.string().max(200).optional(),
+  fx: z.string().max(200).optional(),
+  ost: z.string().max(120).optional(),
+  brollKeywords: z.array(z.string().max(40)).max(3).optional(),
+  markerLabel: z.string().max(80).optional(),
 });
 export type ScriptBeat = z.infer<typeof ScriptBeat>;
 

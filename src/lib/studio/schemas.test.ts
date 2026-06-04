@@ -18,6 +18,37 @@ describe("studio schemas", () => {
     const s = VideoScript.parse({ title: "T", hook: "H", beats: [{ id: "b1", say: "say this", visualPrompt: "show code", estSeconds: 8 }] });
     expect(s.beats[0].visualPrompt).toBe("show code");
   });
+
+  it("parses a beat with the new follow-along fields", () => {
+    const s = VideoScript.parse({
+      title: "T", hook: "H",
+      beats: [{
+        id: "b1", say: "open the cookbook", visualPrompt: "show cookbook",
+        estSeconds: 8, do: "Click [Cookbook] → Run scan",
+        fx: 'punch-zoom + freeze on "No GPU"', ost: "Docker blind spot",
+        brollKeywords: ["rtx 3080", "task manager gpu"], markerLabel: "B4 punch-zoom",
+      }],
+    });
+    expect(s.beats[0].do).toBe("Click [Cookbook] → Run scan");
+    expect(s.beats[0].brollKeywords).toEqual(["rtx 3080", "task manager gpu"]);
+  });
+
+  it("still parses an old beat without the new fields (back-compat)", () => {
+    const s = VideoScript.parse({
+      title: "T", hook: "H",
+      beats: [{ id: "b1", say: "say this", visualPrompt: "show code" }],
+    });
+    expect(s.beats[0].do).toBeUndefined();
+    expect(s.beats[0].fx).toBeUndefined();
+  });
+
+  it("rejects more than 3 brollKeywords", () => {
+    const r = VideoScript.safeParse({
+      title: "T", hook: "H",
+      beats: [{ id: "b1", say: "s", visualPrompt: "v", brollKeywords: ["a", "b", "c", "d"] }],
+    });
+    expect(r.success).toBe(false);
+  });
   it("normalizes a TrendSignal", () => {
     const sig = TrendSignal.parse({ source: "hackernews", id: "1", title: "x", url: "https://x" });
     expect(sig.source).toBe("hackernews");
