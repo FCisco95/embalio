@@ -5,13 +5,15 @@ import { selectView } from "@/lib/studio/cockpit-view";
 import { flattenScript, createFollower } from "@/lib/studio/voicefollow";
 import { makeTranscriptSource } from "@/lib/studio/transcript";
 import { toResolveEDL, toYouTubeChapters, type Marker } from "@/lib/studio/markers";
+import { confirmTake } from "@/server/studio/projects";
 
 type ElectronBridge = {
   onHotkey: (cb: (action: string) => void) => void;
   exportMarkers: (files: { edl: string; chapters: string }) => void;
 } | undefined;
 
-export function Cockpit({ script, fps = 30 }: { script: VideoScript; fps?: number }) {
+export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
+  { script: VideoScript; projectId: string; recordingProfileId: string; fps?: number }) {
   const beats = script.beats;
   const tokens = useMemo(() => flattenScript(beats), [beats]);
   const follower = useMemo(() => createFollower(tokens), [tokens]);
@@ -45,7 +47,8 @@ export function Cockpit({ script, fps = 30 }: { script: VideoScript; fps?: numbe
     const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
     if (bridge) bridge.exportMarkers({ edl, chapters });
     else { console.log(edl); console.log(chapters); }   // browser dev fallback
-  }, [fps]);
+    confirmTake(projectId, recordingProfileId).catch((e) => console.error(e));
+  }, [fps, projectId, recordingProfileId]);
 
   // voice-following
   useEffect(() => {
