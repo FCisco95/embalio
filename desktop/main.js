@@ -1,6 +1,8 @@
 const { app, BrowserWindow, globalShortcut, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { startSidecar } = require("./sidecar/server");
+let sidecar = null;
 
 const PROJECT_ID = process.env.EMBALIO_PROJECT_ID || "";
 const APP_URL = process.env.EMBALIO_URL || "http://localhost:3000";
@@ -57,6 +59,12 @@ ipcMain.on("export-markers", (_e, files) => {
   }
 });
 
-app.whenReady().then(() => { createWindow(); registerShortcuts(); });
-app.on("will-quit", () => globalShortcut.unregisterAll());
+app.whenReady().then(() => {
+  if (process.env.EMBALIO_VOICE !== "off") {
+    try { sidecar = startSidecar(); } catch (e) { console.error("sidecar failed", e); }
+  }
+  createWindow();
+  registerShortcuts();
+});
+app.on("will-quit", () => { globalShortcut.unregisterAll(); if (sidecar) sidecar.stop(); });
 app.on("window-all-closed", () => app.quit());
