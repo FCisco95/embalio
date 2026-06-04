@@ -1,6 +1,6 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-04 (Session 7 — teleprompter integration planning)
 **Branch:** `make-it-true` — integration tip. Workstreams converged here:
 `make-it-solid` (resilience), `harden/make-it-safe` (security/RLS), `make-it-true`
 (real-data dashboard), and now `feat/onboarding-quiz` (quiz-style first-account
@@ -10,6 +10,32 @@ setup — merged 2026-06-01). Pushed to `origin/make-it-true`. See `docs/NORTH-S
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 7 (2026-06-04) — Teleprompter Integration: PLANNING ONLY (branch `feat/recording-cockpit`)
+
+Brainstorming → writing-plans session. **No implementation code written (by request).** Turned the
+Odysseus PowerShell teleprompter prototype into an approved design + 12-task plan, and corrected a
+stack misconception across the vault.
+
+- **Design spec:** `docs/superpowers/specs/2026-06-04-teleprompter-integration-design.md` (commit `5387dde`)
+- **Plan:** `docs/superpowers/plans/2026-06-04-teleprompter-integration.md` (commit `180cf4e`, 12 tasks / 6 slices)
+- **Full snapshot:** `docs/handoffs/2026-06-04-teleprompter-integration-planning.md`
+
+**Locked decisions:** Electron (not Tauri) · one-click via an Electron shell that opens the invisible
+overlay through IPC (Option A) · consume structured `VideoScript.beats` directly · separate invisible
+window (not an OBS browser-source) · presets in local `electron-store` · laptop-safe hotkey defaults.
+**Scope:** one-click invisible teleprompter (shipped cockpit foundation + the PS1's chunking /
+live-adjust / saved presets / mirror) + a light guided-shoot gate (checklist + 10s audio/framing test).
+**Parked:** livestream, OBS-websocket orchestration, batch-shoot, in-app capture, macOS overlay, installer.
+
+**Important correction:** Embalio is **Next.js web + Electron `/desktop` overlay + Python Whisper
+sidecar — NOT Tauri.** Five vault docs wrongly said "Tauri/React like Lectus" (a plan never built);
+all corrected on 2026-06-04. Recording = **external OBS orchestration**, not native/in-app capture.
+
+**▶ DO NEXT:** build the plan via **subagent-driven-development** on `feat/recording-cockpit`; finish
+with the owner-gated Windows smoke test (plan Task 12). The Electron/media glue is designed, not run.
 
 ---
 
