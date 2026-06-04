@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { withRetry } from "@/lib/retry";
 import { collectTrendSignals } from "@/lib/studio/signals";
 import { brain } from "@/lib/studio/brain";
-import { ChannelPlaybook } from "@/lib/studio/schemas";
-import type { StudioStage, RankedTopic, VideoScript } from "@/lib/studio/schemas";
+import { ChannelPlaybook, VideoScript } from "@/lib/studio/schemas";
+import type { StudioStage, RankedTopic } from "@/lib/studio/schemas";
+import { beatsFromProject } from "./overlay-data";
 import { buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
 import { assertTransition, mergeProjectPatch } from "./project-helpers";
 
@@ -104,3 +105,18 @@ function playbookFrom(profile: { channel_playbook?: unknown } | null) {
   const parsed = ChannelPlaybook.safeParse(profile.channel_playbook);
   return parsed.success ? parsed.data : undefined;
 }
+
+/** Load a project + its recording profiles for the overlay cockpit. */
+export async function getProjectForOverlay(projectId: string) {
+  const sb = supabaseService();
+  const { data: project, error } = await sb.from("video_projects").select("*").eq("id", projectId).single();
+  if (error) throw new Error(error.message);
+  const script = beatsFromProject(project);
+  const { data: profiles } = await sb
+    .from("recording_profiles")
+    .select("*")
+    .eq("profile_id", project.profile_id);
+  return { project, script, recordingProfiles: profiles ?? [] };
+}
+
+export { beatsFromProject } from "./overlay-data";
