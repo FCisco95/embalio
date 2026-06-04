@@ -99,6 +99,7 @@ function registerShortcuts() {
     overlay.setIgnoreMouseEvents(!interactive, { forward: true });
     overlay.setFocusable(interactive);
     if (interactive) overlay.focus();
+    send("interactive");
   });
 }
 
