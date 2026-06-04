@@ -13,6 +13,47 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 ---
 
+## ✅ SESSION 6 (2026-06-04) — Recording Cockpit Overlay (branch `feat/recording-cockpit`)
+
+Built the **invisible same-screen follow-along recording cockpit** — a prompter that
+sits on the screen you record but does NOT appear in the recording, plus a beat-by-beat
+say/do/fx follow-along, voice-following scroll, and live edit markers.
+
+- **Spec:** `docs/superpowers/specs/2026-06-04-recording-cockpit-overlay-design.md`
+- **Plan:** `docs/superpowers/plans/2026-06-04-recording-cockpit-overlay.md` (13 tasks, subagent-driven, TDD)
+
+**What shipped (web app):**
+- `ScriptBeat` gained optional `do/fx/ost/brollKeywords/markerLabel`; `buildScriptPrompt`
+  now generates them (no DB migration — `script` is jsonb, old beats still parse).
+- Pure, fully-tested engines: `src/lib/studio/markers.ts` (Resolve EDL + YouTube chapters),
+  `voicefollow.ts` (advance-only fuzzy match), `cockpit-view.ts` (current/next/progress),
+  `transcript/` seam (web-speech for browser dev, whisper-sidecar for Electron).
+- Cockpit UI: `src/app/overlay/record/[projectId]/page.tsx` + `src/components/studio/cockpit.tsx`
+  (SAY/DO/FX + next-peek + progress, voice-following, pedal/keyboard advance, marker export →
+  `confirmTake` into Publish). Launchable from Record Hub.
+
+**What shipped (desktop overlay, `/desktop` — its own Electron workspace):**
+- `main.js` — transparent, frameless, always-on-top, **`setContentProtection(true)`**
+  (WDA_EXCLUDEFROMCAPTURE → invisible to OBS/Zoom/Loom), click-through, global hotkeys.
+- Local **Whisper sidecar** (`desktop/sidecar/`) — mic → faster-whisper on the GPU →
+  words over `ws://127.0.0.1:8765`. `EMBALIO_VOICE=off` to skip.
+
+**Tests:** 297 pass / 1 skip; `tsc` clean. The web slices are unit-tested; the Electron +
+Whisper pieces are syntax-checked only.
+
+**▶ DO NEXT (owner-gated, hardware smoke test on Windows):**
+1. `cd desktop && npm install`; `pip install faster-whisper sounddevice numpy` (CUDA).
+2. `npm run dev` (with `NEXT_PUBLIC_TRANSCRIPT_SOURCE=whisper` in `.env.local`).
+3. Launch the overlay for a record-stage project; **confirm it's invisible in OBS Display +
+   Window capture** (the key proof), hotkeys fire while unfocused, voice-following tracks speech.
+4. Record a real take → Stop & export → import the `.edl` into DaVinci Resolve.
+
+**Limits:** Windows-only (macOS Sequoia broke capture-exclusion); a phone camera pointed at
+the screen still sees the overlay; voice needs the sidecar (browser Web Speech API doesn't
+work inside Electron) with pedal/hotkeys as the always-working fallback.
+
+---
+
 ## ✅ SESSION 5 (2026-06-02) — YouTube Engine slice 1 (branch `feat/youtube-engine`)
 
 Built the **first thin vertical slice of the YouTube Engine** (a feature of Embalio, not a
