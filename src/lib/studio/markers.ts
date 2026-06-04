@@ -21,7 +21,7 @@ function pad(n: number, width = 2): string {
 /** Milliseconds → "HH:MM:SS:FF" at the given frame rate. */
 export function msToTimecode(ms: number, fps: number): string {
   const totalSeconds = Math.floor(ms / 1000);
-  const frames = Math.round(((ms % 1000) / 1000) * fps);
+  const frames = Math.floor(((ms % 1000) / 1000) * fps);
   const hh = Math.floor(totalSeconds / 3600);
   const mm = Math.floor((totalSeconds % 3600) / 60);
   const ss = totalSeconds % 60;

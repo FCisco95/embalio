@@ -15,6 +15,11 @@ describe("msToTimecode", () => {
   it("formats at 24fps", () => {
     expect(msToTimecode(1000, 24)).toBe("00:00:01:00");
   });
+  it("never emits an out-of-range frame at the tail of a second", () => {
+    // Math.round here would yield frame 30 (invalid at 30fps); floor keeps it 29.
+    expect(msToTimecode(999, 30)).toBe("00:00:00:29");
+    expect(msToTimecode(995, 24)).toBe("00:00:00:23");
+  });
 });
 
 describe("toResolveEDL", () => {
