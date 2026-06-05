@@ -26,7 +26,24 @@ Env vars (all optional):
 - `EMBALIO_EXPORT_DIR` — marker export dir (default Documents)
 - `EMBALIO_VOICE=off` — launch without the Whisper sidecar
 
-## Controls (work while unfocused)
+## Controls
+
+The overlay is click-through by default (invisible to capture, never steals
+focus), so you drive it **with the mouse from the main Embalio window**. Once the
+overlay is open, a control panel appears under **🎬 Launch teleprompter** in the
+Record Hub — this is the primary control surface:
+
+- **Unlock/Lock** — toggle interactive mode (click-through off so you can drag/resize/click the overlay)
+- **Close** — close the overlay
+- Text size − / + · Lines − / + · Opacity − / + · Width − / + · Height − / +
+- **Sentence/Paragraph** · **Mirror**
+- **Save 1/2/3** and **Recall 1/2/3** — layout presets (persisted via electron-store)
+
+When the overlay is unlocked (interactive), it also shows on-overlay buttons in
+its status row: a **✕** close button plus compact **A+ A-** (font), **☰+ ☰-**
+(lines) and **◐+ ◐-** (opacity) controls. Drag the overlay by its status row.
+
+### Hotkeys (secondary, work while unfocused)
 
 - Ctrl+Right / Ctrl+Left — next / previous beat (sentence mode: next/previous line first)
 - Ctrl+Space — toggle voice-following
@@ -35,6 +52,7 @@ Env vars (all optional):
 
 Interactive mode only (between takes):
 - `=` / `-` — font size · `[` / `]` — width · `;` / `'` — height · `,` / `.` — opacity
+- `↑` / `↓` — lines visible at once (sentence mode)
 - `S` — paragraph/sentence mode · `R` — mirror
 - `1`–`3` — recall preset · `Shift+1`–`3` — save preset (persisted via electron-store)
 
