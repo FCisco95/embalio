@@ -1,6 +1,6 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-04 (Session 7 — teleprompter integration planning)
+**Last updated:** 2026-06-05 (Session 8 — teleprompter built + subtitle-mode revamp)
 **Branch:** `make-it-true` — integration tip. Workstreams converged here:
 `make-it-solid` (resilience), `harden/make-it-safe` (security/RLS), `make-it-true`
 (real-data dashboard), and now `feat/onboarding-quiz` (quiz-style first-account
@@ -10,6 +10,49 @@ setup — merged 2026-06-01). Pushed to `origin/make-it-true`. See `docs/NORTH-S
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 8 (2026-06-05) — Teleprompter BUILT + live revamp to subtitle mode (branch `feat/recording-cockpit`, 45 commits)
+
+**TL;DR:** Executed the full 12-task plan via subagent-driven development, then the owner
+smoke-tested LIVE and drove a major UX revamp: the overlay is now a **subtitle** — floating
+text only, hover-to-unlock 🔒, main-window control panel, manual-script box with
+chunk-per-line + paging. Voice-follow works mechanically end-to-end (CUDA whisper) but is
+**registered NOT WORKING** for real use — research brief parked. Full detail:
+`docs/handoffs/2026-06-05-teleprompter-subtitle-build.md`.
+
+**What works (owner-verified live):** one-click launch (Electron auto-spawns Next, kills
+tree on quit) · subtitle overlay (transparent page, backdrop pill, always-crisp text,
+drag, window-resizing width) · lock/unlock via hover-🔒, panel, or Ctrl+I · manual-script
+box (Enter = new chunk; sentence/paragraph modes; pages by `lines`, never re-shows seen
+text) · control panel in Record Hub (appears when overlay open) · project switcher
+dropdown + clickable stage chips (go back to any earlier stage).
+
+**Known issue (parked):** voice-follow — pipeline runs (mic → faster-whisper CUDA →
+ws:8765 → follower) but tracking unreliable. Brief + ready-to-run deep-research prompt:
+`docs/research/2026-06-05-voice-follow-feasibility-brief.md`. Decision gate documented.
+Manual paging is the supported flow.
+
+**Machine setup done (this Windows box):** whisper deps installed into **Python 3.11**
+(PATH `python` is 3.8 — too old); launch Electron with
+`$env:EMBALIO_PYTHON = "C:\Users\joao_\AppData\Local\Programs\Python\Python311\python.exe"`.
+`small.en` model pre-downloaded; CUDA DLLs (pip nvidia-cublas/cudnn) wired via PATH in
+`desktop/sidecar/whisper_stream.py`. `.env.local` has `NEXT_PUBLIC_TRANSCRIPT_SOURCE=whisper`
+(Electron now auto-picks whisper regardless).
+
+**Specs:** original integration spec (2026-06-04) + `docs/superpowers/specs/2026-06-05-teleprompter-subtitle-mode-design.md`
+(supersedes overlay chrome; has "Honest limits"). State: 348 tests pass / 1 skip, tsc + eslint clean.
+
+**▶ DO NEXT:**
+1. Finish smoke test: **OBS invisibility** (Display + Window capture must NOT see overlay)
+   and **Start session → Stop & export → `.edl` + chapters → import into Resolve**.
+2. Then `superpowers:finishing-a-development-branch` — merge/PR `feat/recording-cockpit`
+   (45 commits, NOT pushed to origin yet).
+3. Later (task #17): run the voice-follow deep-research brief before touching that code.
+
+**Suggested skills next session:** `handoff-memory` (resume) · `superpowers:finishing-a-development-branch` ·
+`deep-research` (voice-follow brief, when chosen) · `superpowers:subagent-driven-development` (if new feature work).
 
 ---
 
