@@ -28,4 +28,16 @@ describe("teleprompter-layout", () => {
     expect(adjust(DEFAULT_LAYOUT, "opacity", NaN).opacity).toBeCloseTo(0.2);
     expect(clampLayout({ ...DEFAULT_LAYOUT, font: Infinity }).font).toBe(60);
   });
+  it("defaults lines to 2", () => {
+    expect(DEFAULT_LAYOUT.lines).toBe(2);
+  });
+  it("clamps lines into [1, 6]", () => {
+    expect(clampLayout({ ...DEFAULT_LAYOUT, lines: 99 }).lines).toBe(6);
+    expect(clampLayout({ ...DEFAULT_LAYOUT, lines: 0 }).lines).toBe(1);
+  });
+  it("adjust('lines', +1) bumps and re-clamps", () => {
+    expect(adjust(DEFAULT_LAYOUT, "lines", 1).lines).toBe(3);
+    expect(adjust({ ...DEFAULT_LAYOUT, lines: 6 }, "lines", 1).lines).toBe(6);
+    expect(adjust({ ...DEFAULT_LAYOUT, lines: 1 }, "lines", -1).lines).toBe(1);
+  });
 });

@@ -13,6 +13,7 @@ export interface Layout {
   left: number; // px
   mode: ChunkMode;
   mirror: boolean;
+  lines: number; // how many sentence-lines visible at once in "sent" mode
 }
 
 export const DEFAULT_LAYOUT: Layout = {
@@ -24,6 +25,7 @@ export const DEFAULT_LAYOUT: Layout = {
   left: 40,
   mode: "para",
   mirror: false,
+  lines: 2,
 };
 
 const RANGES = {
@@ -31,6 +33,7 @@ const RANGES = {
   opacity: [0.2, 1],
   width: [360, 3840],
   height: [70, 2160],
+  lines: [1, 6],
 } as const;
 
 function clampN(v: number, [min, max]: readonly [number, number]): number {
@@ -45,10 +48,11 @@ export function clampLayout(l: Layout): Layout {
     opacity: clampN(l.opacity, RANGES.opacity),
     width: clampN(l.width, RANGES.width),
     height: clampN(l.height, RANGES.height),
+    lines: clampN(l.lines, RANGES.lines),
   };
 }
 
-export type Adjustable = "font" | "opacity" | "width" | "height";
+export type Adjustable = "font" | "opacity" | "width" | "height" | "lines";
 
 export function adjust(l: Layout, key: Adjustable, delta: number): Layout {
   return clampLayout({ ...l, [key]: l[key] + delta });
