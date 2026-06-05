@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { VideoScript } from "@/lib/studio/schemas";
 import { selectView } from "@/lib/studio/cockpit-view";
 import { flattenScript, createFollower } from "@/lib/studio/voicefollow";
@@ -15,7 +15,20 @@ type ElectronBridge = {
   exportMarkers: (files: { edl: string; chapters: string }) => void;
   toggleInteractive?: () => void;
   closeOverlay?: () => void;
+  setIgnoreMouse?: (ignore: boolean) => void;
 } | undefined;
+
+const embalioBridge = () => (globalThis as { embalio?: ElectronBridge }).embalio;
+
+// Layered shadow keeps white text readable over any desktop (no background card).
+const TEXT_SHADOW = "0 1px 2px rgba(0,0,0,.95), 0 0 10px rgba(0,0,0,.85), 0 0 24px rgba(0,0,0,.6)";
+const STRIP_BTN = "rounded bg-white/10 px-2 py-0.5 hover:bg-white/25";
+
+// Hydration gate for useSyncExternalStore: false on the server (and during the
+// hydration render), true on the client afterwards.
+const noopSubscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 
 export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   { script: VideoScript; projectId: string; recordingProfileId: string; fps?: number }) {
@@ -31,7 +44,18 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
 
   // Teleprompter layout, sentence chunking, presets, interactive mode.
   const store = useMemo(() => resolveStore(), []);
-  const [layout, setLayout] = useState<Layout>(() => clampLayout({ ...DEFAULT_LAYOUT, ...(store.load().last ?? {}) }));
+  // Start from defaults on BOTH server and client first render — reading client
+  // storage during hydration causes an SSR mismatch. Once hydrated, apply the
+  // persisted layout exactly once via React's render-phase "adjust state"
+  // pattern (the repo's React Compiler lint rejects setState-in-effect).
+  // storeLoaded also gates persistence so defaults never overwrite the store.
+  const hydrated = useSyncExternalStore(noopSubscribe, clientSnapshot, serverSnapshot);
+  const [layout, setLayout] = useState<Layout>(DEFAULT_LAYOUT);
+  const [storeLoaded, setStoreLoaded] = useState(false);
+  if (hydrated && !storeLoaded) {
+    setStoreLoaded(true);
+    setLayout(clampLayout({ ...DEFAULT_LAYOUT, ...(store.load().last ?? {}) }));
+  }
   const [lineIdx, setLineIdx] = useState(0);
   const [interactive, setInteractive] = useState(false);
   const currentSay = view.current.say;
@@ -69,7 +93,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     if (sessionStart.current == null) return;   // nothing recorded → don't confirm an empty take
     const edl = toResolveEDL([...markers.current].sort((a, b) => a.ms - b.ms), fps);
     const chapters = toYouTubeChapters([...markers.current].sort((a, b) => a.ms - b.ms));
-    const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
+    const bridge = embalioBridge();
     if (bridge) bridge.exportMarkers({ edl, chapters });
     else { console.log(edl); console.log(chapters); }   // browser dev fallback
     confirmTake(projectId, recordingProfileId).catch((e) => console.error(e));
@@ -84,13 +108,44 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   const savePreset = useCallback((slot: string) => setLayout((l) => { setPreset(store, slot, l); return l; }), [store]);
   const recallPreset = useCallback((slot: string) => { const p = getPreset(store, slot); if (p) setLayout(clampLayout({ ...DEFAULT_LAYOUT, ...p })); }, [store]);
   const closeOverlay = useCallback(() => {
-    const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
+    const bridge = embalioBridge();
     if (bridge?.closeOverlay) bridge.closeOverlay();
     else window.close(); // browser-tab fallback
   }, []);
 
+  // Lock/unlock: in Electron round-trip through main (native flags + state come
+  // back via the hotkey channel); in a browser tab just flip the local flag.
+  const lockToggle = useCallback(() => {
+    const bridge = embalioBridge();
+    if (bridge?.toggleInteractive) bridge.toggleInteractive();
+    else setInteractive((v) => !v);
+  }, []);
+
   // Persist the last layout whenever it changes (recalled on next overlay open).
-  useEffect(() => { store.save({ ...store.load(), last: layout }); }, [layout, store]);
+  useEffect(() => {
+    if (!storeLoaded) return; // don't clobber the stored layout with defaults pre-load
+    store.save({ ...store.load(), last: layout });
+  }, [layout, store, storeLoaded]);
+
+  // The Electron overlay window is transparent — clear the app theme's page
+  // background so the desktop shows through, and hide the Next.js dev-tools
+  // badge (chrome has no place on a subtitle overlay). Browser tabs keep both.
+  useEffect(() => {
+    if (!embalioBridge()) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = { html: html.style.background, body: body.style.background };
+    html.style.background = "transparent";
+    body.style.background = "transparent";
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal{display:none !important}";
+    document.head.appendChild(style);
+    return () => {
+      html.style.background = prev.html;
+      body.style.background = prev.body;
+      style.remove();
+    };
+  }, []);
 
   // voice-following
   useEffect(() => {
@@ -127,6 +182,8 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       if (action === "mark") return stamp(active);
       if (action === "interactive-on") return setInteractive(true);
       if (action === "interactive-off") return setInteractive(false);
+      if (action === "session-start") return startSession();
+      if (action === "session-export") return exportNow();
       // Deliberate control actions (panel clicks / overlay buttons) — they act
       // regardless of `interactive` because the click itself is the intent.
       if (action === "font+") return bump("font", 2);
@@ -146,8 +203,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       const recallM = /^preset-([1-3])$/.exec(action);
       if (recallM) return recallPreset(recallM[1]);
     };
-    const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
-    const off = bridge?.onHotkey(onAction);
+    const off = embalioBridge()?.onHotkey(onAction);
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); if (e.shiftKey) goPrev(); else goNext(); return; }
       if (e.code === "ArrowRight") { goNext(); return; }
@@ -176,51 +232,39 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (off) off(); };
   }, [active, go, stamp, interactive, mode, lineIdx, lines.length,
-      bump, toggleMode, toggleMirror, savePreset, recallPreset]);
+      bump, toggleMode, toggleMirror, savePreset, recallPreset, startSession, exportNow]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-transparent p-3 text-white" style={{ opacity: layout.opacity }}>
-      <div
-        className="mb-2 flex items-center gap-3 text-[11px] text-white/60"
-        // In interactive mode the status row is the Electron window's drag handle
-        // (spec §5: -webkit-app-region: drag). Inert in browser tabs and in
-        // click-through mode (where it's omitted anyway). WebkitAppRegion is a
-        // non-standard CSSProperties field, hence the cast.
-        style={interactive ? ({ WebkitAppRegion: "drag" } as React.CSSProperties) : undefined}
-      >
-        <span>BEAT {view.progress.n}/{view.progress.total}</span>
-        {layout.mode === "sent" && <span>L {Math.min(lineIdx, lines.length - 1) + 1}/{lines.length}</span>}
-        <span className={voiceOn ? "text-emerald-400" : "text-white/40"}>● {voiceOn ? "voice" : "manual"}</span>
-        <span className={interactive ? "text-amber-300" : "text-white/40"}>{interactive ? "◆ adjust" : "◇ live"}</span>
-        <span className="text-white/40">{layout.mode}</span>
+    <div className="flex min-h-screen flex-col p-3 text-white" style={{ opacity: layout.opacity }}>
+      {/* Unlocked: one minimal control strip. Locked: nothing but the text. */}
+      {interactive && (
         <div
-          className="ml-auto flex gap-2"
-          // Buttons opt out of the drag region so they stay clickable.
-          style={interactive ? ({ WebkitAppRegion: "no-drag" } as React.CSSProperties) : undefined}
+          className="mb-2 flex w-fit items-center gap-1.5 rounded-lg bg-black/50 px-1.5 py-1 text-[12px] backdrop-blur"
+          // Buttons opt out of the drag region (the text block below is the handle).
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
-          <button onClick={() => {
-            const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
-            if (bridge?.toggleInteractive) bridge.toggleInteractive(); // native flags + UI sync via hotkey channel
-            else setInteractive((v) => !v);                            // browser-dev fallback (no native flags)
-          }} className="rounded bg-white/10 px-2 py-0.5">{interactive ? "Live" : "Adjust"}</button>
-          <button onClick={toggleMirror} className="rounded bg-white/10 px-2 py-0.5">{layout.mirror ? "Unmirror" : "Mirror"}</button>
-          {interactive && (
-            <>
-              <button onClick={() => bump("font", 2)} className="rounded bg-white/10 px-2 py-0.5" title="font +">A+</button>
-              <button onClick={() => bump("font", -2)} className="rounded bg-white/10 px-2 py-0.5" title="font -">A-</button>
-              <button onClick={() => bump("lines", 1)} className="rounded bg-white/10 px-2 py-0.5" title="lines +">☰+</button>
-              <button onClick={() => bump("lines", -1)} className="rounded bg-white/10 px-2 py-0.5" title="lines -">☰-</button>
-              <button onClick={() => bump("opacity", 0.05)} className="rounded bg-white/10 px-2 py-0.5" title="opacity +">◐+</button>
-              <button onClick={() => bump("opacity", -0.05)} className="rounded bg-white/10 px-2 py-0.5" title="opacity -">◐-</button>
-            </>
-          )}
-          <button onClick={startSession} className="rounded bg-white/10 px-2 py-0.5">Start session</button>
-          <button onClick={exportNow} className="rounded bg-white/10 px-2 py-0.5">Stop &amp; export</button>
-          {interactive && <button onClick={closeOverlay} className="rounded bg-white/10 px-2 py-0.5" title="close overlay">✕</button>}
+          <button onClick={lockToggle} className={STRIP_BTN} title="lock (click-through)">🔓</button>
+          <button onClick={() => bump("font", -2)} className={STRIP_BTN} title="text smaller">A−</button>
+          <button onClick={() => bump("font", 2)} className={STRIP_BTN} title="text bigger">A+</button>
+          <button onClick={() => bump("lines", -1)} className={STRIP_BTN} title="fewer sentences">☰−</button>
+          <button onClick={() => bump("lines", 1)} className={STRIP_BTN} title="more sentences">☰+</button>
+          <span className="px-1 text-white/40">{view.progress.n}/{view.progress.total}</span>
+          <button onClick={closeOverlay} className={STRIP_BTN} title="close overlay">✕</button>
         </div>
-      </div>
-      <div className="rounded-xl bg-black/70 p-4 backdrop-blur"
-           style={{ transform: layout.mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width, maxHeight: layout.height, overflowY: "auto" }}>
+      )}
+
+      {/* The subtitle: floating text, no card. Drag handle when unlocked. */}
+      <div
+        style={{
+          transform: layout.mirror ? "scaleX(-1)" : undefined,
+          fontSize: layout.font,
+          width: layout.width,
+          maxHeight: layout.height,
+          overflowY: "auto",
+          textShadow: TEXT_SHADOW,
+          ...(interactive ? { WebkitAppRegion: "drag", cursor: "move" } : {}),
+        } as React.CSSProperties}
+      >
         {shownLines.map((line, i) => (
           <div
             key={i}
@@ -232,8 +276,24 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         ))}
         {view.current.do && <div className="mt-3 border-l-2 border-sky-400 pl-3 text-sky-200 text-base">▸ {view.current.do}</div>}
         {view.current.fx && <div className="mt-2 text-[13px] text-amber-300">⚡ {view.current.fx}</div>}
+        {view.next && <div className="mt-2 truncate text-[0.55em] font-normal text-white/35">next → {view.next.say}</div>}
       </div>
-      {view.next && <div className="mt-2 truncate px-1 text-[14px] text-white/30">next → {view.next.say}</div>}
+
+      {/* Locked: a faint lock icon is the only affordance. The window is
+          click-through, but forward:true keeps mousemove flowing — hovering the
+          icon momentarily re-enables clicks so it can be pressed. */}
+      {!interactive && (
+        <button
+          type="button"
+          title="unlock teleprompter"
+          onMouseEnter={() => embalioBridge()?.setIgnoreMouse?.(false)}
+          onMouseLeave={() => embalioBridge()?.setIgnoreMouse?.(true)}
+          onClick={lockToggle}
+          className="mt-1 w-fit rounded px-1 text-[13px] text-white/25 transition-colors hover:text-white/90"
+        >
+          🔒
+        </button>
+      )}
     </div>
   );
 }

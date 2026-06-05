@@ -43,6 +43,10 @@ export function TeleprompterControls() {
         <Chip onClick={() => b.toggleInteractive?.()}>Unlock/Lock</Chip>
         <Chip onClick={() => b.closeOverlay?.()}>Close</Chip>
       </Group>
+      <Group label="session">
+        <Chip onClick={() => send("session-start")}>Start session</Chip>
+        <Chip onClick={() => send("session-export")}>Stop &amp; export</Chip>
+      </Group>
       <Group label="text size">
         <Chip onClick={() => send("font-")}>−</Chip>
         <Chip onClick={() => send("font+")}>+</Chip>

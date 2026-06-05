@@ -129,6 +129,15 @@ ipcMain.on("overlay:open", (_e, projectId) => {
 
 ipcMain.on("overlay:toggle-interactive", () => toggleInteractive());
 
+// Hover-to-unlock: while LOCKED the window is click-through, but forward:true
+// keeps mousemove flowing, so the renderer can ask for clicks to be momentarily
+// enabled when the cursor hovers the lock icon (and restored on leave). Only
+// honored while locked — in interactive mode the canonical flags rule.
+ipcMain.on("overlay:set-ignore-mouse", (_e, ignore) => {
+  if (!overlay || overlay.isDestroyed() || interactive) return;
+  overlay.setIgnoreMouseEvents(!!ignore, { forward: true });
+});
+
 // Forward control-panel actions to the overlay renderer via the hotkey channel.
 ipcMain.on("overlay:control", (_e, action) => { if (typeof action === "string") send(action); });
 

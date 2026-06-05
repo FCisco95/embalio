@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("embalio", {
   },
   exportMarkers: (files) => ipcRenderer.send("export-markers", files),
   toggleInteractive: () => ipcRenderer.send("overlay:toggle-interactive"),
+  setIgnoreMouse: (ignore) => ipcRenderer.send("overlay:set-ignore-mouse", ignore),
   controlOverlay: (action) => ipcRenderer.send("overlay:control", action),
   closeOverlay: () => ipcRenderer.send("overlay:close"),
   onOverlayState: (cb) => {

@@ -110,6 +110,30 @@ describe("Cockpit", () => {
     expect(screen.getByText("First line.")).toBeTruthy();
   });
 
+  it("locked mode shows only the text and a lock icon — no controls", () => {
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    expect(screen.getByText("First line. Second line.")).toBeTruthy();
+    expect(screen.getByTitle("unlock teleprompter")).toBeTruthy();
+    // No control strip while locked.
+    expect(screen.queryByTitle("text bigger")).toBeNull();
+    expect(screen.queryByTitle("close overlay")).toBeNull();
+    expect(screen.queryByText("Start session")).toBeNull();
+  });
+
+  it("unlocking via the lock icon reveals the control strip", () => {
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    fireEvent.click(screen.getByTitle("unlock teleprompter"));
+
+    expect(screen.getByTitle("lock (click-through)")).toBeTruthy();
+    expect(screen.getByTitle("text bigger")).toBeTruthy();
+    expect(screen.getByTitle("more sentences")).toBeTruthy();
+    expect(screen.getByTitle("close overlay")).toBeTruthy();
+    // The lock icon itself is gone while unlocked.
+    expect(screen.queryByTitle("unlock teleprompter")).toBeNull();
+  });
+
   it("applies layout height to the card and opacity to the container", () => {
     seedLayout({ mode: "sent", height: 200, opacity: 0.5 });
     const { container } = render(

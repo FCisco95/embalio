@@ -28,20 +28,20 @@ Env vars (all optional):
 
 ## Controls
 
-The overlay is click-through by default (invisible to capture, never steals
-focus), so you drive it **with the mouse from the main Embalio window**. Once the
-overlay is open, a control panel appears under **🎬 Launch teleprompter** in the
-Record Hub — this is the primary control surface:
+The overlay is a **subtitle**: floating text over the desktop, no window chrome.
+Locked (default while recording) it is click-through and shows nothing but the
+text and a faint **🔒** icon — hover the icon and it becomes clickable; click to
+unlock. Unlocked, a minimal strip appears (**🔓 · A− A+ · ☰− ☰+ · beat n/m · ✕**)
+and you can **drag the text anywhere** to position it.
 
-- **Unlock/Lock** — toggle interactive mode (click-through off so you can drag/resize/click the overlay)
-- **Close** — close the overlay
+Everything else lives in the control panel that appears under
+**🎬 Launch teleprompter** in the Record Hub — the primary mouse control surface:
+
+- **Unlock/Lock** — toggle interactive mode · **Close** — close the overlay
+- **Start session** / **Stop & export** — marker session control
 - Text size − / + · Lines − / + · Opacity − / + · Width − / + · Height − / +
 - **Sentence/Paragraph** · **Mirror**
 - **Save 1/2/3** and **Recall 1/2/3** — layout presets (persisted via electron-store)
-
-When the overlay is unlocked (interactive), it also shows on-overlay buttons in
-its status row: a **✕** close button plus compact **A+ A-** (font), **☰+ ☰-**
-(lines) and **◐+ ◐-** (opacity) controls. Drag the overlay by its status row.
 
 ### Hotkeys (secondary, work while unfocused)
 
