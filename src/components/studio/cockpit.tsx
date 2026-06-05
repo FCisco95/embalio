@@ -7,7 +7,7 @@ import { makeTranscriptSource } from "@/lib/studio/transcript";
 import { toResolveEDL, toYouTubeChapters, type Marker } from "@/lib/studio/markers";
 import { confirmTake } from "@/server/studio/projects";
 import { toLines } from "@/lib/studio/chunking";
-import { DEFAULT_LAYOUT, adjust, type Layout, type Adjustable } from "@/lib/studio/teleprompter-layout";
+import { DEFAULT_LAYOUT, adjust, clampLayout, type Layout, type Adjustable } from "@/lib/studio/teleprompter-layout";
 import { resolveStore, setPreset, getPreset } from "@/lib/studio/teleprompter-store";
 
 type ElectronBridge = {
@@ -31,7 +31,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
 
   // Teleprompter layout, sentence chunking, presets, interactive mode.
   const store = useMemo(() => resolveStore(), []);
-  const [layout, setLayout] = useState<Layout>(() => store.load().last ?? DEFAULT_LAYOUT);
+  const [layout, setLayout] = useState<Layout>(() => clampLayout({ ...DEFAULT_LAYOUT, ...(store.load().last ?? {}) }));
   const [lineIdx, setLineIdx] = useState(0);
   const [interactive, setInteractive] = useState(false);
   const currentSay = view.current.say;
@@ -82,7 +82,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   const toggleMode = useCallback(() => setLayout((l) => ({ ...l, mode: l.mode === "para" ? "sent" : "para" })), []);
   const toggleMirror = useCallback(() => setLayout((l) => ({ ...l, mirror: !l.mirror })), []);
   const savePreset = useCallback((slot: string) => setLayout((l) => { setPreset(store, slot, l); return l; }), [store]);
-  const recallPreset = useCallback((slot: string) => { const p = getPreset(store, slot); if (p) setLayout(p); }, [store]);
+  const recallPreset = useCallback((slot: string) => { const p = getPreset(store, slot); if (p) setLayout(clampLayout({ ...DEFAULT_LAYOUT, ...p })); }, [store]);
   const closeOverlay = useCallback(() => {
     const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
     if (bridge?.closeOverlay) bridge.closeOverlay();

@@ -94,6 +94,22 @@ describe("Cockpit", () => {
     expect(screen.queryByText("Second line.")).toBeNull();
   });
 
+  it("backfills a stale persisted layout missing the `lines` field (sentence mode)", () => {
+    // Simulate a layout persisted before `lines` existed: sentence mode but no
+    // `lines` key. Without normalization, slice(start, start + undefined) yields
+    // an empty array → blank teleprompter for returning users.
+    const stale: Record<string, unknown> = { ...DEFAULT_LAYOUT, mode: "sent" };
+    delete stale.lines;
+    localStorage.setItem(
+      LS_KEY,
+      JSON.stringify({ presets: {}, last: stale }),
+    );
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // The current sentence must still be visible (not blank).
+    expect(screen.getByText("First line.")).toBeTruthy();
+  });
+
   it("applies layout height to the card and opacity to the container", () => {
     seedLayout({ mode: "sent", height: 200, opacity: 0.5 });
     const { container } = render(
