@@ -67,16 +67,6 @@ export function TeleprompterControls() {
         <Chip onClick={() => send("mode")}>Sentence/Paragraph</Chip>
         <Chip onClick={() => send("mirror")}>Mirror</Chip>
       </Group>
-      <Group label="save preset">
-        <Chip onClick={() => send("preset-save-1")}>1</Chip>
-        <Chip onClick={() => send("preset-save-2")}>2</Chip>
-        <Chip onClick={() => send("preset-save-3")}>3</Chip>
-      </Group>
-      <Group label="recall preset">
-        <Chip onClick={() => send("preset-1")}>1</Chip>
-        <Chip onClick={() => send("preset-2")}>2</Chip>
-        <Chip onClick={() => send("preset-3")}>3</Chip>
-      </Group>
     </div>
   );
 }

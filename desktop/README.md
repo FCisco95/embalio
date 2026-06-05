@@ -41,7 +41,9 @@ Everything else lives in the control panel that appears under
 - **Start session** / **Stop & export** — marker session control
 - Text size − / + · Lines − / + · Backdrop − / + · Width − / +
 - **Sentence/Paragraph** · **Mirror**
-- **Save 1/2/3** and **Recall 1/2/3** — layout presets (persisted via electron-store)
+
+Your last layout is remembered automatically (electron-store) and restored on
+the next overlay open.
 
 ### Hotkeys (secondary, work while unfocused)
 
@@ -54,7 +56,6 @@ Interactive mode only (between takes):
 - `=` / `-` — font size · `[` / `]` — width · `,` / `.` — backdrop darkness
 - `↑` / `↓` — lines visible at once (sentence mode)
 - `S` — paragraph/sentence mode · `R` — mirror
-- `1`–`3` — recall preset · `Shift+1`–`3` — save preset (persisted via electron-store)
 
 ## Output
 

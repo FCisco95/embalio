@@ -5,7 +5,7 @@ const { startSidecar } = require("./sidecar/server");
 const http = require("http");
 const { spawn } = require("child_process");
 const Store = require("electron-store");
-const store = new Store({ name: "teleprompter", defaults: { presets: {}, last: null }, accessPropertiesByDotNotation: false });
+const store = new Store({ name: "teleprompter", defaults: { last: null }, accessPropertiesByDotNotation: false });
 let sidecar = null;
 let nextProc = null;
 
@@ -155,17 +155,16 @@ ipcMain.on("overlay:resize", (_e, width) => {
 
 ipcMain.on("store:get-sync", (e) => {
   try {
-    e.returnValue = { presets: store.get("presets"), last: store.get("last") };
+    e.returnValue = { last: store.get("last") };
   } catch (err) {
     console.error("store:get-sync failed", err);
-    e.returnValue = { presets: {}, last: null };
+    e.returnValue = { last: null };
   }
 });
 
 ipcMain.on("store:set", (_e, data) => {
   try {
     if (typeof data !== "object" || data === null) return;
-    store.set("presets", data.presets ?? {});
     store.set("last", data.last ?? null);
   } catch (err) {
     console.error("store:set failed", err);

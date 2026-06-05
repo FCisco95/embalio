@@ -1,7 +1,6 @@
 import type { Layout } from "./teleprompter-layout";
 
 export interface StoreData {
-  presets: Record<string, Layout>;
   last: Layout | null;
 }
 
@@ -10,7 +9,7 @@ export interface TeleprompterStore {
   save(data: StoreData): void;
 }
 
-const EMPTY: StoreData = { presets: {}, last: null };
+const EMPTY: StoreData = { last: null };
 
 /** In-memory backend — used by tests and as a server-render no-op. */
 export function makeMemoryStore(): TeleprompterStore {
@@ -77,20 +76,4 @@ export function resolveStore(): TeleprompterStore {
   if (b?.getStore && b?.setStore)
     return makeElectronStore({ getStore: b.getStore, setStore: b.setStore });
   return makeLocalStore();
-}
-
-export function setPreset(
-  store: TeleprompterStore,
-  slot: string,
-  layout: Layout,
-): void {
-  const data = store.load();
-  store.save({ ...data, presets: { ...data.presets, [slot]: layout } });
-}
-
-export function getPreset(
-  store: TeleprompterStore,
-  slot: string,
-): Layout | null {
-  return store.load().presets[slot] ?? null;
 }

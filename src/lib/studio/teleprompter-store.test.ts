@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { makeMemoryStore, setPreset, getPreset } from "./teleprompter-store";
+import { makeMemoryStore } from "./teleprompter-store";
 import { DEFAULT_LAYOUT } from "./teleprompter-layout";
 
 describe("teleprompter-store", () => {
@@ -9,17 +9,17 @@ describe("teleprompter-store", () => {
   });
 
   it("starts empty with no last layout", () => {
-    expect(store.load()).toEqual({ presets: {}, last: null });
-  });
-  it("saves and recalls a named preset", () => {
-    const big = { ...DEFAULT_LAYOUT, font: 40 };
-    setPreset(store, "1", big);
-    expect(getPreset(store, "1")).toEqual(big);
-    expect(getPreset(store, "2")).toBeNull();
+    expect(store.load()).toEqual({ last: null });
   });
   it("persists last layout across reload via the same backend", () => {
     const l = { ...DEFAULT_LAYOUT, opacity: 0.5 };
     store.save({ ...store.load(), last: l });
     expect(store.load().last).toEqual(l);
+  });
+  it("save snapshots the data — later mutations don't leak in", () => {
+    const l = { ...DEFAULT_LAYOUT, font: 40 };
+    store.save({ last: l });
+    l.font = 99;
+    expect(store.load().last?.font).toBe(40);
   });
 });

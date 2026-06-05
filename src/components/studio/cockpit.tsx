@@ -8,7 +8,7 @@ import { toResolveEDL, toYouTubeChapters, type Marker } from "@/lib/studio/marke
 import { confirmTake } from "@/server/studio/projects";
 import { toLines } from "@/lib/studio/chunking";
 import { DEFAULT_LAYOUT, adjust, clampLayout, type Layout, type Adjustable } from "@/lib/studio/teleprompter-layout";
-import { resolveStore, setPreset, getPreset } from "@/lib/studio/teleprompter-store";
+import { resolveStore } from "@/lib/studio/teleprompter-store";
 import { readManualScript, subscribeManualScript, serverManualScript } from "@/lib/studio/manual-script";
 
 type ElectronBridge = {
@@ -130,8 +130,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   const bump = useCallback((key: Adjustable, d: number) => setLayout((l) => adjust(l, key, d)), []);
   const toggleMode = useCallback(() => setLayout((l) => ({ ...l, mode: l.mode === "para" ? "sent" : "para" })), []);
   const toggleMirror = useCallback(() => setLayout((l) => ({ ...l, mirror: !l.mirror })), []);
-  const savePreset = useCallback((slot: string) => setLayout((l) => { setPreset(store, slot, l); return l; }), [store]);
-  const recallPreset = useCallback((slot: string) => { const p = getPreset(store, slot); if (p) setLayout(clampLayout({ ...DEFAULT_LAYOUT, ...p })); }, [store]);
   const closeOverlay = useCallback(() => {
     const bridge = embalioBridge();
     if (bridge?.closeOverlay) bridge.closeOverlay();
@@ -241,10 +239,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       if (action === "lines-") return bump("lines", -1);
       if (action === "mode") return toggleMode();
       if (action === "mirror") return toggleMirror();
-      const saveM = /^preset-save-([1-3])$/.exec(action);
-      if (saveM) return savePreset(saveM[1]);
-      const recallM = /^preset-([1-3])$/.exec(action);
-      if (recallM) return recallPreset(recallM[1]);
     };
     const off = embalioBridge()?.onHotkey(onAction);
     const onKey = (e: KeyboardEvent) => {
@@ -264,16 +258,11 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       else if (e.code === "ArrowDown") kbBump("lines", -1);
       else if (e.code === "KeyS") toggleMode();
       else if (e.code === "KeyR") toggleMirror();
-      else if (/^Digit[1-3]$/.test(e.code)) {
-        const slot = e.code.slice(5);
-        if (e.shiftKey) savePreset(slot);
-        else recallPreset(slot);
-      }
     };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (off) off(); };
   }, [active, go, stamp, interactive, mode, lineIdx, lines.length, layout.lines, beats.length,
-      bump, toggleMode, toggleMirror, savePreset, recallPreset, startSession, exportNow]);
+      bump, toggleMode, toggleMirror, startSession, exportNow]);
 
   return (
     <div className="flex min-h-screen flex-col p-3 text-white">
