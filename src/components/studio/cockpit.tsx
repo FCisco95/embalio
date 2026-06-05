@@ -272,7 +272,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         {shownLines.map((line, i) => (
           <div
             key={i}
-            className={i === 0 ? "font-semibold leading-snug" : "font-semibold leading-snug text-white/40"}
+            className={i === 0 ? "font-semibold leading-snug" : "font-semibold leading-snug text-white/85"}
             style={i === 0 ? undefined : { fontSize: "0.8em" }}
           >
             {line}
@@ -280,7 +280,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         ))}
         {view.current.do && <div className="mt-3 border-l-2 border-sky-400 pl-3 text-sky-200 text-base">▸ {view.current.do}</div>}
         {view.current.fx && <div className="mt-2 text-[13px] text-amber-300">⚡ {view.current.fx}</div>}
-        {view.next && <div className="mt-2 truncate text-[0.55em] font-normal text-white/35">next → {view.next.say}</div>}
       </div>
 
       {/* Locked: a faint lock icon is the only affordance. The window is

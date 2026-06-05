@@ -30,10 +30,10 @@ afterEach(() => {
 });
 
 describe("Cockpit", () => {
-  it("renders the current beat say + next peek", () => {
+  it("renders the current beat say with no next-beat preview", () => {
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
     expect(screen.getByText("First line. Second line.")).toBeTruthy();
-    expect(screen.getByText(/next →/)).toBeTruthy();
+    expect(screen.queryByText(/next →/)).toBeNull();
   });
 
   it("walks sentence-mode lines then spills into the next beat", () => {
@@ -81,9 +81,9 @@ describe("Cockpit", () => {
     const second = screen.getByText("Second line.");
     expect(first).toBeTruthy();
     expect(second).toBeTruthy();
-    // the read-ahead line is dimmed
-    expect((second as HTMLElement).className).toContain("text-white/40");
-    expect((first as HTMLElement).className).not.toContain("text-white/40");
+    // the read-ahead line is near-white (slightly dimmed vs the current line)
+    expect((second as HTMLElement).className).toContain("text-white/85");
+    expect((first as HTMLElement).className).not.toContain("text-white/85");
   });
 
   it("renders only the current line in sentence mode (lines: 1)", () => {
