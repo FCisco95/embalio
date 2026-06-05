@@ -7,6 +7,7 @@ import { confirmTake } from "@/server/studio/projects";
 import { DevicePicker } from "./device-picker";
 import { PreshootGate } from "./preshoot-gate";
 import { TeleprompterControls } from "./teleprompter-controls";
+import { ManualScriptInput } from "./manual-script-input";
 import type { VideoScript } from "@/lib/studio/schemas";
 
 type RP = { id: string; device_label: string; os: string; capture_tool: string; teleprompter_placement: string; scene_presets: unknown; export_path: string | null };
@@ -41,6 +42,7 @@ export function RecordHub({ projectId, script, recordingProfiles, onConfirmed }:
         🎬 Launch teleprompter
       </button>
       <TeleprompterControls />
+      <ManualScriptInput />
       <div className="flex flex-wrap items-center gap-3">
         <DevicePicker recordingProfiles={recordingProfiles} value={deviceProfileId} onChange={setDeviceProfileId} />
         {active && (

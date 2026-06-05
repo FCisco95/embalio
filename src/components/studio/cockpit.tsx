@@ -9,6 +9,7 @@ import { confirmTake } from "@/server/studio/projects";
 import { toLines } from "@/lib/studio/chunking";
 import { DEFAULT_LAYOUT, adjust, clampLayout, type Layout, type Adjustable } from "@/lib/studio/teleprompter-layout";
 import { resolveStore, setPreset, getPreset } from "@/lib/studio/teleprompter-store";
+import { readManualScript, subscribeManualScript, serverManualScript } from "@/lib/studio/manual-script";
 
 type ElectronBridge = {
   onHotkey: (cb: (action: string) => void) => (() => void) | void;
@@ -32,11 +33,24 @@ const serverSnapshot = () => false;
 
 export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   { script: VideoScript; projectId: string; recordingProfileId: string; fps?: number }) {
-  const beats = script.beats;
+  // Manual override: text the user typed in the Record Hub replaces the
+  // generated script until cleared (synced via localStorage storage events).
+  const manualSay = useSyncExternalStore(subscribeManualScript, readManualScript, serverManualScript);
+  const beats = useMemo<VideoScript["beats"]>(
+    () => (manualSay?.trim()
+      ? [{ id: "manual", say: manualSay.trim(), visualPrompt: "manual script" }]
+      : script.beats),
+    [manualSay, script.beats],
+  );
   const tokens = useMemo(() => flattenScript(beats), [beats]);
   const follower = useMemo(() => createFollower(tokens), [tokens]);
 
   const [active, setActive] = useState(0);
+  // Jump back to the start whenever the manual script appears/changes/clears
+  // (render-phase "adjust state" pattern — the active index may be out of
+  // range for the new beat list).
+  const [seenManual, setSeenManual] = useState(manualSay);
+  if (seenManual !== manualSay) { setSeenManual(manualSay); setActive(0); }
   const [voiceOn, setVoiceOn] = useState(false);
   const sessionStart = useRef<number | null>(null);
   const markers = useRef<Marker[]>([]);

@@ -110,6 +110,19 @@ describe("Cockpit", () => {
     expect(screen.getByText("First line.")).toBeTruthy();
   });
 
+  it("manual script overrides the generated beats and walks sentence by sentence", () => {
+    seedLayout({ mode: "sent", lines: 1 });
+    localStorage.setItem("embalio.teleprompter.manual", "Manual one. Manual two.");
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // Manual text replaces the script's say entirely.
+    expect(screen.getByText("Manual one.")).toBeTruthy();
+    expect(screen.queryByText("First line.")).toBeNull();
+
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Manual two.")).toBeTruthy();
+  });
+
   it("locked mode shows only the text and a lock icon — no controls", () => {
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
 
