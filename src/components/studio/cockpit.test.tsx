@@ -160,13 +160,11 @@ describe("Cockpit", () => {
     expect(screen.queryByTitle("unlock teleprompter")).toBeNull();
   });
 
-  it("applies layout height to the pill and opacity as its backdrop darkness", () => {
-    seedLayout({ mode: "sent", height: 200, opacity: 0.5 });
+  it("applies opacity as the pill's backdrop darkness (text stays full strength)", () => {
+    seedLayout({ mode: "sent", opacity: 0.5 });
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
 
     const pill = screen.getByText("First line.").parentElement as HTMLElement;
-    expect(pill.style.maxHeight).toBe("200px");
-    // Text stays full strength — opacity darkens the backdrop pill instead.
     expect(pill.style.backgroundColor).toBe("rgba(0, 0, 0, 0.5)");
   });
 });

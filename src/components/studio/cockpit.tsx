@@ -237,8 +237,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       else if (e.code === "Minus") kbBump("font", -2);
       else if (e.code === "BracketLeft") kbBump("width", -60);
       else if (e.code === "BracketRight") kbBump("width", 60);
-      else if (e.code === "Semicolon") kbBump("height", -16);
-      else if (e.code === "Quote") kbBump("height", 16);
       else if (e.code === "Comma") kbBump("opacity", -0.05);
       else if (e.code === "Period") kbBump("opacity", 0.05);
       else if (e.code === "ArrowUp") kbBump("lines", 1);
@@ -285,8 +283,6 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
           transform: layout.mirror ? "scaleX(-1)" : undefined,
           fontSize: layout.font,
           maxWidth: layout.width,
-          maxHeight: layout.height,
-          overflowY: "auto",
           textShadow: TEXT_SHADOW,
           ...(interactive ? { WebkitAppRegion: "drag", cursor: "move" } : {}),
         } as React.CSSProperties}

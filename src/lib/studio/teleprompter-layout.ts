@@ -4,6 +4,8 @@ export interface Layout {
   font: number; // pt
   opacity: number; // 0.2 .. 1
   width: number; // px
+  // height is persisted-but-unused since the subtitle pill grows to fit its
+  // chunk (chunk length is the real content control). Kept for data compat.
   height: number; // px
   // top/left are reserved for restoring the overlay window's on-screen position.
   // The interactive-mode drag region (-webkit-app-region: drag) moves the native

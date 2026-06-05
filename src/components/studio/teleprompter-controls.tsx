@@ -63,10 +63,6 @@ export function TeleprompterControls() {
         <Chip onClick={() => send("width-")}>−</Chip>
         <Chip onClick={() => send("width+")}>+</Chip>
       </Group>
-      <Group label="height">
-        <Chip onClick={() => send("height-")}>−</Chip>
-        <Chip onClick={() => send("height+")}>+</Chip>
-      </Group>
       <Group label="mode">
         <Chip onClick={() => send("mode")}>Sentence/Paragraph</Chip>
         <Chip onClick={() => send("mirror")}>Mirror</Chip>

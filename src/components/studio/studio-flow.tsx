@@ -12,7 +12,6 @@ import { ScriptStudio } from "./script-studio";
 import { RecordHub } from "./record-hub";
 import { PublishPanel } from "./publish-panel";
 import { RepurposePanel } from "./repurpose-panel";
-import { RenderPanel } from "./render-panel";
 import { PlaybookPanel, type BriefMeta } from "./playbook-panel";
 import type { ChannelPlaybook } from "@/lib/studio/schemas";
 
@@ -123,7 +122,6 @@ export function StudioFlow({
       {stage === "record" && <RecordHub projectId={active.id} script={active.script} recordingProfiles={recordingProfiles} onConfirmed={() => patchActive({ stage: "publish" })} />}
       {stage === "publish" && <PublishPanel projectId={active.id} ytConnected={ytConnected} onPublished={(publish) => patchActive({ publish, stage: "repurposed" })} />}
       {stage === "repurposed" && <RepurposePanel projectId={active.id} publish={active.publish} />}
-      {stage === "publish" && <RenderPanel />}
     </div>
   );
 }
