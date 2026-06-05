@@ -7,7 +7,10 @@ function startSidecar(port = 8765) {
   const clients = new Set();
   wss.on("connection", (ws) => { clients.add(ws); ws.on("close", () => clients.delete(ws)); });
 
-  const py = spawn("python", [path.join(__dirname, "whisper_stream.py")], { stdio: ["ignore", "pipe", "inherit"] });
+  // EMBALIO_PYTHON lets you point at a specific interpreter (faster-whisper
+  // needs Python >= 3.9; a bare `python` on PATH may be older).
+  const pythonExe = process.env.EMBALIO_PYTHON || "python";
+  const py = spawn(pythonExe, [path.join(__dirname, "whisper_stream.py")], { stdio: ["ignore", "pipe", "inherit"] });
   let acc = "";
   py.stdout.on("data", (d) => {
     acc += d.toString();

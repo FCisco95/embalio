@@ -46,6 +46,7 @@ export function TeleprompterControls() {
       <Group label="session">
         <Chip onClick={() => send("session-start")}>Start session</Chip>
         <Chip onClick={() => send("session-export")}>Stop &amp; export</Chip>
+        <Chip onClick={() => send("playpause")}>🎙 Voice follow</Chip>
       </Group>
       <Group label="text size">
         <Chip onClick={() => send("font-")}>−</Chip>

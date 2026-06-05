@@ -278,6 +278,11 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
           <button onClick={() => bump("font", 2)} className={STRIP_BTN} title="text bigger">A+</button>
           <button onClick={() => bump("lines", -1)} className={STRIP_BTN} title="fewer sentences">☰−</button>
           <button onClick={() => bump("lines", 1)} className={STRIP_BTN} title="more sentences">☰+</button>
+          <button
+            onClick={() => setVoiceOn((v) => !v)}
+            className={voiceOn ? "rounded bg-emerald-500/30 px-2 py-0.5 text-emerald-300" : STRIP_BTN}
+            title="voice follow on/off"
+          >🎙</button>
           <span className="px-1 text-white/40">{view.progress.n}/{view.progress.total}</span>
           <button onClick={closeOverlay} className={STRIP_BTN} title="close overlay">✕</button>
         </div>
@@ -322,7 +327,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
           onClick={lockToggle}
           className="mt-1.5 w-fit rounded-md bg-black/60 px-2 py-0.5 text-[13px] text-white/80 transition-colors hover:bg-black/85 hover:text-white"
         >
-          🔒
+          🔒{voiceOn && <span className="ml-1 text-emerald-400">🎙</span>}
         </button>
       )}
     </div>

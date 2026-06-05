@@ -1,8 +1,29 @@
 import sys, json, numpy as np, sounddevice as sd
+
+# pip-installed CUDA runtimes (nvidia-cublas-cu12 / nvidia-cudnn-cu12) ship DLLs
+# outside the default search path on Windows — register them before importing
+# ctranslate2 so the GPU path can load.
+try:
+    import os, site
+    for sp in site.getsitepackages():
+        for sub in (("nvidia", "cublas", "bin"), ("nvidia", "cudnn", "bin")):
+            d = os.path.join(sp, *sub)
+            if os.path.isdir(d):
+                os.add_dll_directory(d)
+except Exception:
+    pass
+
 from faster_whisper import WhisperModel
 
-# Reads default mic, transcribes ~2s windows on the GPU, prints JSON lines.
-model = WhisperModel("small.en", device="cuda", compute_type="float16")
+# Reads default mic, transcribes ~2s windows, prints JSON lines.
+# Prefer the GPU (float16); fall back to CPU int8 if CUDA isn't usable.
+try:
+    model = WhisperModel("small.en", device="cuda", compute_type="float16")
+    sys.stderr.write("[whisper] using CUDA float16\n")
+except Exception as e:
+    sys.stderr.write(f"[whisper] CUDA unavailable ({e}); falling back to CPU int8\n")
+    model = WhisperModel("small.en", device="cpu", compute_type="int8")
+
 SR = 16000
 WINDOW = int(SR * 2.0)
 buf = np.zeros(0, dtype=np.float32)
