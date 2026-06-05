@@ -1,8 +1,9 @@
 import sys, json, numpy as np, sounddevice as sd
 
 # pip-installed CUDA runtimes (nvidia-cublas-cu12 / nvidia-cudnn-cu12) ship DLLs
-# outside the default search path on Windows — register them before importing
-# ctranslate2 so the GPU path can load.
+# outside the default search path on Windows. ctranslate2 loads cublas/cudnn
+# lazily via the LEGACY search path, so add_dll_directory alone is NOT enough —
+# the dirs must also be prepended to PATH before the first transcribe call.
 try:
     import os, site
     for sp in site.getsitepackages():
@@ -10,6 +11,7 @@ try:
             d = os.path.join(sp, *sub)
             if os.path.isdir(d):
                 os.add_dll_directory(d)
+                os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
 except Exception:
     pass
 
