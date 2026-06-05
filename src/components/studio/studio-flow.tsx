@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { StyledSelect } from "@/components/ui/select-native";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createVideoProject } from "@/server/studio/projects";
@@ -19,6 +20,17 @@ type Project = { id: string; stage: string; topic: unknown; script: unknown; rec
 const STAGE_LABEL: Record<StudioStage, string> = {
   topic: "Topic", script: "Script", record: "Record", publish: "Publish", repurposed: "Repurpose",
 };
+
+/** Human label for the project switcher: script title → topic title → fallback. */
+function projectLabel(p: Project): string {
+  const title =
+    (p.script as { title?: string } | null)?.title ??
+    (p.topic as { title?: string } | null)?.title ??
+    "Untitled video";
+  const stage = STAGE_LABEL[p.stage as StudioStage] ?? p.stage;
+  const short = title.length > 48 ? `${title.slice(0, 48)}…` : title;
+  return `${short} · ${stage}`;
+}
 
 export function StudioFlow({
   profileId, recordingProfiles, initialProjects, ytConnected, playbook, briefMeta,
@@ -72,7 +84,21 @@ export function StudioFlow({
             )}>{STAGE_LABEL[s]}</span>
           ))}
         </div>
-        <Button variant="outline" size="sm" onClick={newProject}>New video</Button>
+        <div className="flex items-center gap-2">
+          {projects.length > 1 && (
+            <StyledSelect
+              value={activeId ?? ""}
+              onChange={(e) => setActiveId(e.target.value)}
+              aria-label="Switch video project"
+              className="max-w-[280px] py-1.5 text-[12.5px]"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{projectLabel(p)}</option>
+              ))}
+            </StyledSelect>
+          )}
+          <Button variant="outline" size="sm" onClick={newProject}>New video</Button>
+        </div>
       </div>
 
       {stage === "topic" && <TopicBoard profileId={profileId} projectId={active.id} onChosen={() => patchActive({ stage: "script" })} />}
