@@ -61,7 +61,12 @@ function createMainWindow() {
 }
 
 function createOverlay(projectId) {
-  if (overlay && !overlay.isDestroyed()) { overlay.focus(); return; }
+  if (overlay && !overlay.isDestroyed()) {
+    overlay.focus();
+    // Re-opened panel must stay in sync — resend the open state.
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("overlay-state", true);
+    return;
+  }
   overlay = new BrowserWindow({
     width: 720,
     height: 320,
@@ -81,7 +86,13 @@ function createOverlay(projectId) {
   overlay.setIgnoreMouseEvents(true, { forward: true }); // click-through
 
   overlay.loadURL(`${APP_URL}/overlay/record/${encodeURIComponent(projectId)}`);
-  overlay.on("closed", () => { overlay = null; interactive = false; }); // reset so state doesn't leak across sessions
+  overlay.on("closed", () => {
+    overlay = null;
+    interactive = false; // reset so state doesn't leak across sessions
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("overlay-state", false);
+  });
+  // Tell the main-window control panel the overlay is now open (so it renders).
+  if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("overlay-state", true);
 }
 
 function send(action) {
@@ -117,6 +128,11 @@ ipcMain.on("overlay:open", (_e, projectId) => {
 });
 
 ipcMain.on("overlay:toggle-interactive", () => toggleInteractive());
+
+// Forward control-panel actions to the overlay renderer via the hotkey channel.
+ipcMain.on("overlay:control", (_e, action) => { if (typeof action === "string") send(action); });
+
+ipcMain.on("overlay:close", () => { if (overlay && !overlay.isDestroyed()) overlay.close(); });
 
 ipcMain.on("store:get-sync", (e) => {
   try {

@@ -9,6 +9,13 @@ contextBridge.exposeInMainWorld("embalio", {
   },
   exportMarkers: (files) => ipcRenderer.send("export-markers", files),
   toggleInteractive: () => ipcRenderer.send("overlay:toggle-interactive"),
+  controlOverlay: (action) => ipcRenderer.send("overlay:control", action),
+  closeOverlay: () => ipcRenderer.send("overlay:close"),
+  onOverlayState: (cb) => {
+    const h = (_e, open) => cb(open);
+    ipcRenderer.on("overlay-state", h);
+    return () => ipcRenderer.off("overlay-state", h);
+  },
   getStore: () => ipcRenderer.sendSync("store:get-sync"),
   setStore: (data) => ipcRenderer.send("store:set", data),
 });
