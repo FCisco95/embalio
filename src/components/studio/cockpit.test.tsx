@@ -124,6 +124,50 @@ describe("Cockpit", () => {
     expect(screen.queryByText("Chunk A here.")).toBeNull();
   });
 
+  it("pages by `lines` instead of sliding one-by-one (sentence mode)", () => {
+    const threeSentences: VideoScript = {
+      title: "t",
+      hook: "h",
+      beats: [
+        { id: "1", say: "One here. Two here. Three here.", visualPrompt: "v" },
+        { id: "2", say: "Next beat.", visualPrompt: "v2" },
+      ],
+    };
+    seedLayout({ mode: "sent", lines: 2 });
+    render(<Cockpit script={threeSentences} projectId="p" recordingProfileId="r" />);
+
+    // Page 1: sentences 1+2.
+    expect(screen.getByText("One here.")).toBeTruthy();
+    expect(screen.getByText("Two here.")).toBeTruthy();
+    expect(screen.queryByText("Three here.")).toBeNull();
+
+    // Next page: the remaining sentence alone — NOT a 2+3 sliding window.
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Three here.")).toBeTruthy();
+    expect(screen.queryByText("One here.")).toBeNull();
+    expect(screen.queryByText("Two here.")).toBeNull();
+
+    // Then the next chunk.
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Next beat.")).toBeTruthy();
+  });
+
+  it("pages by `lines` through chunks (paragraph mode)", () => {
+    seedLayout({ mode: "para", lines: 2 });
+    localStorage.setItem("embalio.teleprompter.manual", "Chunk A.\nChunk B.\nChunk C.");
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // Page 1: chunks A+B.
+    expect(screen.getByText("Chunk A.")).toBeTruthy();
+    expect(screen.getByText("Chunk B.")).toBeTruthy();
+    expect(screen.queryByText("Chunk C.")).toBeNull();
+
+    // Next page: chunk C alone.
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Chunk C.")).toBeTruthy();
+    expect(screen.queryByText("Chunk A.")).toBeNull();
+  });
+
   it("paragraph mode: lines shows the next chunks dimmed (read-ahead)", () => {
     seedLayout({ mode: "para", lines: 2 });
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);

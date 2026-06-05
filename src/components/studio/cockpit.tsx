@@ -196,14 +196,24 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   // hardware/global hotkeys (Electron) + keyboard fallback
   const mode = layout.mode;
   useEffect(() => {
-    // In sentence mode, next/prev walk lines first, then spill into beats.
+    // next/prev move a full PAGE (`layout.lines` pieces) — you read everything
+    // on screen, then advance. Sentence mode pages through the chunk's
+    // sentences first, then spills into the next chunk; paragraph mode pages
+    // through chunks directly.
+    const pageSize = layout.lines;
     const goNext = () => {
-      if (mode === "sent" && lineIdx < lines.length - 1) setLineIdx((i) => i + 1);
-      else go(active + 1);
+      if (mode === "sent") {
+        const nextStart = Math.min(lineIdx, lines.length - 1) + pageSize;
+        if (nextStart < lines.length) return setLineIdx(nextStart);
+        return go(active + 1);
+      }
+      go(active + pageSize);
     };
     const goPrev = () => {
-      if (mode === "sent" && lineIdx > 0) setLineIdx((i) => i - 1);
-      else go(active - 1);
+      if (mode === "sent" && lineIdx > 0) {
+        return setLineIdx(Math.max(0, lineIdx - pageSize));
+      }
+      go(active - (mode === "sent" ? 1 : pageSize));
     };
     const onAction = (action: string) => {
       // Navigation + session actions arrive regardless of interactive state.
@@ -260,7 +270,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (off) off(); };
-  }, [active, go, stamp, interactive, mode, lineIdx, lines.length,
+  }, [active, go, stamp, interactive, mode, lineIdx, lines.length, layout.lines,
       bump, toggleMode, toggleMirror, savePreset, recallPreset, startSession, exportNow]);
 
   return (
