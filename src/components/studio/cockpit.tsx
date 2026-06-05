@@ -235,7 +235,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       bump, toggleMode, toggleMirror, savePreset, recallPreset, startSession, exportNow]);
 
   return (
-    <div className="flex min-h-screen flex-col p-3 text-white" style={{ opacity: layout.opacity }}>
+    <div className="flex min-h-screen flex-col p-3 text-white">
       {/* Unlocked: one minimal control strip. Locked: nothing but the text. */}
       {interactive && (
         <div
@@ -253,12 +253,16 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         </div>
       )}
 
-      {/* The subtitle: floating text, no card. Drag handle when unlocked. */}
+      {/* The subtitle: a snug pill hugging the text (iPhone Live Captions
+          style). Text is ALWAYS full strength — `opacity` darkens the pill
+          backdrop (0.2 barely-there … 1 solid black). Drag handle when unlocked. */}
       <div
+        className="w-fit rounded-2xl px-4 py-3"
         style={{
+          backgroundColor: `rgba(0, 0, 0, ${layout.opacity})`,
           transform: layout.mirror ? "scaleX(-1)" : undefined,
           fontSize: layout.font,
-          width: layout.width,
+          maxWidth: layout.width,
           maxHeight: layout.height,
           overflowY: "auto",
           textShadow: TEXT_SHADOW,
@@ -289,7 +293,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
           onMouseEnter={() => embalioBridge()?.setIgnoreMouse?.(false)}
           onMouseLeave={() => embalioBridge()?.setIgnoreMouse?.(true)}
           onClick={lockToggle}
-          className="mt-1 w-fit rounded px-1 text-[13px] text-white/25 transition-colors hover:text-white/90"
+          className="mt-1.5 w-fit rounded-md bg-black/60 px-2 py-0.5 text-[13px] text-white/80 transition-colors hover:bg-black/85 hover:text-white"
         >
           🔒
         </button>

@@ -134,16 +134,13 @@ describe("Cockpit", () => {
     expect(screen.queryByTitle("unlock teleprompter")).toBeNull();
   });
 
-  it("applies layout height to the card and opacity to the container", () => {
+  it("applies layout height to the pill and opacity as its backdrop darkness", () => {
     seedLayout({ mode: "sent", height: 200, opacity: 0.5 });
-    const { container } = render(
-      <Cockpit script={script} projectId="p" recordingProfileId="r" />,
-    );
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
 
-    const root = container.firstChild as HTMLElement;
-    expect(root.style.opacity).toBe("0.5");
-
-    const card = screen.getByText("First line.").parentElement as HTMLElement;
-    expect(card.style.maxHeight).toBe("200px");
+    const pill = screen.getByText("First line.").parentElement as HTMLElement;
+    expect(pill.style.maxHeight).toBe("200px");
+    // Text stays full strength — opacity darkens the backdrop pill instead.
+    expect(pill.style.backgroundColor).toBe("rgba(0, 0, 0, 0.5)");
   });
 });

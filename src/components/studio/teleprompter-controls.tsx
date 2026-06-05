@@ -55,7 +55,7 @@ export function TeleprompterControls() {
         <Chip onClick={() => send("lines-")}>−</Chip>
         <Chip onClick={() => send("lines+")}>+</Chip>
       </Group>
-      <Group label="opacity">
+      <Group label="backdrop">
         <Chip onClick={() => send("opacity-")}>−</Chip>
         <Chip onClick={() => send("opacity+")}>+</Chip>
       </Group>
