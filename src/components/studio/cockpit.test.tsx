@@ -110,6 +110,19 @@ describe("Cockpit", () => {
     expect(screen.getByText("First line.")).toBeTruthy();
   });
 
+  it("manual script: each line is its own chunk (beat)", () => {
+    localStorage.setItem("embalio.teleprompter.manual", "Chunk A here.\n\nChunk B after.");
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // Paragraph mode: one line of the manual text per screen.
+    expect(screen.getByText("Chunk A here.")).toBeTruthy();
+    expect(screen.queryByText("Chunk B after.")).toBeNull();
+
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Chunk B after.")).toBeTruthy();
+    expect(screen.queryByText("Chunk A here.")).toBeNull();
+  });
+
   it("manual script overrides the generated beats and walks sentence by sentence", () => {
     seedLayout({ mode: "sent", lines: 1 });
     localStorage.setItem("embalio.teleprompter.manual", "Manual one. Manual two.");

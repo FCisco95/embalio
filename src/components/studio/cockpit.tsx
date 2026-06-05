@@ -36,10 +36,18 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   // Manual override: text the user typed in the Record Hub replaces the
   // generated script until cleared (synced via localStorage storage events).
   const manualSay = useSyncExternalStore(subscribeManualScript, readManualScript, serverManualScript);
+  // Each LINE of the manual text is its own chunk (beat) — the user controls
+  // chunk boundaries with Enter. Sentence mode further splits within a chunk.
   const beats = useMemo<VideoScript["beats"]>(
-    () => (manualSay?.trim()
-      ? [{ id: "manual", say: manualSay.trim(), visualPrompt: "manual script" }]
-      : script.beats),
+    () => {
+      const chunks = (manualSay ?? "")
+        .split(/\n+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return chunks.length
+        ? chunks.map((say, i) => ({ id: `manual-${i}`, say, visualPrompt: "manual script" }))
+        : script.beats;
+    },
     [manualSay, script.beats],
   );
   const tokens = useMemo(() => flattenScript(beats), [beats]);

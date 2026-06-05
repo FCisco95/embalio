@@ -33,8 +33,8 @@ export function ManualScriptInput() {
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Type or paste exactly what you want to say. Sentences are split automatically — the teleprompter walks them one by one."
-        rows={3}
+        placeholder={"Type or paste exactly what you want to say.\nOne chunk per line — press Enter to start a new chunk. In sentence mode, sentences inside a chunk are walked one by one."}
+        rows={4}
         className="text-[13px]"
       />
       <div className="flex items-center gap-2">
