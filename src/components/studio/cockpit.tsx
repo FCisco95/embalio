@@ -111,7 +111,10 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     const clamped = Math.max(0, Math.min(next, beats.length - 1));
     setActive(clamped);
     stamp(clamped);
-  }, [beats.length, stamp]);
+    // Manual navigation re-anchors voice-follow — without this the follower
+    // keeps matching from its old position and fights the user.
+    follower.seek(clamped);
+  }, [beats.length, stamp, follower]);
 
   const startSession = useCallback(() => { sessionStart.current = Date.now(); markers.current = []; stamp(0); }, [stamp]);
 
@@ -186,8 +189,9 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     src.start((words) => {
       const s = follower.push(words);
       if (stopped) return;
-      if (s.beatIndex !== lastBeat) { lastBeat = s.beatIndex; stamp(s.beatIndex); }
-      setActive(s.beatIndex);
+      // Only move the display when the follower makes real progress — pushing
+      // setActive on every emission would stomp manual prev/next between words.
+      if (s.beatIndex !== lastBeat) { lastBeat = s.beatIndex; stamp(s.beatIndex); setActive(s.beatIndex); }
     }).catch((e) => {
       console.error(e);
       setVoiceErr(String(e instanceof Error ? e.message : e));

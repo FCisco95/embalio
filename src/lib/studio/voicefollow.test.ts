@@ -19,7 +19,7 @@ describe("flattenScript", () => {
 describe("createFollower", () => {
   it("advances position as matching words arrive", () => {
     const f = createFollower(flattenScript(beats));
-    let state = f.push(["open", "the", "cookbook"]);
+    const state = f.push(["open", "the", "cookbook"]);
     expect(state.tokenIndex).toBe(3);   // matched 3 words
     expect(state.beatIndex).toBe(0);
   });
@@ -49,5 +49,43 @@ describe("createFollower", () => {
     const f = createFollower(flattenScript(beats));
     const state = f.push(["open", "the", "cookbok"]); // typo/mis-hear of "cookbook"
     expect(state.tokenIndex).toBe(3);
+  });
+
+  it("follows a whisper-style sliding window (overlapping re-emissions)", () => {
+    const f = createFollower(flattenScript(beats));
+    // Each emission repeats most of the previous one — like the 2s window
+    // sliding by 0.5s.
+    f.push(["open", "the"]);
+    f.push(["open", "the", "cookbook"]);
+    f.push(["the", "cookbook", "and", "run"]);
+    f.push(["and", "run", "the", "scan"]);
+    const state = f.push(["the", "scan", "except", "i"]);
+    expect(state.beatIndex).toBe(1);
+  });
+
+  it("recovers after falling further behind than the look-ahead window", () => {
+    const longBeats = [
+      { say: "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november" },
+      { say: "oscar papa quebec romeo" },
+    ];
+    const f = createFollower(flattenScript(longBeats));
+    f.push(["alpha", "bravo"]); // tokenIndex = 2
+    // Speaker (or whisper) skipped far ahead — way beyond the look-ahead.
+    // Two consecutive on-script words must resync the pointer.
+    const state = f.push(["kilo", "lima", "mike", "november", "oscar"]);
+    expect(state.beatIndex).toBe(1);
+  });
+
+  it("seek() re-anchors the follower to a beat (manual navigation resync)", () => {
+    const f = createFollower(flattenScript(beats));
+    f.push(["open", "the", "cookbook", "and", "run", "the", "scan", "except", "i", "have"]);
+    expect(f.state().beatIndex).toBe(1);
+
+    f.seek(0); // user pressed prev
+    expect(f.state().beatIndex).toBe(0);
+    // Matching continues from the start of the sought beat.
+    const state = f.push(["open", "the"]);
+    expect(state.tokenIndex).toBe(2);
+    expect(state.beatIndex).toBe(0);
   });
 });
