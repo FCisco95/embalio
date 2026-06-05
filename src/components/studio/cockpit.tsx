@@ -207,7 +207,9 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         if (nextStart < lines.length) return setLineIdx(nextStart);
         return go(active + 1);
       }
-      go(active + pageSize);
+      // Never re-show a chunk that was already on screen: if the current page
+      // reached the last chunk, there is nothing left — stay put.
+      if (active + pageSize <= beats.length - 1) go(active + pageSize);
     };
     const goPrev = () => {
       if (mode === "sent" && lineIdx > 0) {
@@ -270,7 +272,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (off) off(); };
-  }, [active, go, stamp, interactive, mode, lineIdx, lines.length, layout.lines,
+  }, [active, go, stamp, interactive, mode, lineIdx, lines.length, layout.lines, beats.length,
       bump, toggleMode, toggleMirror, savePreset, recallPreset, startSession, exportNow]);
 
   return (

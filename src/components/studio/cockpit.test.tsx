@@ -168,6 +168,22 @@ describe("Cockpit", () => {
     expect(screen.queryByText("Chunk A.")).toBeNull();
   });
 
+  it("never re-shows a chunk that was already on screen (3 chunks, 3 lines)", () => {
+    seedLayout({ mode: "para", lines: 3 });
+    localStorage.setItem("embalio.teleprompter.manual", "Chunk A.\nChunk B.\nChunk C.");
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // All three fit on one page.
+    expect(screen.getByText("Chunk A.")).toBeTruthy();
+    expect(screen.getByText("Chunk C.")).toBeTruthy();
+
+    // Nothing left — next must NOT wrap around and re-show the tail alone.
+    fireEvent.keyDown(window, { code: "ArrowRight" });
+    expect(screen.getByText("Chunk A.")).toBeTruthy();
+    expect(screen.getByText("Chunk B.")).toBeTruthy();
+    expect(screen.getByText("Chunk C.")).toBeTruthy();
+  });
+
   it("paragraph mode: lines shows the next chunks dimmed (read-ahead)", () => {
     seedLayout({ mode: "para", lines: 2 });
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
