@@ -5,11 +5,13 @@ import { whisperSidecarSource } from "./whisper-sidecar";
 export type { TranscriptSource } from "./types";
 
 /**
- * The single seam the cockpit imports. In Electron we set
- * NEXT_PUBLIC_TRANSCRIPT_SOURCE=whisper; in a plain browser it defaults to
- * the Web Speech API.
+ * The single seam the cockpit imports. Inside Electron (the preload bridge is
+ * present) the whisper sidecar is ALWAYS the source — Chromium's Web Speech
+ * API doesn't work there. Browsers use NEXT_PUBLIC_TRANSCRIPT_SOURCE=whisper
+ * to opt in, else the Web Speech API.
  */
 export function makeTranscriptSource(): TranscriptSource {
+  const inElectron = Boolean((globalThis as { embalio?: unknown }).embalio);
   const kind = process.env.NEXT_PUBLIC_TRANSCRIPT_SOURCE;
-  return kind === "whisper" ? whisperSidecarSource() : webSpeechSource();
+  return inElectron || kind === "whisper" ? whisperSidecarSource() : webSpeechSource();
 }

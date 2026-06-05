@@ -55,6 +55,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   const follower = useMemo(() => createFollower(tokens), [tokens]);
 
   const [active, setActive] = useState(0);
+  const [voiceErr, setVoiceErr] = useState<string | null>(null);
   // Jump back to the start whenever the manual script appears/changes/clears
   // (render-phase "adjust state" pattern — the active index may be out of
   // range for the new beat list).
@@ -187,7 +188,11 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       if (stopped) return;
       if (s.beatIndex !== lastBeat) { lastBeat = s.beatIndex; stamp(s.beatIndex); }
       setActive(s.beatIndex);
-    }).catch((e) => { console.error(e); setVoiceOn(false); });
+    }).catch((e) => {
+      console.error(e);
+      setVoiceErr(String(e instanceof Error ? e.message : e));
+      setVoiceOn(false);
+    });
     return () => { stopped = true; src.stop(); };
   }, [voiceOn, follower, stamp]);
 
@@ -219,7 +224,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       // Navigation + session actions arrive regardless of interactive state.
       if (action === "next") return goNext();
       if (action === "prev") return goPrev();
-      if (action === "playpause") return setVoiceOn((v) => !v);
+      if (action === "playpause") { setVoiceErr(null); return setVoiceOn((v) => !v); }
       if (action === "mark") return stamp(active);
       if (action === "interactive-on") return setInteractive(true);
       if (action === "interactive-off") return setInteractive(false);
@@ -279,7 +284,7 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
           <button onClick={() => bump("lines", -1)} className={STRIP_BTN} title="fewer sentences">☰−</button>
           <button onClick={() => bump("lines", 1)} className={STRIP_BTN} title="more sentences">☰+</button>
           <button
-            onClick={() => setVoiceOn((v) => !v)}
+            onClick={() => { setVoiceErr(null); setVoiceOn((v) => !v); }}
             className={voiceOn ? "rounded bg-emerald-500/30 px-2 py-0.5 text-emerald-300" : STRIP_BTN}
             title="voice follow on/off"
           >🎙</button>
@@ -329,6 +334,11 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
         >
           🔒{voiceOn && <span className="ml-1 text-emerald-400">🎙</span>}
         </button>
+      )}
+      {voiceErr && (
+        <div className="mt-1 w-fit rounded-md bg-red-950/80 px-2 py-0.5 text-[12px] text-red-300" style={{ textShadow: "none" }}>
+          🎙 voice failed: {voiceErr}
+        </div>
       )}
     </div>
   );
