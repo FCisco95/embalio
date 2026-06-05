@@ -14,6 +14,7 @@ type ElectronBridge = {
   onHotkey: (cb: (action: string) => void) => (() => void) | void;
   exportMarkers: (files: { edl: string; chapters: string }) => void;
   toggleInteractive?: () => void;
+  closeOverlay?: () => void;
 } | undefined;
 
 export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
@@ -40,9 +41,12 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   // reset on mismatch — no effect, no ref mutation (React Compiler clean).
   const [seenActive, setSeenActive] = useState(active);
   if (seenActive !== active) { setSeenActive(active); setLineIdx(0); }
-  const shownLine = layout.mode === "sent"
-    ? (lines[Math.min(lineIdx, lines.length - 1)] ?? currentSay)
-    : currentSay;
+  const startLine = Math.min(lineIdx, lines.length - 1);
+  // In sentence mode show `layout.lines` consecutive sentences starting at the
+  // cursor; the first is full strength, the rest dimmed/smaller (read-ahead).
+  const shownLines = layout.mode === "sent"
+    ? (lines.length ? lines.slice(startLine, startLine + layout.lines) : [currentSay])
+    : [currentSay];
 
   const stamp = useCallback((index: number) => {
     if (sessionStart.current == null) return;
@@ -71,6 +75,20 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     confirmTake(projectId, recordingProfileId).catch((e) => console.error(e));
   }, [fps, projectId, recordingProfileId]);
 
+  // Shared layout mutators — used by BOTH the keyboard handler and the action
+  // channel (overlay ± buttons + main-window control panel) so there is one
+  // source of truth for each adjustment.
+  const bump = useCallback((key: Adjustable, d: number) => setLayout((l) => adjust(l, key, d)), []);
+  const toggleMode = useCallback(() => setLayout((l) => ({ ...l, mode: l.mode === "para" ? "sent" : "para" })), []);
+  const toggleMirror = useCallback(() => setLayout((l) => ({ ...l, mirror: !l.mirror })), []);
+  const savePreset = useCallback((slot: string) => setLayout((l) => { setPreset(store, slot, l); return l; }), [store]);
+  const recallPreset = useCallback((slot: string) => { const p = getPreset(store, slot); if (p) setLayout(p); }, [store]);
+  const closeOverlay = useCallback(() => {
+    const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
+    if (bridge?.closeOverlay) bridge.closeOverlay();
+    else window.close(); // browser-tab fallback
+  }, []);
+
   // Persist the last layout whenever it changes (recalled on next overlay open).
   useEffect(() => { store.save({ ...store.load(), last: layout }); }, [layout, store]);
 
@@ -90,23 +108,43 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   }, [voiceOn, follower, stamp]);
 
   // hardware/global hotkeys (Electron) + keyboard fallback
+  const mode = layout.mode;
   useEffect(() => {
     // In sentence mode, next/prev walk lines first, then spill into beats.
     const goNext = () => {
-      if (layout.mode === "sent" && lineIdx < lines.length - 1) setLineIdx((i) => i + 1);
+      if (mode === "sent" && lineIdx < lines.length - 1) setLineIdx((i) => i + 1);
       else go(active + 1);
     };
     const goPrev = () => {
-      if (layout.mode === "sent" && lineIdx > 0) setLineIdx((i) => i - 1);
+      if (mode === "sent" && lineIdx > 0) setLineIdx((i) => i - 1);
       else go(active - 1);
     };
     const onAction = (action: string) => {
-      if (action === "next") goNext();
-      else if (action === "prev") goPrev();
-      else if (action === "playpause") setVoiceOn((v) => !v);
-      else if (action === "mark") stamp(active);
-      else if (action === "interactive-on") setInteractive(true);
-      else if (action === "interactive-off") setInteractive(false);
+      // Navigation + session actions arrive regardless of interactive state.
+      if (action === "next") return goNext();
+      if (action === "prev") return goPrev();
+      if (action === "playpause") return setVoiceOn((v) => !v);
+      if (action === "mark") return stamp(active);
+      if (action === "interactive-on") return setInteractive(true);
+      if (action === "interactive-off") return setInteractive(false);
+      // Deliberate control actions (panel clicks / overlay buttons) — they act
+      // regardless of `interactive` because the click itself is the intent.
+      if (action === "font+") return bump("font", 2);
+      if (action === "font-") return bump("font", -2);
+      if (action === "opacity+") return bump("opacity", 0.05);
+      if (action === "opacity-") return bump("opacity", -0.05);
+      if (action === "width+") return bump("width", 60);
+      if (action === "width-") return bump("width", -60);
+      if (action === "height+") return bump("height", 16);
+      if (action === "height-") return bump("height", -16);
+      if (action === "lines+") return bump("lines", 1);
+      if (action === "lines-") return bump("lines", -1);
+      if (action === "mode") return toggleMode();
+      if (action === "mirror") return toggleMirror();
+      const saveM = /^preset-save-([1-3])$/.exec(action);
+      if (saveM) return savePreset(saveM[1]);
+      const recallM = /^preset-([1-3])$/.exec(action);
+      if (recallM) return recallPreset(recallM[1]);
     };
     const bridge = (globalThis as { embalio?: ElectronBridge }).embalio;
     const off = bridge?.onHotkey(onAction);
@@ -116,26 +154,29 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       if (e.code === "ArrowLeft") { goPrev(); return; }
 
       if (!interactive) return; // live-adjust + presets only when interactive (between takes)
-      const bump = (key: Adjustable, d: number) => { e.preventDefault(); setLayout((l) => adjust(l, key, d)); };
-      if (e.code === "Equal") bump("font", 2);
-      else if (e.code === "Minus") bump("font", -2);
-      else if (e.code === "BracketLeft") bump("width", -60);
-      else if (e.code === "BracketRight") bump("width", 60);
-      else if (e.code === "Semicolon") bump("height", -16);
-      else if (e.code === "Quote") bump("height", 16);
-      else if (e.code === "Comma") bump("opacity", -0.05);
-      else if (e.code === "Period") bump("opacity", 0.05);
-      else if (e.code === "KeyS") setLayout((l) => ({ ...l, mode: l.mode === "para" ? "sent" : "para" }));
-      else if (e.code === "KeyR") setLayout((l) => ({ ...l, mirror: !l.mirror }));
+      const kbBump = (key: Adjustable, d: number) => { e.preventDefault(); bump(key, d); };
+      if (e.code === "Equal") kbBump("font", 2);
+      else if (e.code === "Minus") kbBump("font", -2);
+      else if (e.code === "BracketLeft") kbBump("width", -60);
+      else if (e.code === "BracketRight") kbBump("width", 60);
+      else if (e.code === "Semicolon") kbBump("height", -16);
+      else if (e.code === "Quote") kbBump("height", 16);
+      else if (e.code === "Comma") kbBump("opacity", -0.05);
+      else if (e.code === "Period") kbBump("opacity", 0.05);
+      else if (e.code === "ArrowUp") kbBump("lines", 1);
+      else if (e.code === "ArrowDown") kbBump("lines", -1);
+      else if (e.code === "KeyS") toggleMode();
+      else if (e.code === "KeyR") toggleMirror();
       else if (/^Digit[1-3]$/.test(e.code)) {
         const slot = e.code.slice(5);
-        if (e.shiftKey) setPreset(store, slot, layout);
-        else { const p = getPreset(store, slot); if (p) setLayout(p); }
+        if (e.shiftKey) savePreset(slot);
+        else recallPreset(slot);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (off) off(); };
-  }, [active, go, stamp, interactive, layout, lineIdx, lines.length, store]);
+  }, [active, go, stamp, interactive, mode, lineIdx, lines.length,
+      bump, toggleMode, toggleMirror, savePreset, recallPreset]);
 
   return (
     <div className="flex min-h-screen flex-col bg-transparent p-3 text-white" style={{ opacity: layout.opacity }}>
@@ -162,14 +203,33 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
             if (bridge?.toggleInteractive) bridge.toggleInteractive(); // native flags + UI sync via hotkey channel
             else setInteractive((v) => !v);                            // browser-dev fallback (no native flags)
           }} className="rounded bg-white/10 px-2 py-0.5">{interactive ? "Live" : "Adjust"}</button>
-          <button onClick={() => setLayout((l) => ({ ...l, mirror: !l.mirror }))} className="rounded bg-white/10 px-2 py-0.5">{layout.mirror ? "Unmirror" : "Mirror"}</button>
+          <button onClick={toggleMirror} className="rounded bg-white/10 px-2 py-0.5">{layout.mirror ? "Unmirror" : "Mirror"}</button>
+          {interactive && (
+            <>
+              <button onClick={() => bump("font", 2)} className="rounded bg-white/10 px-2 py-0.5" title="font +">A+</button>
+              <button onClick={() => bump("font", -2)} className="rounded bg-white/10 px-2 py-0.5" title="font -">A-</button>
+              <button onClick={() => bump("lines", 1)} className="rounded bg-white/10 px-2 py-0.5" title="lines +">☰+</button>
+              <button onClick={() => bump("lines", -1)} className="rounded bg-white/10 px-2 py-0.5" title="lines -">☰-</button>
+              <button onClick={() => bump("opacity", 0.05)} className="rounded bg-white/10 px-2 py-0.5" title="opacity +">◐+</button>
+              <button onClick={() => bump("opacity", -0.05)} className="rounded bg-white/10 px-2 py-0.5" title="opacity -">◐-</button>
+            </>
+          )}
           <button onClick={startSession} className="rounded bg-white/10 px-2 py-0.5">Start session</button>
           <button onClick={exportNow} className="rounded bg-white/10 px-2 py-0.5">Stop &amp; export</button>
+          {interactive && <button onClick={closeOverlay} className="rounded bg-white/10 px-2 py-0.5" title="close overlay">✕</button>}
         </div>
       </div>
       <div className="rounded-xl bg-black/70 p-4 backdrop-blur"
            style={{ transform: layout.mirror ? "scaleX(-1)" : undefined, fontSize: layout.font, width: layout.width, maxHeight: layout.height, overflowY: "auto" }}>
-        <div className="font-semibold leading-snug">{shownLine}</div>
+        {shownLines.map((line, i) => (
+          <div
+            key={i}
+            className={i === 0 ? "font-semibold leading-snug" : "font-semibold leading-snug text-white/40"}
+            style={i === 0 ? undefined : { fontSize: "0.8em" }}
+          >
+            {line}
+          </div>
+        ))}
         {view.current.do && <div className="mt-3 border-l-2 border-sky-400 pl-3 text-sky-200 text-base">▸ {view.current.do}</div>}
         {view.current.fx && <div className="mt-2 text-[13px] text-amber-300">⚡ {view.current.fx}</div>}
       </div>

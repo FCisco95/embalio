@@ -37,7 +37,7 @@ describe("Cockpit", () => {
   });
 
   it("walks sentence-mode lines then spills into the next beat", () => {
-    seedLayout({ mode: "sent" });
+    seedLayout({ mode: "sent", lines: 1 });
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
 
     // sentence mode shows only the first sentence of beat 1
@@ -70,6 +70,28 @@ describe("Cockpit", () => {
     const card = screen.getByText("First line. Second line.")
       .parentElement as HTMLElement;
     expect(card.style.transform).toBe("");
+  });
+
+  it("renders the current line plus read-ahead lines in sentence mode (lines: 2)", () => {
+    seedLayout({ mode: "sent", lines: 2 });
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    // both sentences of beat 1 are visible at once
+    const first = screen.getByText("First line.");
+    const second = screen.getByText("Second line.");
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+    // the read-ahead line is dimmed
+    expect((second as HTMLElement).className).toContain("text-white/40");
+    expect((first as HTMLElement).className).not.toContain("text-white/40");
+  });
+
+  it("renders only the current line in sentence mode (lines: 1)", () => {
+    seedLayout({ mode: "sent", lines: 1 });
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    expect(screen.getByText("First line.")).toBeTruthy();
+    expect(screen.queryByText("Second line.")).toBeNull();
   });
 
   it("applies layout height to the card and opacity to the container", () => {
