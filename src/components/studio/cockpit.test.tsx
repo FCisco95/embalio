@@ -111,6 +111,7 @@ describe("Cockpit", () => {
   });
 
   it("manual script: each line is its own chunk (beat)", () => {
+    seedLayout({ lines: 1 }); // one chunk at a time
     localStorage.setItem("embalio.teleprompter.manual", "Chunk A here.\n\nChunk B after.");
     render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
 
@@ -121,6 +122,16 @@ describe("Cockpit", () => {
     fireEvent.keyDown(window, { code: "ArrowRight" });
     expect(screen.getByText("Chunk B after.")).toBeTruthy();
     expect(screen.queryByText("Chunk A here.")).toBeNull();
+  });
+
+  it("paragraph mode: lines shows the next chunks dimmed (read-ahead)", () => {
+    seedLayout({ mode: "para", lines: 2 });
+    render(<Cockpit script={script} projectId="p" recordingProfileId="r" />);
+
+    const current = screen.getByText("First line. Second line.");
+    const ahead = screen.getByText("Next beat.");
+    expect((current as HTMLElement).className).not.toContain("text-white/85");
+    expect((ahead as HTMLElement).className).toContain("text-white/85");
   });
 
   it("manual script overrides the generated beats and walks sentence by sentence", () => {

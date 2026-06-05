@@ -143,6 +143,16 @@ ipcMain.on("overlay:control", (_e, action) => { if (typeof action === "string") 
 
 ipcMain.on("overlay:close", () => { if (overlay && !overlay.isDestroyed()) overlay.close(); });
 
+// The layout's `width` resizes the actual window (CSS can't grow past the
+// window bounds). Height stays as-is — the subtitle pill sizes to its content.
+ipcMain.on("overlay:resize", (_e, width) => {
+  if (!overlay || overlay.isDestroyed()) return;
+  if (typeof width !== "number" || !Number.isFinite(width)) return;
+  const w = Math.max(360, Math.min(3840, Math.round(width)));
+  const [, h] = overlay.getSize();
+  overlay.setSize(w, h);
+});
+
 ipcMain.on("store:get-sync", (e) => {
   try {
     e.returnValue = { presets: store.get("presets"), last: store.get("last") };

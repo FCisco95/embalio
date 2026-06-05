@@ -17,6 +17,7 @@ type ElectronBridge = {
   toggleInteractive?: () => void;
   closeOverlay?: () => void;
   setIgnoreMouse?: (ignore: boolean) => void;
+  resizeOverlay?: (width: number) => void;
 } | undefined;
 
 const embalioBridge = () => (globalThis as { embalio?: ElectronBridge }).embalio;
@@ -88,11 +89,13 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
   const [seenActive, setSeenActive] = useState(active);
   if (seenActive !== active) { setSeenActive(active); setLineIdx(0); }
   const startLine = Math.min(lineIdx, lines.length - 1);
-  // In sentence mode show `layout.lines` consecutive sentences starting at the
-  // cursor; the first is full strength, the rest dimmed/smaller (read-ahead).
+  // `layout.lines` = how many pieces are visible at once, in BOTH modes:
+  // sentence mode → consecutive sentences of the current chunk; paragraph mode
+  // → the current chunk plus the next chunks. First piece full strength, the
+  // rest dimmed/smaller (read-ahead).
   const shownLines = layout.mode === "sent"
     ? (lines.length ? lines.slice(startLine, startLine + layout.lines) : [currentSay])
-    : [currentSay];
+    : [currentSay, ...beats.slice(active + 1, active + layout.lines).map((b) => b.say)];
 
   const stamp = useCallback((index: number) => {
     if (sessionStart.current == null) return;
@@ -148,6 +151,12 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
     if (!storeLoaded) return; // don't clobber the stored layout with defaults pre-load
     store.save({ ...store.load(), last: layout });
   }, [layout, store, storeLoaded]);
+
+  // `width` resizes the actual Electron window — CSS alone can't grow past the
+  // window's own bounds (the page is clipped). No-op in browser tabs.
+  useEffect(() => {
+    if (storeLoaded) embalioBridge()?.resizeOverlay?.(layout.width);
+  }, [layout.width, storeLoaded]);
 
   // The Electron overlay window is transparent — clear the app theme's page
   // background so the desktop shows through, and hide the Next.js dev-tools
@@ -210,8 +219,8 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       // regardless of `interactive` because the click itself is the intent.
       if (action === "font+") return bump("font", 2);
       if (action === "font-") return bump("font", -2);
-      if (action === "opacity+") return bump("opacity", 0.05);
-      if (action === "opacity-") return bump("opacity", -0.05);
+      if (action === "opacity+") return bump("opacity", 0.1);
+      if (action === "opacity-") return bump("opacity", -0.1);
       if (action === "width+") return bump("width", 60);
       if (action === "width-") return bump("width", -60);
       if (action === "height+") return bump("height", 16);
@@ -237,8 +246,8 @@ export function Cockpit({ script, projectId, recordingProfileId, fps = 30 }:
       else if (e.code === "Minus") kbBump("font", -2);
       else if (e.code === "BracketLeft") kbBump("width", -60);
       else if (e.code === "BracketRight") kbBump("width", 60);
-      else if (e.code === "Comma") kbBump("opacity", -0.05);
-      else if (e.code === "Period") kbBump("opacity", 0.05);
+      else if (e.code === "Comma") kbBump("opacity", -0.1);
+      else if (e.code === "Period") kbBump("opacity", 0.1);
       else if (e.code === "ArrowUp") kbBump("lines", 1);
       else if (e.code === "ArrowDown") kbBump("lines", -1);
       else if (e.code === "KeyS") toggleMode();
