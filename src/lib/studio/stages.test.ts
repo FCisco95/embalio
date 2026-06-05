@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canTransition, nextStage } from "./stages";
+import { canTransition, nextStage, isEarlierStage } from "./stages";
 
 describe("stage transitions", () => {
   it("allows a single forward step", () => {
@@ -20,5 +20,13 @@ describe("stage transitions", () => {
   it("returns the next stage or null at the end", () => {
     expect(nextStage("topic")).toBe("script");
     expect(nextStage("repurposed")).toBeNull();
+  });
+  it("isEarlierStage is true only for strictly earlier targets", () => {
+    expect(isEarlierStage("publish", "record")).toBe(true);
+    expect(isEarlierStage("publish", "topic")).toBe(true);
+    expect(isEarlierStage("publish", "publish")).toBe(false);
+    expect(isEarlierStage("record", "publish")).toBe(false);
+    // @ts-expect-error invalid stage
+    expect(isEarlierStage("record", "bogus")).toBe(false);
   });
 });

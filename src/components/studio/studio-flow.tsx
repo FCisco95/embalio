@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { StyledSelect } from "@/components/ui/select-native";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { createVideoProject } from "@/server/studio/projects";
+import { createVideoProject, goBackToStage } from "@/server/studio/projects";
 import { STUDIO_STAGES, type StudioStage } from "@/lib/studio/schemas";
+import { isEarlierStage } from "@/lib/studio/stages";
 import { TopicBoard } from "./topic-board";
 import { ScriptStudio } from "./script-studio";
 import { RecordHub } from "./record-hub";
@@ -77,12 +78,28 @@ export function StudioFlow({
       <PlaybookPanel profileId={profileId} initialPlaybook={playbook} briefMeta={briefMeta} />
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
-          {STUDIO_STAGES.map((s) => (
-            <span key={s} className={cn(
-              "rounded-full px-3 py-1 text-[12px] font-medium",
-              s === stage ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-            )}>{STAGE_LABEL[s]}</span>
-          ))}
+          {STUDIO_STAGES.map((s) => {
+            const canGoBack = isEarlierStage(stage, s);
+            return (
+              <button
+                key={s}
+                type="button"
+                disabled={!canGoBack}
+                title={canGoBack ? `Go back to ${STAGE_LABEL[s]}` : undefined}
+                onClick={async () => {
+                  try {
+                    await goBackToStage(active.id, s);
+                    patchActive({ stage: s });
+                  } catch (e) { toast.error(String(e)); }
+                }}
+                className={cn(
+                  "rounded-full px-3 py-1 text-[12px] font-medium",
+                  s === stage ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+                  canGoBack ? "cursor-pointer hover:bg-secondary/70 hover:text-foreground" : "cursor-default",
+                )}
+              >{STAGE_LABEL[s]}</button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-2">
           {projects.length > 1 && (

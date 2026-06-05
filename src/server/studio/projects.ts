@@ -9,6 +9,7 @@ import type { StudioStage, RankedTopic } from "@/lib/studio/schemas";
 import { beatsFromProject } from "./overlay-data";
 import { buildVoiceSystemFromSpec } from "@/lib/voice-prompt";
 import { assertTransition, mergeProjectPatch } from "./project-helpers";
+import { isEarlierStage } from "@/lib/studio/stages";
 
 export async function listVideoProjects(profileId: string) {
   const sb = supabaseService();
@@ -69,6 +70,16 @@ export async function saveScript(projectId: string, script: VideoScript) {
 
 export async function advanceToRecord(projectId: string) {
   return updateProject(projectId, "script", "record", {});
+}
+
+/** Navigate back to an earlier stage to re-edit. Forward moves stay gated by the flow actions. */
+export async function goBackToStage(projectId: string, to: StudioStage) {
+  const sb = supabaseService();
+  const { data: current, error } = await sb.from("video_projects").select("stage").eq("id", projectId).single();
+  if (error) throw new Error(error.message);
+  const from = current.stage as StudioStage;
+  if (!isEarlierStage(from, to)) throw new Error(`can only go back from "${from}", not forward to "${to}"`);
+  await patchProject(projectId, { stage: to });
 }
 
 export async function confirmTake(projectId: string, recordingProfileId: string, notes = "") {

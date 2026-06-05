@@ -14,3 +14,10 @@ export function nextStage(from: StudioStage): StudioStage | null {
   const fi = ORDER.indexOf(from);
   return fi >= 0 && fi < ORDER.length - 1 ? ORDER[fi + 1] : null;
 }
+
+/** True when `to` is strictly before `from` — backward navigation (re-edit). */
+export function isEarlierStage(from: StudioStage, to: StudioStage): boolean {
+  const fi = ORDER.indexOf(from);
+  const ti = ORDER.indexOf(to);
+  return fi >= 0 && ti >= 0 && ti < fi;
+}
