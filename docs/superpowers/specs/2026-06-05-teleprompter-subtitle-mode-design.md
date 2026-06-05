@@ -64,6 +64,13 @@ is gated until the load has happened so defaults never clobber the stored layout
 Voice-follow UX revamp (F8/F9-style custom hotkeys, "press play and it follows" onboarding)
 is the next design conversation, not this change. Window-position presets remain unwired.
 
+## Honest limits (owner smoke test, 2026-06-05)
+- **Voice-follow: NOT WORKING well enough to use.** Pipeline runs end-to-end
+  (CUDA whisper → WS → follower) but tracking stalls/lags despite resync fixes.
+  Registered as a known issue; deep-research brief + decision gate at
+  `docs/research/2026-06-05-voice-follow-feasibility-brief.md`. Manual paging
+  is the supported flow until that research is done.
+
 ## Testing
 Pure logic is already covered (chunking/layout/store). This change is mostly chrome:
 component render tests for locked/unlocked, plus the existing suite. Electron click-through
