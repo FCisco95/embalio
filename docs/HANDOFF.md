@@ -1,15 +1,44 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-05 (Session 8 — teleprompter built + subtitle-mode revamp)
-**Branch:** `make-it-true` — integration tip. Workstreams converged here:
-`make-it-solid` (resilience), `harden/make-it-safe` (security/RLS), `make-it-true`
-(real-data dashboard), and now `feat/onboarding-quiz` (quiz-style first-account
-setup — merged 2026-06-01). Pushed to `origin/make-it-true`. See `docs/NORTH-STAR.md`.
-**Scope:** local single-user X growth engine → growing toward a multi-user product.
+**Last updated:** 2026-06-08 (Session 9 — repositioned to AI growth-operator; Phase 1a gate+coach shipped)
+**Active branch:** `feat/recording-cockpit` — the de-facto trunk (`main` is 198 commits behind and lacks deps). Phase 1a fast-forwarded here + pushed. Cut new work off this branch. (Prior tip `make-it-true` is historical.)
+**Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. (Was: local single-user X growth engine.) Canonical strategy lives in the cisco-brain vault (paths in Session 9 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 9 (2026-06-08) — Repositioned to AI growth-operator; Phase 1a (gate + coach) SHIPPED
+
+**TL;DR:** Embalio repositioned from "personal content OS" → **AI growth-operator product** (sellable). Ran the full brainstorm → spec → plan → subagent-driven build loop and shipped **Phase 1a: Credibility Gate + Daily Coach** — the "one gated assignment a day" loop, the brain that wraps the `x-*` skills. 8 commits, 366 tests green, build clean, fast-forwarded onto `feat/recording-cockpit` and pushed.
+
+**Canonical strategy docs (in the cisco-brain vault — READ before continuing; don't re-litigate locked decisions):**
+- Spec: `C:\Users\joao_\Documents\cisco-brain\10 - PROJECTS\Embalio\specs\2026-06-08-growth-operator-design.md` — 5 locked decisions: hybrid AI-cost (connect-Claude/BYO + managed-with-caps) · assist-not-automate · one product for everyone · dogfood-then-Stripe · Supabase+Vercel. Core + swappable platform packs (X first).
+- Phase 1a plan (done): `…\10 - PROJECTS\Embalio\plans\2026-06-08-credibility-gate-daily-coach.md`
+- Research: `…\10 - PROJECTS\Embalio\research\Embalio — Research — 6 Growth-Hacking Product (Superbird teardown + landscape + wedge).md`
+- Roadmap: `…\10 - PROJECTS\Embalio\_hub\Embalio — Next Steps.md`
+
+**What shipped (Phase 1a, this repo):**
+- `src/lib/credibility/prompt.ts` + `gate.ts` — `gateTrend(pillars, niche, trend)` → `CredibilityVerdict` (fails safe to keep=false). `CredibilityVerdict` schema in `src/lib/schemas.ts`.
+- `src/server/credibility.ts` — `gateTrends(profileId, trends)`: keeps only on-niche trends with an angle.
+- `src/lib/coach/assignment.ts` — pure `pickAssignment()` (post → reply → rest; one assignment/day; never a 2nd post once posted).
+- `src/server/coach.ts` — `getDailyAssignment(profileId)`: reads posts/candidates/`growth_plan`; runs `findHotTopics` + `gateTrends` ONLY when not-posted.
+- `src/components/coach-card.tsx` — "your one job today" card, wired as the first card in `src/app/(app)/page.tsx` (reuses the existing `listProfiles()[0]` profile-id resolution).
+- Zero schema changes. Reuses `generateStructured`, `findHotTopics`, `GrowthPlan`. Tests follow the Vitest mock-`@/lib/generate`-at-boundary pattern.
+
+**NEXT (in order):**
+1. **Task 8 — dogfood.** Run the app, open the dashboard for @FCisco95: confirm POST-with-gated-angle before posting, REPLY after. Tune `src/lib/credibility/prompt.ts` strictness if off.
+2. **Phase 1b — retention layer (needs a plan).** ONLY three things: streak (silent freeze + endowed progress + grace) + one loss-framed daily nudge (capped, silent opt-out after ignores) + the **Telegram callback webhook** (the Posted/Skip buttons in `runPulse`/`src/server/pulse.ts` are currently dead — no handler at `src/app/api/telegram/webhook`). Realizes Ideas item #3. Hold the scope line.
+3. **Phase 1c — cost.** Wire `src/lib/models.ts` routing (cheap model for the gate) + per-user spend caps (sets up the managed tier).
+- Then Phase 2 Stripe (connect-Claude door) → Phase 3 managed tier → Phase 4 LinkedIn → YouTube → TikTok packs.
+
+**Suggested skills next session:** `superpowers:brainstorming` (scope 1b, briefly) → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (TDD + per-task review) → `superpowers:finishing-a-development-branch`. Mirror the Phase-1a loop. Cut Phase-1b as `feat/streak-nudge` off `feat/recording-cockpit`.
+
+**Risks (from the final review):** the morning gate runs ~6 LLM calls per dashboard load — guarded to fire only when not-posted; fine for single-user dogfood, cache later. Gate angle needs a configured profile (pillars + niche). `isToday` uses server-local time. The connect-Claude door (running the loop in a user's Claude plan from the web app) is the least-proven piece — dogfood validates it.
+
+Snapshot: `docs/handoffs/2026-06-08-growth-operator-phase1a.md`.
 
 ---
 
