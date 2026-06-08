@@ -34,6 +34,8 @@ export async function getDailyAssignment(profileId: string): Promise<DailyAssign
   const postRows = (posts ?? []) as Array<Record<string, any>>;
   const todays = postRows.filter((p) => isToday(p.posted_at));
   const postedToday = todays.some((p) => {
+    // Posts are always created from a draft; a missing draft relation is treated
+    // as an original (the conservative default — counts as "posted today").
     const kind = (p.drafts?.kind as string) ?? "original";
     return kind === "original" || kind === "thread";
   });

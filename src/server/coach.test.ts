@@ -49,4 +49,12 @@ describe("getDailyAssignment", () => {
     expect(a.kind).toBe("reply");
     expect(findHotTopics).not.toHaveBeenCalled();
   });
+
+  it("still assigns a POST (no angle) when the research/gate call throws", async () => {
+    findHotTopics.mockRejectedValue(new Error("research timeout"));
+    const a = await getDailyAssignment("p1");
+    expect(a.kind).toBe("post");
+    expect(a.angle).toBeUndefined();
+    expect(a.nextAction.toLowerCase()).toContain("trend");
+  });
 });
