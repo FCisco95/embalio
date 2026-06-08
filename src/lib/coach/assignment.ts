@@ -24,7 +24,9 @@ export function pickAssignment(input: CoachInput): DailyAssignment {
     if (input.topAngle) {
       return {
         kind: "post",
-        task: `Post today: ${input.topAngle.hook}`,
+        // Keep the task line short — the angle itself is shown beneath it by the
+        // card, so embedding it here would render the same text twice.
+        task: "Post today — ride this angle.",
         why: "You haven't posted yet, and this rides a live trend you can credibly speak to.",
         nextAction: "Open Compose and draft from this angle.",
         angle: input.topAngle,

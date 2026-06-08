@@ -15,6 +15,9 @@ describe("pickAssignment", () => {
     expect(a.kind).toBe("post");
     expect(a.angle?.hook).toBe("ship a thing");
     expect(a.nextAction.toLowerCase()).toContain("compose");
+    // The card renders the angle on its own line, so the task must NOT also
+    // embed it — otherwise the (often paragraph-long) hook shows up twice.
+    expect(a.task).not.toContain("ship a thing");
   });
 
   it("assigns a POST but points to trend radar when no angle survived the gate", () => {
