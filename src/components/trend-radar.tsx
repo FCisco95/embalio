@@ -87,7 +87,7 @@ export function TrendRadarPanel({ profiles }: { profiles: { id: string; handle: 
                   </a>
                 )}
                 <div>
-                  <Button size="sm" disabled={drafting === i} onClick={() => draft(i, gated)}>
+                  <Button size="sm" disabled={drafting !== null} onClick={() => draft(i, gated)}>
                     {drafting === i ? "Drafting…" : "Draft this"}
                   </Button>
                 </div>
