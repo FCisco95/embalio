@@ -130,7 +130,19 @@ describe("ReplyQueue", () => {
   });
 });
 
-import { GrowthPlan } from "@/lib/schemas";
+import { GrowthPlan, CredibilityVerdict } from "@/lib/schemas";
+
+describe("CredibilityVerdict", () => {
+  it("accepts a well-formed verdict", () => {
+    const v = CredibilityVerdict.parse({ keep: true, angle: "ship-log take", reason: "in his pillar" });
+    expect(v.keep).toBe(true);
+    expect(v.angle).toBe("ship-log take");
+  });
+
+  it("rejects a missing reason", () => {
+    expect(() => CredibilityVerdict.parse({ keep: false, angle: "" })).toThrow();
+  });
+});
 
 describe("GrowthPlan schema", () => {
   it("parses a complete plan", () => {

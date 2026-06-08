@@ -126,6 +126,15 @@ export const TrendReport = z.object({
 export type Trend = z.infer<typeof Trend>;
 export type TrendReport = z.infer<typeof TrendReport>;
 
+// Credibility gate: does THIS account have standing to post about a trend?
+// keep=false means drop it; angle is the specific take to draft if kept.
+export const CredibilityVerdict = z.object({
+  keep: z.boolean(),
+  angle: z.string(),
+  reason: z.string().min(1),
+});
+export type CredibilityVerdict = z.infer<typeof CredibilityVerdict>;
+
 export const EngagementTarget = z.object({
   handle: z.string(),
   reason: z.string(),
