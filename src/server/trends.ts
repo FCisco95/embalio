@@ -4,6 +4,8 @@ import { generateStructured } from "@/lib/generate";
 import { TrendReport } from "@/lib/schemas";
 import { buildTrendRadarPrompt } from "@/lib/voice-prompt";
 import { gateTrends, type GatedTrend } from "@/server/credibility";
+import { composeOriginalForProfile } from "@/server/original";
+import type { Angle } from "@/lib/schemas";
 
 export async function generateTrendRadar(profileId: string): Promise<TrendReport> {
   const sb = await supabaseServer();
@@ -25,4 +27,10 @@ export async function generateTrendRadar(profileId: string): Promise<TrendReport
 export async function gatedTrendRadar(profileId: string): Promise<GatedTrend[]> {
   const report = await generateTrendRadar(profileId);
   return gateTrends(profileId, report.trends);
+}
+
+/** Turn a gated trend into a voiced draft in the sign-off queue. */
+export async function draftFromTrend(profileId: string, gated: GatedTrend) {
+  const angle: Angle = { mode: "news-insight", hook: gated.angle, source: gated.trend.source };
+  return composeOriginalForProfile(profileId, angle);
 }

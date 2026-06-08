@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({ supabaseServer: vi.fn() }));
 vi.mock("@/lib/generate", () => ({ generateStructured: vi.fn() }));
 vi.mock("@/lib/voice-prompt", () => ({ buildTrendRadarPrompt: vi.fn(() => "p") }));
 vi.mock("@/server/credibility", () => ({ gateTrends: vi.fn() }));
+vi.mock("@/server/original", () => ({ composeOriginalForProfile: vi.fn() }));
 
 describe("gatedTrendRadar", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -66,5 +67,35 @@ describe("gatedTrendRadar", () => {
 
     expect(out).toEqual([]);
     expect(gateTrends).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("draftFromTrend", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("maps a gated trend to a news-insight angle and composes the draft", async () => {
+    const { composeOriginalForProfile } = await import("@/server/original");
+    (composeOriginalForProfile as ReturnType<typeof vi.fn>).mockResolvedValue({
+      draft: { posts: ["voiced"], suggestedVisual: undefined },
+      saved: { id: "d1" },
+    });
+
+    const gated = {
+      trend: { topic: "t1", why_now: "w", angle: "a", source: "https://x.com/s" },
+      angle: "sharp take",
+      reason: "on-niche",
+    };
+
+    const { draftFromTrend } = await import("@/server/trends");
+    const out = await draftFromTrend("p1", gated);
+
+    // gated.angle becomes the hook; mode is news-insight; source carries through.
+    expect(composeOriginalForProfile).toHaveBeenCalledWith("p1", {
+      mode: "news-insight",
+      hook: "sharp take",
+      source: "https://x.com/s",
+    });
+    // returns whatever composeOriginalForProfile returns
+    expect(out).toEqual({ draft: { posts: ["voiced"], suggestedVisual: undefined }, saved: { id: "d1" } });
   });
 });
