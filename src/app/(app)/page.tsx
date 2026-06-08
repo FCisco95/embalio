@@ -34,8 +34,10 @@ import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
 import { getDailyAssignment } from "@/server/coach"
+import { getStreak } from "@/server/streak"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
 import { CoachCard } from "@/components/coach-card"
+import { StreakBadge } from "@/components/streak-badge"
 
 const CARD = "rounded-xl border border-border bg-card"
 
@@ -52,6 +54,7 @@ export default async function DashboardPage() {
   let data: DashboardData = EMPTY_DASHBOARD
   let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
   let assignment: Awaited<ReturnType<typeof getDailyAssignment>> | null = null
+  let streak = 0
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
@@ -62,6 +65,7 @@ export default async function DashboardPage() {
       data = await getDashboardData(profile.id)
       growthPlan = await getGrowthPlan(profile.id)
       assignment = await getDailyAssignment(profile.id)
+      streak = await getStreak(profile.id)
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
@@ -90,10 +94,13 @@ export default async function DashboardPage() {
               : " · queue is clear"}
           </p>
         </div>
-        <Link href="/compose" className={cn(buttonVariants({ size: "lg" }))}>
-          <Plus className="size-4" strokeWidth={1.6} />
-          New post
-        </Link>
+        <div className="flex items-center gap-3">
+          <StreakBadge streak={streak} />
+          <Link href="/compose" className={cn(buttonVariants({ size: "lg" }))}>
+            <Plus className="size-4" strokeWidth={1.6} />
+            New post
+          </Link>
+        </div>
       </div>
 
       {/* Balanced dashboard grid */}
