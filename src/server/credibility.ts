@@ -12,15 +12,15 @@ export interface GatedTrend {
 /** Run the credibility gate over a list of trends; return only the keepers. */
 export async function gateTrends(profileId: string, trends: Trend[]): Promise<GatedTrend[]> {
   const sb = await supabaseServer();
-  const { data: profile } = await sb
+  const { data: profile, error } = await sb
     .from("profiles")
     .select("content_pillars, niche_description")
     .eq("id", profileId)
     .single();
-  if (!profile) throw new Error("profile not found");
+  if (error || !profile) throw new Error("profile not found");
 
-  const pillars = ((profile.content_pillars ?? []) as string[]);
-  const niche = ((profile.niche_description ?? "") as string);
+  const pillars = (profile.content_pillars ?? []) as string[];
+  const niche = (profile.niche_description ?? "") as string;
 
   const judged = await Promise.all(
     trends.map(async (trend) => ({ trend, v: await gateTrend(pillars, niche, trend) })),

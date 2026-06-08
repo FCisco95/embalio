@@ -21,5 +21,6 @@ describe("buildCredibilityPrompt", () => {
     const p = buildCredibilityPrompt(["x"], "y", trend);
     expect(p.toLowerCase()).toContain("keep");
     expect(p.toLowerCase()).toContain("angle");
+    expect(p.toLowerCase()).toContain("reason");
   });
 });
