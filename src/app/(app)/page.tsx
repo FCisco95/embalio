@@ -33,7 +33,9 @@ import { listProfiles } from "@/server/profiles"
 import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
+import { getDailyAssignment } from "@/server/coach"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
+import { CoachCard } from "@/components/coach-card"
 
 const CARD = "rounded-xl border border-border bg-card"
 
@@ -49,6 +51,7 @@ export default async function DashboardPage() {
   let pending: Awaited<ReturnType<typeof listPendingDrafts>> = []
   let data: DashboardData = EMPTY_DASHBOARD
   let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
+  let assignment: Awaited<ReturnType<typeof getDailyAssignment>> | null = null
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
@@ -58,6 +61,7 @@ export default async function DashboardPage() {
       pending = await listPendingDrafts(profile.id)
       data = await getDashboardData(profile.id)
       growthPlan = await getGrowthPlan(profile.id)
+      assignment = await getDailyAssignment(profile.id)
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
@@ -94,6 +98,9 @@ export default async function DashboardPage() {
 
       {/* Balanced dashboard grid */}
       <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-2">
+        {/* Daily coach assignment */}
+        {assignment && <CoachCard assignment={assignment} />}
+
         {/* Reach hero */}
         <div
           className="rounded-xl border border-border p-6 lg:col-span-2"
