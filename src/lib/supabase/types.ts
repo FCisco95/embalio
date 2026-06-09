@@ -270,7 +270,7 @@ export type Database = {
           metrics: Json
           posted_at: string
           profile_id: string
-          tweet_url: string
+          tweet_url: string | null
         }
         Insert: {
           draft_id?: string | null
@@ -279,7 +279,7 @@ export type Database = {
           metrics?: Json
           posted_at?: string
           profile_id: string
-          tweet_url: string
+          tweet_url?: string | null
         }
         Update: {
           draft_id?: string | null
@@ -288,7 +288,7 @@ export type Database = {
           metrics?: Json
           posted_at?: string
           profile_id?: string
-          tweet_url?: string
+          tweet_url?: string | null
         }
         Relationships: [
           {

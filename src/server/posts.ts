@@ -80,3 +80,38 @@ export async function dismissCandidate(candidateId: string) {
   revalidatePath("/board");
   revalidatePath("/engage");
 }
+
+/**
+ * One-tap "Done" for the dead-time engage loop: log that a reply was sent WITHOUT
+ * requiring its URL. Inserts a reply draft (if not already one) + a URL-less post
+ * so the coach's repliesDoneToday count ticks. URL can be backfilled via markPosted
+ * later for the metrics loop. See spec §12 (one-tap Done, URL optional).
+ */
+export async function markRepliedQuick(
+  profileId: string,
+  input: { draftId?: string; candidateId?: string; reply: string },
+): Promise<void> {
+  const body = input.reply.trim();
+  if (!profileId) throw new Error("no profile");
+  if (!body) throw new Error("empty reply");
+  const sb = await supabaseServer();
+
+  let draftId = input.draftId;
+  if (!draftId) {
+    const { data, error } = await sb.from("drafts").insert({
+      profile_id: profileId, kind: "reply", body, candidate_id: input.candidateId ?? null,
+    }).select("id").single();
+    if (error || !data) throw new Error(error?.message ?? "draft insert failed");
+    draftId = data.id as string;
+  }
+
+  const { error: postErr } = await sb.from("posts").insert({
+    profile_id: profileId, draft_id: draftId, tweet_url: null,
+  });
+  if (postErr && postErr.code !== "23505") throw new Error(postErr.message);
+
+  await sb.from("drafts").update({ status: "posted" }).eq("id", draftId);
+  if (input.candidateId) await sb.from("candidates").update({ status: "engaged" }).eq("id", input.candidateId);
+  revalidatePath("/engage");
+  revalidatePath("/");
+}
