@@ -21,7 +21,7 @@ const updateSpy = vi.fn();
 function makeFrom() {
   return (table: string) => {
     if (table === "candidates") {
-      return { select: () => ({ eq: () => ({ single: () => Promise.resolve(candRow) }) }) };
+      return { select: () => ({ eq: () => ({ eq: () => ({ single: () => Promise.resolve(candRow) }) }) }) };
     }
     if (table === "drafts") {
       return { select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: () => Promise.resolve(draftRows) }) }) }) }) };
@@ -80,5 +80,11 @@ describe("drainTelegramUpdates", () => {
     const r = await drainTelegramUpdates("p1");
     expect(r.applied).toBe(0);
     expect(r.error).toContain("net down");
+  });
+  it("does not persist the offset when an empty poll leaves it unchanged", async () => {
+    getTelegramUpdates.mockResolvedValue({ callbacks: [], nextOffset: 0 });
+    const r = await drainTelegramUpdates("p1");
+    expect(r.applied).toBe(0);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });

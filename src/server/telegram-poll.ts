@@ -8,7 +8,11 @@ import type { Json } from "@/lib/supabase/types";
 /** Apply one parsed tap. Idempotent: only a still-surfaced candidate is acted on. */
 export async function applyCallback(profileId: string, c: ParsedCallback): Promise<void> {
   const sb = await supabaseServer();
-  const { data: cand } = await sb.from("candidates").select("status").eq("id", c.candidateId).single();
+  // Scope the lookup to the profile so a callback can never resolve another
+  // profile's candidate once this grows past the single FIXED_PROFILE_ID tenant.
+  const { data: cand } = await sb
+    .from("candidates").select("status")
+    .eq("id", c.candidateId).eq("profile_id", profileId).single();
   if (!cand || cand.status !== "surfaced") return;
 
   if (c.action === "skip") {
@@ -43,6 +47,9 @@ export async function drainTelegramUpdates(profileId: string): Promise<{ applied
       applied++;
     }
 
+    // Offset advances once, after the loop — so a mid-batch failure re-polls the
+    // whole batch next tick. That's safe because applyCallback is idempotent
+    // (already-resolved candidates no-op) and answerCallbackQuery repeats harmlessly.
     if (nextOffset !== offset) {
       await sb.from("profiles").update({ retention: { ...retention, telegram: { offset: nextOffset } } as unknown as Json }).eq("id", profileId);
     }
