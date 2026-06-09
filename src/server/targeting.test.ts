@@ -33,3 +33,20 @@ describe("rankCandidates with owner size", () => {
     expect(ranked[0].source_tweet_id).toBe("inband");
   });
 });
+
+function candText(id: string, text: string): CandidateInput {
+  return {
+    source_tweet_id: id, author_handle: "a_" + id, tweet_text: text, tweet_url: "https://x.com/a/status/" + id,
+    metrics_snapshot: { likes: 100, views: 1000, replies: 2, authorFollowers: 5000, createdAt: new Date().toISOString() },
+  };
+}
+
+describe("rankCandidates — bot/bait demotion", () => {
+  it("ranks a substantive post above a baity one at equal relevance", () => {
+    const clean = candText("1", "Wired per-user spend caps into the gateway today; here's the failure mode I hit.");
+    const baity = candText("2", "Codex or Claude — which is your favourite? 👇 tag a friend!");
+    const ranked = rankCandidates([baity, clean], () => 0.9, 10, 1000);
+    expect(ranked[0].source_tweet_id).toBe("1");
+    expect(ranked[0].score_composite).toBeGreaterThan(ranked[1].score_composite!);
+  });
+});

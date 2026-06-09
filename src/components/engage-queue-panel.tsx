@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
 import { getEngageQueue, scanNow, type EngageItem } from "@/server/engage-queue";
-import { dismissCandidate, markPosted } from "@/server/posts";
+import { dismissCandidate, markPosted, markRepliedQuick } from "@/server/posts";
 import { safeHref } from "@/lib/safe-url";
 
 const SCENARIO_LABEL: Record<string, string> = {
@@ -20,9 +20,15 @@ const SCENARIO_LABEL: Record<string, string> = {
   question: "❓ Question",
 };
 
-export function EngageQueuePanel({ profiles }: { profiles: { id: string; handle: string }[] }) {
+export function EngageQueuePanel({
+  profiles,
+  initialItems = [],
+}: {
+  profiles: { id: string; handle: string }[];
+  initialItems?: EngageItem[];
+}) {
   const [profileId, setProfileId] = useState(profiles[0]?.id ?? "");
-  const [items, setItems] = useState<EngageItem[] | null>(null);
+  const [items, setItems] = useState<EngageItem[] | null>(initialItems.length ? initialItems : null);
   const [busy, start] = useTransition();
 
   function scan() {
@@ -137,6 +143,28 @@ function EngageCard({ item }: { item: EngageItem }) {
             }}
           >
             Copy reply
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={pending || !reply.trim()}
+            onClick={() =>
+              start(async () => {
+                try {
+                  await markRepliedQuick(item.profileId, {
+                    draftId: item.draftId ?? undefined,
+                    candidateId: item.candidateId,
+                    reply,
+                  });
+                  toast.success("Logged ✓ — quota ticked");
+                  setDone(true);
+                } catch (e) {
+                  toast.error(String(e));
+                }
+              })
+            }
+          >
+            Done
           </Button>
           {item.url && (
             <a

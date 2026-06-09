@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export interface EngageItem {
   candidateId: string;
+  profileId: string;
   authorHandle: string;
   post: string;
   url: string;
@@ -46,6 +47,7 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
     const m = (c.metrics_snapshot ?? {}) as { authorFollowers?: number; replies?: number; createdAt?: string };
     items.push({
       candidateId: c.id,
+      profileId,
       authorHandle: c.author_handle,
       post: c.tweet_text,
       url: c.tweet_url,

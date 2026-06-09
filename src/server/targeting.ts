@@ -3,6 +3,7 @@ import { makeApify, pullTweets, type CandidateInput } from "@/lib/apify";
 import { embedText, embedTexts, relevanceFromVectors } from "@/lib/embeddings";
 import { compositeScore } from "@/lib/scoring";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
+import { baitScore } from "@/lib/engagement/bait";
 import { buildEngagementReplyPrompt } from "@/lib/engagement/reply-craft";
 import { buildVoiceSystem } from "@/lib/voice-prompt";
 import { generateStructured, type StructuredResult } from "@/lib/generate";
@@ -36,6 +37,7 @@ export function rankCandidates(
       authorFollowers: c.metrics_snapshot.authorFollowers,
       ownerFollowerEstimate,
       replyCount: c.metrics_snapshot.replies,
+      botBait: baitScore(c.tweet_text),
     });
     return { ...c, score_relevance: s.relevance, score_velocity: s.velocity, score_recency: s.recency, score_composite: s.composite };
   });
@@ -64,7 +66,11 @@ export async function scanTargetsForProfile(profileId: string): Promise<number> 
   const scannable = raw.filter((r) => r.tweet_text.trim().length > 0);
   if (scannable.length === 0) return 0;
 
-  const voiceVec = await embedText([profile.niche_description, ...profile.voice_corpus].filter(Boolean).join(" "));
+  const voiceVec = await embedText(
+    [profile.niche_description, ...((profile.content_pillars ?? []) as string[]), ...profile.voice_corpus]
+      .filter(Boolean)
+      .join(" "),
+  );
   const tweetVecs = await embedTexts(scannable.map((r) => r.tweet_text));
   const relevanceById = new Map(scannable.map((r, i) => [r.source_tweet_id, relevanceFromVectors(voiceVec, tweetVecs[i])]));
 

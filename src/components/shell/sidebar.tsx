@@ -2,29 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Home,
-  Target,
-  PenLine,
-  Reply,
-  LineChart,
-  Settings2,
-  Send,
-  Video,
-} from "lucide-react"
+import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { NAV } from "./nav-items"
 import { BrandAvatar, BRAND_GRADIENT } from "@/components/ui/brand-avatar"
 import { BRAND } from "@/lib/brand"
-
-const NAV = [
-  { href: "/",            icon: Home,      label: "Home"        },
-  { href: "/compose",     icon: PenLine,   label: "Composer"    },
-  { href: "/board",       icon: Target,    label: "Targeting"   },
-  { href: "/engage",      icon: Reply,     label: "Engage"      },
-  { href: "/studio",      icon: Video,     label: "Studio"      },
-  { href: "/performance", icon: LineChart, label: "Reach"       },
-  { href: "/profiles",    icon: Settings2, label: "Brand Voice" },
-]
 
 interface SidebarProps {
   collapsed?: boolean
@@ -37,7 +19,7 @@ export function Sidebar({ collapsed = false, badges }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-screen shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-[180ms] ease-out",
+        "flex h-screen shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-[180ms] ease-out max-md:hidden",
         collapsed ? "w-[68px]" : "w-[236px]"
       )}
     >
