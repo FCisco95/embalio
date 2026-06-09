@@ -60,3 +60,42 @@ describe("sendTelegram", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
   });
 });
+
+import { getTelegramUpdates, answerCallbackQuery } from "./telegram";
+
+function updatesResponse(result: unknown) {
+  return { ok: true, status: 200, json: () => Promise.resolve({ ok: true, result }) } as unknown as Response;
+}
+
+describe("getTelegramUpdates", () => {
+  it("returns callback queries and the next offset", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(updatesResponse([
+      { update_id: 41, callback_query: { id: "q1", data: "posted:c1", message: { message_id: 7, chat: { id: 555 } } } },
+      { update_id: 42, message: { text: "ignored non-callback" } },
+    ]));
+    const r = await getTelegramUpdates(0, { fetchImpl });
+    expect(r.nextOffset).toBe(43);
+    expect(r.callbacks).toEqual([{ id: "q1", data: "posted:c1", messageId: 7, chatId: 555 }]);
+    const [url] = fetchImpl.mock.calls[0];
+    expect(url).toContain("/bot123:ABC/getUpdates");
+    expect(url).toContain("offset=0");
+  });
+
+  it("keeps the same offset when there are no updates", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(updatesResponse([]));
+    const r = await getTelegramUpdates(99, { fetchImpl });
+    expect(r.nextOffset).toBe(99);
+    expect(r.callbacks).toEqual([]);
+  });
+});
+
+describe("answerCallbackQuery", () => {
+  it("posts the callback id and optional toast text", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200, text: () => Promise.resolve("{}") } as unknown as Response);
+    await answerCallbackQuery("q1", "✅ Logged", { fetchImpl });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.telegram.org/bot123:ABC/answerCallbackQuery");
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body).toMatchObject({ callback_query_id: "q1", text: "✅ Logged" });
+  });
+});
