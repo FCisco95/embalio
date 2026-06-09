@@ -4,6 +4,7 @@ import { sendTelegram } from "@/lib/telegram";
 import { getStreak } from "@/server/streak";
 import { evaluateNudge, DEFAULT_NUDGE, type NudgeState } from "@/lib/nudge";
 import { localDate } from "@/lib/retention/date";
+import type { Json } from "@/lib/supabase/types";
 
 export async function runNudge(profileId: string): Promise<{ sent: boolean; error?: string }> {
   try {
@@ -35,7 +36,7 @@ export async function runNudge(profileId: string): Promise<{ sent: boolean; erro
 
     if (result.send && result.text) await sendTelegram(result.text);
 
-    await sb.from("profiles").update({ retention: { ...retention, nudge: result.nudge } }).eq("id", profileId);
+    await sb.from("profiles").update({ retention: { ...retention, nudge: result.nudge } as unknown as Json }).eq("id", profileId);
     return { sent: result.send };
   } catch (err) {
     console.error("runNudge failed:", String(err).slice(0, 200));
