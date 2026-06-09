@@ -2,7 +2,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
 import { fitBadge, freshnessLabel, isFresh, type FitBadge } from "@/lib/engagement/present";
-import { refreshTargetsForProfile } from "@/server/targeting";
+import { scanTargetsForProfile, draftSingleCandidate } from "@/server/targeting";
 import { revalidatePath } from "next/cache";
 
 export interface EngageItem {
@@ -69,9 +69,20 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
   return items;
 }
 
-/** Local-only: re-scan + re-draft (claude). Returns surfaced count. */
+/**
+ * Surface-only scan (Apify + score, NO claude) — fast, fills the queue in ~10s.
+ * Drafting is lazy/per-card (`draftReplyFor`) so a scan never blocks on 10
+ * sequential claude calls. Returns surfaced count.
+ */
 export async function scanNow(profileId: string): Promise<number> {
-  const n = await refreshTargetsForProfile(profileId);
+  const n = await scanTargetsForProfile(profileId);
   revalidatePath("/engage");
   return n;
+}
+
+/** Draft a reply for ONE card on demand (local claude). Returns the reply text or null. */
+export async function draftReplyFor(profileId: string, candidateId: string): Promise<string | null> {
+  const reply = await draftSingleCandidate(profileId, candidateId);
+  revalidatePath("/engage");
+  return reply;
 }

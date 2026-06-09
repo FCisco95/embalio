@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
-import { getEngageQueue, scanNow, type EngageItem } from "@/server/engage-queue";
+import { getEngageQueue, scanNow, draftReplyFor, type EngageItem } from "@/server/engage-queue";
 import { dismissCandidate, markPosted, markRepliedQuick } from "@/server/posts";
 import { safeHref } from "@/lib/safe-url";
 
@@ -135,8 +135,33 @@ function EngageCard({ item }: { item: EngageItem }) {
         <Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} />
 
         <div className="flex flex-wrap gap-2">
+          {!reply.trim() && (
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  try {
+                    const drafted = await draftReplyFor(item.profileId, item.candidateId);
+                    if (drafted) {
+                      setReply(drafted);
+                      toast.success("Drafted");
+                    } else {
+                      toast.error("Draft skipped — write your own");
+                    }
+                  } catch (e) {
+                    toast.error(String(e));
+                  }
+                })
+              }
+            >
+              {pending ? "Drafting…" : "Draft reply"}
+            </Button>
+          )}
           <Button
             size="sm"
+            variant="outline"
+            disabled={!reply.trim()}
             onClick={() => {
               navigator.clipboard.writeText(reply);
               toast.success("Copied");

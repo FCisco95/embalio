@@ -140,6 +140,49 @@ export async function draftRepliesForProfile(profileId: string, limit = TOP_N): 
   return drafted;
 }
 
+/**
+ * Draft a reply for ONE surfaced candidate on demand (local `claude`). Returns the
+ * reply text or null. Powers the lazy per-card draft in the engage queue, so a scan
+ * never blocks on drafting all 10 up front.
+ */
+export async function draftSingleCandidate(profileId: string, candidateId: string): Promise<string | null> {
+  const sb = supabaseService();
+  const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
+  if (!profile) return null;
+  const { data: c } = await sb.from("candidates").select("id, tweet_text, author_handle").eq("id", candidateId).single();
+  if (!c) return null;
+
+  const knobs = knobsFromProfile(profile);
+  const voiceSystem = buildVoiceSystem({
+    handle: profile.handle,
+    niche_description: profile.niche_description,
+    voice_corpus: profile.voice_corpus,
+    voice_notes: profile.voice_notes,
+  });
+  const prompt = buildEngagementReplyPrompt(
+    voiceSystem,
+    { authorHandle: c.author_handle, post: c.tweet_text, reason: "surfaced opportunity" },
+    knobs,
+  );
+  let r: StructuredResult<ReplyDraft>;
+  try {
+    r = await generateStructured(ReplyDraft, prompt);
+  } catch (err) {
+    console.error(`[targeting] single draft failed for candidate ${candidateId}:`, err);
+    return null;
+  }
+  if (!r.data || r.data.skip || !r.data.reply) return null;
+  await sb.from("drafts").insert({
+    profile_id: profileId,
+    kind: "reply",
+    candidate_id: c.id,
+    body: r.data.reply,
+    model_used: process.env.GEN_BACKEND ?? "subscription",
+    engagement_scenario: r.data.scenario ?? null,
+  });
+  return r.data.reply;
+}
+
 /** Local full run: scan for opportunities, then pre-draft replies for them. */
 export async function refreshTargetsForProfile(profileId: string): Promise<number> {
   const surfaced = await scanTargetsForProfile(profileId);
