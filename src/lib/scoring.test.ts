@@ -94,3 +94,20 @@ describe("sizeFit — direct unit tests", () => {
     expect(sizeFit(10000, 0)).toBe(1);
   });
 });
+
+describe("compositeScore — botBait multiplier", () => {
+  const b = { relevance: 0.9, likesPerHour: 100, ageHours: 1 };
+
+  it("leaves the score unchanged when botBait is omitted", () => {
+    const a = compositeScore(b).composite;
+    const withClean = compositeScore({ ...b, botBait: 1 }).composite;
+    expect(withClean).toBeCloseTo(a, 5);
+  });
+
+  it("scales the composite down for baity posts", () => {
+    const clean = compositeScore({ ...b, botBait: 1 }).composite;
+    const baity = compositeScore({ ...b, botBait: 0.3 }).composite;
+    expect(baity).toBeLessThan(clean);
+    expect(baity).toBeCloseTo(clean * 0.3, 5);
+  });
+});

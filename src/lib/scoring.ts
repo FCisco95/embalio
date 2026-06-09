@@ -5,6 +5,7 @@ export interface ScoreInputs {
   authorFollowers?: number;        // for the 5-20x size-fit rule
   ownerFollowerEstimate?: number;  // owner's approx size (from knobs)
   replyCount?: number;             // crowding: <20 replies stays visible
+  botBait?: number;                // 0..1 quality multiplier (1 clean, →0 baity)
 }
 
 export interface Scores {
@@ -50,6 +51,9 @@ export function compositeScore(i: ScoreInputs): Scores {
   }
   if (i.replyCount != null) {
     composite *= crowding(i.replyCount);
+  }
+  if (i.botBait != null) {
+    composite *= clamp01(i.botBait);
   }
 
   return { relevance, velocity, recency, composite: clamp01(composite) };
