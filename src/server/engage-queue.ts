@@ -1,7 +1,7 @@
 "use server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
-import { fitBadge, freshnessLabel, type FitBadge } from "@/lib/engagement/present";
+import { fitBadge, freshnessLabel, isFresh, type FitBadge } from "@/lib/engagement/present";
 import { refreshTargetsForProfile } from "@/server/targeting";
 import { revalidatePath } from "next/cache";
 
@@ -32,11 +32,17 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
     .eq("profile_id", profileId)
     .eq("status", "surfaced")
     .order("score_composite", { ascending: false })
-    .limit(10);
+    .limit(50);
 
   const now = Date.now();
+  // Freshness gate: a dead-time queue must never show stale posts. Drop anything
+  // outside the window, THEN take the top 10 by score (fetch 50 so fresh-but-
+  // lower-score candidates aren't buried under stale high-score ones).
+  const fresh = (cands ?? [])
+    .filter((c) => isFresh((c.metrics_snapshot as { createdAt?: string } | null)?.createdAt, now))
+    .slice(0, 10);
   const items: EngageItem[] = [];
-  for (const c of cands ?? []) {
+  for (const c of fresh) {
     const { data: drafts } = await sb
       .from("drafts")
       .select("id, body, engagement_scenario")
