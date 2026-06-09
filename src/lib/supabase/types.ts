@@ -324,6 +324,7 @@ export type Database = {
           onboarding_answers: Json
           premium_account: boolean
           reply_playbook: string | null
+          retention: Json
           user_id: string | null
           voice_corpus: string[]
           voice_notes: string | null
@@ -345,6 +346,7 @@ export type Database = {
           onboarding_answers?: Json
           premium_account?: boolean
           reply_playbook?: string | null
+          retention?: Json
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
@@ -366,6 +368,7 @@ export type Database = {
           onboarding_answers?: Json
           premium_account?: boolean
           reply_playbook?: string | null
+          retention?: Json
           user_id?: string | null
           voice_corpus?: string[]
           voice_notes?: string | null
