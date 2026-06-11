@@ -1,13 +1,38 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-11 (Session 10 — P2 topic board SHIPPED + phone-dogfooded; prod live on Vercel; GH Actions workers self-running)
-**Active branch:** `main` — the real trunk since the P0 merge train (2026-06-11). Direct-to-main, suite-green-gated. (`feat/recording-cockpit` is historical.)
+**Last updated:** 2026-06-11 (Session 11 — P3 KPI dashboard + CSV import BUILT on `feat/kpi-csv-import`; awaiting merge to main)
+**Active branch:** `feat/kpi-csv-import` (16 commits ahead of `main`, suite 545 green — merge is the next action). Trunk policy: direct-to-main, suite-green-gated. (`feat/recording-cockpit` is historical.)
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 11 (2026-06-11, night) — P3 KPI Dashboard + CSV Import BUILT (branch `feat/kpi-csv-import`, NOT yet merged)
+
+**TL;DR:** P3 (spec section 7) built same-day via subagent-driven development (plan → 10 tasks, each TDD + spec-reviewed + quality-reviewed + review-fixes, then a final whole-branch integration review). Suite 488 → **545 green** (57 new tests), `npm run build` green, both new routes registered. 16 commits on `feat/kpi-csv-import` cut from `main` (`0d2548a..dcc843f`). **Merge to main = the one remaining action** (owner call; trunk policy is direct-to-main suite-green-gated).
+
+**Canonical docs (don't re-litigate):**
+- Plan (all tasks done): repo `docs/superpowers/plans/2026-06-11-p3-kpi-csv.md` — includes 10 locked design decisions (fail-loud tiers, window anchoring, result-union-not-throw, server-rendered KPI grid…)
+- Spec: vault `10 - PROJECTS/Embalio/specs/2026-06-11-growth-operator-revamp-design.md` §7 + P3 row
+
+**What shipped (this branch):**
+- `supabase/migrations/20260612_analytics_daily.sql` — `analytics_daily` table (unique `(profile_id, date)`, RLS-disabled service-role posture like the warehouse). **Applied to live Supabase** (`vzxpakxjnuaesfxihyvl`) via MCP; types hand-reflected.
+- `src/lib/kpis/` — `schemas.ts` (`AnalyticsDay` strict intCell — garbage rejects, never coerces to 0; `KpiSummary` zod boundary), `csv.ts` (header-tolerant fail-loud parser: `CsvHeaderError` names missing columns + found headers; bad rows → `rejected[{line,reason,raw}]`; deterministic date regex — NO `Date.parse` on X's informal format), `aggregate.ts` (pure: 7d windows anchored to `dataThrough` not now; averages ÷ days-with-data; band <3% low / 3–8% good / >8% high; follower delta vs snapshot ≤ −7d; epoch-ms snapshot dedupe), `present.ts` (formatRate/PerDay/Delta + exhaustive band-chip map).
+- `src/server/kpis.ts` — `importAnalyticsCsv(profileId, csvText)` returns a **result union, never throws** (Next prod masks server-action error messages — the header error IS the feature); 2MB DoS cap; upsert idempotent; `logActivity("csv_imported")`; revalidates `/performance` + `/performance/[card]` + `/`. `getKpis` (throws on read errors, house style) + `getFollowerStat` (45-day snapshot window so the 7d baseline survives CSV lag).
+- `/performance` (nav label now **"Stats"**) — server-rendered `KpiGrid` (4 tap-through cards: follow-rate north star w/ band chip, follows/day, visits/day, followers w/ delta; unique sparkline gradient ids) + client `CsvImportCard` (2MB client cap, loud rose/amber banners incl. per-line rejects, `router.refresh()`); existing per-post metrics table kept below.
+- `/performance/[card]` — drill-downs (AreaChart + newest-first value table; `Object.hasOwn` guard → 404 on unknown card).
+- Home — `FollowerCard` star card (count + 7d delta badge + sparkline; honest empty state) next to CoachCard.
+
+**NEXT (in order):**
+1. **Merge `feat/kpi-csv-import` → `main`** (auto-deploys to prod) — then phone-dogfood: export the X analytics CSV → import on `/performance` → cards fill → drill-down → home star card.
+2. **P4 — Predictions** (spec row: `src/lib/predict/` — trajectory, what-if, breakout pre-check, weekly forecast; `predictions` table receipts). Open with its own `writing-plans` cycle.
+3. Residual P0 leftovers (Engage one-tap Done from phone + nudge/Telegram triggers) still pending from Session 10.
+
+**Risks/notes:** drill-down ignores the `?profile=` selector (always `profiles[0]` — invisible in single-profile prod; thread searchParams through when multi-profile lands) · home grid shows FollowerCard alone in row 1 if `assignment` is null (only happens on DB failure; P7 polish) · `analytics_daily` is RLS-disabled like the rest of the warehouse (P7 hardening item; Supabase advisor flags 14 such tables) · client `router.refresh()` after import is redundant with revalidatePath but harmless · pre-existing `tsc` error in `src/server/topics.test.ts` (TS2556) predates this branch — vitest runs it fine; fix opportunistically.
 
 ---
 
