@@ -28,6 +28,13 @@ describe("normalizeCsvDate", () => {
   it("returns null for garbage", () => {
     expect(normalizeCsvDate("not a date")).toBeNull();
   });
+  it("handles full month names and no weekday prefix", () => {
+    expect(normalizeCsvDate("June 6, 2026")).toBe("2026-06-06");
+  });
+  it("rejects out-of-range day and unknown month loudly", () => {
+    expect(normalizeCsvDate("Jun 42, 2026")).toBeNull();
+    expect(normalizeCsvDate("Foo 6, 2026")).toBeNull();
+  });
 });
 
 describe("parseAnalyticsCsv", () => {

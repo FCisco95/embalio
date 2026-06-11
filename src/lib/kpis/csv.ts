@@ -18,6 +18,11 @@ const REQUIRED = ["date", "profile_visits", "new_follows"] as const;
 
 // normalized header → canonical column. X renames export columns quarterly;
 // extend this map when it does — never silently guess a column's meaning.
+const MONTHS: Record<string, string> = {
+  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+};
+
 const HEADER_ALIASES: Record<string, string> = {
   date: "date",
   "profile visits": "profile_visits",
@@ -57,17 +62,26 @@ export function splitCsvLine(line: string): string[] | null {
 }
 
 /**
- * "Sat, Jun 6, 2026" | "2026-06-06" → "2026-06-06". Uses local date fields,
- * never toISOString() — UTC conversion can shift the day in TZs ahead of UTC.
+ * "Sat, Jun 6, 2026" | "2026-06-06" → "2026-06-06". Uses a deterministic
+ * regex for X's known export format (with or without weekday prefix, full or
+ * abbreviated month name). Any format not explicitly recognised returns null
+ * loudly — Date.parse on informal strings is implementation-defined per
+ * ECMA-262 and can shift across Node versions/timezones.
  */
 export function normalizeCsvDate(s: string): string | null {
   const t = s.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return Number.isFinite(Date.parse(`${t}T00:00:00Z`)) ? t : null;
-  const ms = Date.parse(t);
-  if (!Number.isFinite(ms)) return null;
-  const d = new Date(ms);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  // X's export format: "Sat, Jun 6, 2026" (also tolerate "June 6, 2026").
+  // Deterministic regex — Date.parse on informal strings is implementation-
+  // defined per ECMA-262 and can shift across Node versions/timezones; an
+  // unrecognized format must reject loudly instead.
+  const m = t.match(/^(?:[A-Za-z]{3,9},\s*)?([A-Za-z]{3,9})\s+(\d{1,2}),\s*(\d{4})$/);
+  if (!m) return null;
+  const month = MONTHS[m[1].slice(0, 3).toLowerCase()];
+  if (!month) return null;
+  const dayNum = Number(m[2]);
+  if (dayNum < 1 || dayNum > 31) return null;
+  return `${m[3]}-${month}-${String(dayNum).padStart(2, "0")}`;
 }
 
 /**
