@@ -56,6 +56,9 @@ export async function importAnalyticsCsv(profileId: string, csvText: string): Pr
     meta: { imported: parsed.rows.length, rejected: parsed.rejected.length },
   });
   revalidatePath("/performance");
+  // The drill-downs are separate page segments — revalidating /performance
+  // alone leaves them serving the pre-import data.
+  revalidatePath("/performance/[card]", "page");
   revalidatePath("/");
   return { ok: true, imported: parsed.rows.length, rejected: parsed.rejected };
 }
