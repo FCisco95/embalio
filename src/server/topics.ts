@@ -111,17 +111,32 @@ export async function getTopicBoard(profileId: string): Promise<TopicBoardView> 
   return { state: "empty", generatedAt: null, topics: [] };
 }
 
-/** One-tap Draft this: topic row → existing draftFromTrend → sign-off queue (drafts table). */
-export async function draftFromTopicRow(profileId: string, topic: TopicRowView) {
+/**
+ * One-tap Draft this: re-reads the topic row server-side (client supplies only
+ * IDs — a forged row can't reach the LLM prompt), then routes through the
+ * existing draftFromTrend → sign-off queue (drafts table).
+ */
+export async function draftFromTopicRow(profileId: string, topicId: string) {
+  const sb = await supabaseServer();
+  const { data: row, error } = await sb
+    .from("topic_history")
+    .select("id, profile_id, topic, angle, why, sources")
+    .eq("id", topicId)
+    .eq("profile_id", profileId)
+    .single();
+  if (error || !row) throw new Error("topic not found");
+  const why = (row.why ?? {}) as Record<string, unknown>;
+  const sources = Array.isArray(row.sources) ? (row.sources as { url?: unknown }[]) : [];
+  const sourceUrl = typeof sources[0]?.url === "string" ? sources[0].url : undefined;
   const gated: GatedTrend = {
     trend: {
-      topic: topic.topic,
-      why_now: String(topic.why.why_now ?? ""),
-      angle: topic.angle,
-      source: topic.sources[0]?.url,
+      topic: row.topic,
+      why_now: String(why.why_now ?? ""),
+      angle: row.angle ?? "",
+      source: sourceUrl,
     },
-    angle: topic.angle,
-    reason: String(topic.why.reason ?? ""),
+    angle: row.angle ?? "",
+    reason: String(why.reason ?? ""),
   };
   return draftFromTrend(profileId, gated);
 }

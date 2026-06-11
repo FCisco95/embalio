@@ -3,9 +3,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const dispatchTopicRefresh = vi.fn(async () => true);
 vi.mock("@/lib/topics/dispatch", () => ({ dispatchTopicRefresh: () => dispatchTopicRefresh() }));
 
+const draftFromTrend = vi.fn(async () => ({}));
+vi.mock("@/server/trends", () => ({ draftFromTrend: (...a: unknown[]) => draftFromTrend(...a) }));
+
 let topicRows: unknown[] = [];
 let staleRows: unknown[] = [];
 let briefing: unknown = null;
+let draftRow: unknown = null;
 vi.mock("@/lib/supabase/server", () => ({
   supabaseServer: async () => ({
     from: (table: string) => {
@@ -17,6 +21,10 @@ vi.mock("@/lib/supabase/server", () => ({
                 gte: () => ({
                   order: async () => ({ data: topicRows, error: null }),
                 }),
+                single: async () =>
+                  draftRow
+                    ? { data: draftRow, error: null }
+                    : { data: null, error: new Error("not found") },
               }),
               gte: () => ({
                 order: async () => ({ data: staleRows, error: null }),
@@ -31,7 +39,7 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { getTopicBoard } from "./topics";
+import { getTopicBoard, draftFromTopicRow } from "./topics";
 
 const now = Date.now();
 const iso = (minAgo: number) => new Date(now - minAgo * 60_000).toISOString();
@@ -42,7 +50,7 @@ const row = (minAgo: number) => ({
   generated_at: iso(minAgo), expires_at: iso(minAgo - 120), status: "fresh",
 });
 
-beforeEach(() => { topicRows = []; staleRows = []; briefing = null; dispatchTopicRefresh.mockClear(); });
+beforeEach(() => { topicRows = []; staleRows = []; briefing = null; draftRow = null; dispatchTopicRefresh.mockClear(); draftFromTrend.mockClear(); });
 
 describe("getTopicBoard", () => {
   it("fresh board (<60min): state fresh, no background dispatch", async () => {
@@ -79,5 +87,25 @@ describe("getTopicBoard", () => {
     const v = await getTopicBoard("p");
     expect(v.state).toBe("empty");
     expect(v.topics).toHaveLength(0);
+  });
+});
+
+describe("draftFromTopicRow", () => {
+  it("throws when topic id not found for profile", async () => {
+    draftRow = null;
+    await expect(draftFromTopicRow("p", "missing-id")).rejects.toThrow(/topic not found/);
+  });
+  it("re-reads row server-side and routes through draftFromTrend", async () => {
+    draftRow = {
+      id: "t1", profile_id: "p", topic: "Agent SDK", angle: "my angle",
+      why: { why_now: "released", reason: "you ship" },
+      sources: [{ url: "https://x.com/a/1", title: "s", published_at: "2026-06-11" }],
+    };
+    await draftFromTopicRow("p", "t1");
+    expect(draftFromTrend).toHaveBeenCalledWith("p", {
+      trend: { topic: "Agent SDK", why_now: "released", angle: "my angle", source: "https://x.com/a/1" },
+      angle: "my angle",
+      reason: "you ship",
+    });
   });
 });
