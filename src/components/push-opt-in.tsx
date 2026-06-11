@@ -14,7 +14,7 @@ export function PushOptIn({ profileId }: { profileId: string }) {
   const [state, setState] = useState<PushState>("checking");
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       setState("unsupported");
       return;
     }
