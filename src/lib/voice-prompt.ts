@@ -212,6 +212,46 @@ export function buildTrendRadarPrompt(pillars: string[], date: string): string {
   ].join("\n");
 }
 
+export interface WarehouseTweetLine {
+  handle: string;
+  text: string;
+  url: string;
+  createdAt: string | null;
+}
+
+/**
+ * P2 topic board prompt: the LLM RANKS against our own scraped signal instead of
+ * discovering blind. Dated sources are mandatory — schema rejects sourceless output.
+ */
+export function buildTopicBoardPrompt(
+  pillars: string[],
+  date: string,
+  warehouseTweets: WarehouseTweetLine[],
+): string {
+  const lines = [
+    `Search X/Twitter, tech news, and GitHub for concrete trends relevant to these content pillars: ${pillars.map((p) => sanitizeForPrompt(p, 200)).join(", ")}.`,
+    `Today is ${date}. Focus on signal from the last 48 hours only — skip evergreen topics.`,
+  ];
+  if (warehouseTweets.length > 0) {
+    lines.push(
+      `These high-velocity tweets come from our own signal warehouse (scraped in the last 48h). Treat them as ground truth for what is ACTUALLY moving — prefer topics corroborated by them, and rank harder evidence above vibes:`,
+      ...warehouseTweets.map(
+        (t) => `- @${sanitizeForPrompt(t.handle, 40)} (${t.createdAt ?? "unknown time"}): ${sanitizeForPrompt(t.text, 200)} [${t.url}]`,
+      ),
+    );
+  }
+  lines.push(
+    `Find 2-6 real, specific topics. Each must have a "why_now": what actually changed this week (a release, an announcement, a spike in discussion).`,
+    `For each topic propose one concrete post angle — a specific thing a builder in this space could say from their own experience.`,
+    `Classify each topic's "kind": "spike" (reaction window measured in hours) or "durable" (conversation with days of legs).`,
+    `Every topic MUST cite at least one real source with a URL and its publication date — no source, no topic. Never invent URLs or dates.`,
+    `Avoid generic noise ("AI is growing"). Only surface things that would make someone say "I need to post about this today".`,
+    `Return exactly this JSON:`,
+    `{"topics": [{"topic": "...", "why_now": "...", "angle": "...", "kind": "spike|durable", "sources": [{"url": "https://...", "title": "...", "published_at": "ISO date or human date"}]}], "generatedAt": "${date}"}`,
+  );
+  return lines.join("\n");
+}
+
 export function buildTargetFinderPrompt(
   seedHandles: string[],
   pillars: string[],
