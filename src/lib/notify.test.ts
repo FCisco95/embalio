@@ -57,4 +57,11 @@ describe("notify — unified fan-out", () => {
     const r = await notify("profile-1", payload, d);
     expect(r.push).toEqual({ sent: 0, failed: 2, pruned: 0 });
   });
+
+  it("leaves push at zeros when loading subscriptions throws", async () => {
+    const d = deps({ loadPushSubs: vi.fn().mockRejectedValue(new Error("db down")) });
+    const r = await notify("profile-1", payload, d);
+    expect(r.telegram).toBe("sent");
+    expect(r.push).toEqual({ sent: 0, failed: 0, pruned: 0 });
+  });
 });
