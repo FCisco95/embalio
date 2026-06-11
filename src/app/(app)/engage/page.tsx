@@ -5,6 +5,7 @@ import { ReplyQueuePanel } from "@/components/reply-queue";
 import { TrendRadarPanel } from "@/components/trend-radar";
 import { PageShell } from "@/components/shell/page-shell";
 import { tabClass } from "@/lib/tab-class";
+import { PushOptIn } from "@/components/push-opt-in";
 
 export default async function EngagePage({
   searchParams,
@@ -35,6 +36,11 @@ export default async function EngagePage({
 
       {activeTab === "engage" && (
         <>
+          {profiles[0] && (
+            <div className="mb-3">
+              <PushOptIn profileId={profiles[0].id} />
+            </div>
+          )}
           <p className="text-[13px] text-muted-foreground mb-4">
             Scan seed accounts and draft replies in one step.
           </p>
