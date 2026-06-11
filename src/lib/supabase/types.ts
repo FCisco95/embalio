@@ -7,33 +7,48 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          meta: Json
+          profile_id: string
+          ref_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          meta?: Json
+          profile_id: string
+          ref_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          meta?: Json
+          profile_id?: string
+          ref_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       algorithm_briefs: {
         Row: {
           brief: Json
@@ -169,6 +184,47 @@ export type Database = {
           },
           {
             foreignKeyName: "drafts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follower_snapshots: {
+        Row: {
+          annotation: string | null
+          captured_at: string
+          followers: number
+          following: number | null
+          id: string
+          profile_id: string
+          snapshot_date: string
+          source: string
+        }
+        Insert: {
+          annotation?: string | null
+          captured_at?: string
+          followers: number
+          following?: number | null
+          id?: string
+          profile_id: string
+          snapshot_date?: string
+          source?: string
+        }
+        Update: {
+          annotation?: string | null
+          captured_at?: string
+          followers?: number
+          following?: number | null
+          id?: string
+          profile_id?: string
+          snapshot_date?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follower_snapshots_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -434,31 +490,31 @@ export type Database = {
       }
       research_briefings: {
         Row: {
+          created_at: string
+          date: string
           id: string
           profile_id: string
-          date: string
+          raw_data: Json | null
           summary: string
           topics: Json
-          raw_data: Json | null
-          created_at: string
         }
         Insert: {
+          created_at?: string
+          date: string
           id?: string
           profile_id: string
-          date: string
+          raw_data?: Json | null
           summary?: string
           topics?: Json
-          raw_data?: Json | null
-          created_at?: string
         }
         Update: {
+          created_at?: string
+          date?: string
           id?: string
           profile_id?: string
-          date?: string
+          raw_data?: Json | null
           summary?: string
           topics?: Json
-          raw_data?: Json | null
-          created_at?: string
         }
         Relationships: []
       }
@@ -496,6 +552,142 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signal_tweets: {
+        Row: {
+          author_followers: number
+          author_handle: string
+          deleted_at: string | null
+          first_seen_at: string
+          id: string
+          lang: string | null
+          last_seen_at: string
+          raw: Json | null
+          source: string
+          source_tweet_id: string
+          text: string
+          tweet_created_at: string | null
+          url: string
+        }
+        Insert: {
+          author_followers?: number
+          author_handle: string
+          deleted_at?: string | null
+          first_seen_at?: string
+          id?: string
+          lang?: string | null
+          last_seen_at?: string
+          raw?: Json | null
+          source: string
+          source_tweet_id: string
+          text?: string
+          tweet_created_at?: string | null
+          url?: string
+        }
+        Update: {
+          author_followers?: number
+          author_handle?: string
+          deleted_at?: string | null
+          first_seen_at?: string
+          id?: string
+          lang?: string | null
+          last_seen_at?: string
+          raw?: Json | null
+          source?: string
+          source_tweet_id?: string
+          text?: string
+          tweet_created_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      topic_history: {
+        Row: {
+          angle: string | null
+          expires_at: string | null
+          generated_at: string
+          id: string
+          profile_id: string
+          score: number | null
+          sources: Json
+          status: string
+          topic: string
+          why: Json
+        }
+        Insert: {
+          angle?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          profile_id: string
+          score?: number | null
+          sources?: Json
+          status?: string
+          topic: string
+          why?: Json
+        }
+        Update: {
+          angle?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          profile_id?: string
+          score?: number | null
+          sources?: Json
+          status?: string
+          topic?: string
+          why?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tweet_metric_snapshots: {
+        Row: {
+          bookmarks: number | null
+          captured_at: string
+          id: string
+          likes: number
+          replies: number
+          reposts: number | null
+          signal_tweet_id: string
+          views: number
+        }
+        Insert: {
+          bookmarks?: number | null
+          captured_at?: string
+          id?: string
+          likes?: number
+          replies?: number
+          reposts?: number | null
+          signal_tweet_id: string
+          views?: number
+        }
+        Update: {
+          bookmarks?: number | null
+          captured_at?: string
+          id?: string
+          likes?: number
+          replies?: number
+          reposts?: number | null
+          signal_tweet_id?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tweet_metric_snapshots_signal_tweet_id_fkey"
+            columns: ["signal_tweet_id"]
+            isOneToOne: false
+            referencedRelation: "signal_tweets"
             referencedColumns: ["id"]
           },
         ]
@@ -580,12 +772,12 @@ export type Database = {
     Functions: {
       save_persona: {
         Args: {
-          p_profile_id: string
-          p_voice_spec: string
-          p_goals: string
           p_content_pillars: string[]
+          p_goals: string
           p_onboarding_answers: Json
+          p_profile_id: string
           p_seed_handles: string[]
+          p_voice_spec: string
         }
         Returns: undefined
       }
@@ -717,11 +909,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
