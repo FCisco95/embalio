@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 let upserted: { rows: Record<string, unknown>[]; options: unknown } | null = null;
 let upsertError: { message: string } | null = null;
 let analyticsRows: unknown[] = [];
+let analyticsError: { message: string } | null = null;
 let snapshotRows: unknown[] = [];
 const activityInserts: Record<string, unknown>[] = [];
 
@@ -16,7 +17,7 @@ vi.mock("@/lib/supabase/server", () => ({
             upserted = { rows, options };
             return { error: upsertError };
           },
-          select: () => ({ eq: () => ({ gte: () => ({ order: async () => ({ data: analyticsRows, error: null }) }) }) }),
+          select: () => ({ eq: () => ({ gte: () => ({ order: async () => ({ data: analyticsRows, error: analyticsError }) }) }) }),
         };
       if (table === "follower_snapshots")
         return { select: () => ({ eq: () => ({ gte: () => ({ order: async () => ({ data: snapshotRows, error: null }) }) }) }) };
@@ -39,6 +40,7 @@ beforeEach(() => {
   upserted = null;
   upsertError = null;
   analyticsRows = [];
+  analyticsError = null;
   snapshotRows = [];
   activityInserts.length = 0;
 });
@@ -50,7 +52,11 @@ describe("importAnalyticsCsv", () => {
     expect(upserted!.options).toMatchObject({ onConflict: "profile_id,date" });
     expect(upserted!.rows[0]).toMatchObject({ profile_id: "prof-1", date: "2026-06-06", profile_visits: 150, new_follows: 5 });
     expect(upserted!.rows[0].imported_at).toEqual(expect.any(String));
-    expect(activityInserts[0]).toMatchObject({ kind: "csv_imported", profile_id: "prof-1" });
+    expect(activityInserts[0]).toMatchObject({
+      kind: "csv_imported",
+      profile_id: "prof-1",
+      meta: { imported: 2, rejected: 0 },
+    });
   });
 
   it("returns the loud header error without touching the DB", async () => {
@@ -78,6 +84,13 @@ describe("importAnalyticsCsv", () => {
     expect(r).toMatchObject({ ok: true, imported: 1 });
     if (r.ok) expect(r.rejected[0]).toMatchObject({ line: 3 });
   });
+
+  it("refuses an oversized payload before parsing", async () => {
+    const r = await importAnalyticsCsv("prof-1", "x".repeat(2 * 1024 * 1024 + 1));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("too large");
+    expect(upserted).toBeNull();
+  });
 });
 
 describe("getKpis", () => {
@@ -96,6 +109,13 @@ describe("getKpis", () => {
     expect(k.followerCount).toBe(100);
     expect(k.followerDelta7d).toBe(10);
     expect(k.dataThrough).toBe("2026-06-07");
+  });
+});
+
+describe("getKpis errors", () => {
+  it("throws on a DB read error instead of rendering an all-null summary", async () => {
+    analyticsError = { message: "connection refused" };
+    await expect(getKpis("prof-1")).rejects.toThrow("connection refused");
   });
 });
 
