@@ -5,7 +5,7 @@ import type { EngagementKnobs } from "@/lib/engagement/knobs";
 const knobs: EngagementKnobs = {
   goal: "leads",
   ownerFollowerEstimate: 2750,
-  targetFollowerBand: { min: 13750, max: 55000 },
+  targetFollowerBand: { min: 5500, max: 27500 },
   dailyReplyTarget: 12,
   replyPlaybook: "never reply to drama",
 };
