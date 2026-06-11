@@ -27,10 +27,13 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 - `/performance/[card]` — drill-downs (AreaChart + newest-first value table; `Object.hasOwn` guard → 404 on unknown card).
 - Home — `FollowerCard` star card (count + 7d delta badge + sparkline; honest empty state) next to CoachCard.
 
-**NEXT (in order):**
-1. ✅ Merged + deployed (prod verified ~80s after push). **Phone-dogfood now:** export the X analytics CSV → import on `/performance` → cards fill → drill-down → home star card.
-2. **P4 — Predictions** (spec row: `src/lib/predict/` — trajectory, what-if, breakout pre-check, weekly forecast; `predictions` table receipts). Open with its own `writing-plans` cycle.
-3. Residual P0 leftovers (Engage one-tap Done from phone + nudge/Telegram triggers) still pending from Session 10.
+**Dogfood PASSED (same night):** owner imported a full-year CSV (365 rows, 2025-06-12 → 2026-06-11) on prod; `csv_imported` activity logged; cards live. **First readout: follow rate 23.3% (14÷60, small n) · visits 8.6/day · followers 1,298.** The data's verdict: conversion is exceptional, REACH is the bottleneck — every lever should drive profile visits, not profile polish.
+
+**NEXT (in order — P5/P4 deliberately SWAPPED 2026-06-11, owner-approved, based on that readout):**
+1. **P5 — Sniper-lite + push** (4–5 days; spec: `watch_targets` + GH-Actions 5-min poll of 5–10 priority handles, vault `targetScore()` productized, unified Telegram + web-push `notify()`, alert latency logged). It's the reach lever the data demands. Open with its own `writing-plans` cycle (P2/P3 loop).
+2. Residual P0 leftovers wedged in if small (Engage one-tap Done from phone + nudge/Telegram triggers) — same reach loop.
+3. **P4 — Predictions** after (spec row: `src/lib/predict/` — trajectory, what-if, breakout pre-check, weekly forecast; `predictions` table receipts). The year of `analytics_daily` history gives it real fit data whenever it lands.
+4. Manual stopgap until P5 ships: daily replies on big in-niche accounts (what the sniper automates) + Sunday CSV re-import (idempotent overwrite).
 
 **Risks/notes:** drill-down ignores the `?profile=` selector (always `profiles[0]` — invisible in single-profile prod; thread searchParams through when multi-profile lands) · home grid shows FollowerCard alone in row 1 if `assignment` is null (only happens on DB failure; P7 polish) · `analytics_daily` is RLS-disabled like the rest of the warehouse (P7 hardening item; Supabase advisor flags 14 such tables) · client `router.refresh()` after import is redundant with revalidatePath but harmless · pre-existing `tsc` error in `src/server/topics.test.ts` (TS2556) predates this branch — vitest runs it fine; fix opportunistically.
 
