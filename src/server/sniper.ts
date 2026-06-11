@@ -26,6 +26,7 @@ export interface PickedAlert {
   tweet_url: string;
   score: number;
   parts: TargetScoreParts;
+  /** Ms from tweet.createdAt to this poll's nowMs — tweet age at DISCOVERY, not end-to-end delivery latency. */
   latencyMs: number;
   ageMinutes: number;
   replies: number;
