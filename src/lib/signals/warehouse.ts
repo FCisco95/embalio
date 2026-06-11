@@ -36,17 +36,23 @@ export async function warehouseTweets(
   tweets: SignalTweet[],
 ): Promise<number> {
   if (tweets.length === 0) return 0;
+  // Same tweet can arrive twice in one batch (e.g. one tweet matching two
+  // from:handle search terms) — postgres upsert cannot update a row twice in
+  // a single statement, so keep only the last occurrence (freshest metrics).
+  const unique = new Map<string, SignalTweet>();
+  for (const t of tweets) unique.set(t.source_tweet_id, t);
+  const deduped = [...unique.values()];
   try {
     const { data, error } = await sb
       .from("signal_tweets")
-      .upsert(tweets.map((t) => toSignalTweetRow(t, source)), { onConflict: "source_tweet_id" })
+      .upsert(deduped.map((t) => toSignalTweetRow(t, source)), { onConflict: "source_tweet_id" })
       .select("id, source_tweet_id");
     if (error || !data) {
       console.error("[warehouse] upsert failed:", error?.message);
       return 0;
     }
     const idByTweet = new Map(data.map((r) => [r.source_tweet_id, r.id]));
-    const snapshots = tweets
+    const snapshots = deduped
       .filter((t) => idByTweet.has(t.source_tweet_id))
       .map((t) => toSnapshotRow(idByTweet.get(t.source_tweet_id)!, t));
     const { error: snapErr } = await sb.from("tweet_metric_snapshots").insert(snapshots);

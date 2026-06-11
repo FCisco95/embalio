@@ -40,6 +40,19 @@ describe("warehouseTweets", () => {
     expect(insert).toHaveBeenCalledWith([expect.objectContaining({ signal_tweet_id: "uuid-1" })]);
   });
 
+  it("dedupes same source_tweet_id within a batch before upserting", async () => {
+    const upsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [{ id: "uuid-1", source_tweet_id: "111" }], error: null }),
+    });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const sb = { from: vi.fn((t: string) => (t === "signal_tweets" ? { upsert } : { insert })) };
+    const dup = { ...tweet };
+    const n = await warehouseTweets(sb as never, "apify", [tweet, dup]);
+    expect(n).toBe(1);
+    expect(upsert.mock.calls[0][0]).toHaveLength(1);
+    expect(insert).toHaveBeenCalledWith([expect.objectContaining({ signal_tweet_id: "uuid-1" })]);
+  });
+
   it("returns 0 immediately for empty input", async () => {
     const sb = { from: vi.fn() };
     await expect(warehouseTweets(sb as never, "apify", [])).resolves.toBe(0);
