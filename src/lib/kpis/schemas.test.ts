@@ -22,8 +22,13 @@ describe("AnalyticsDay", () => {
     expect(AnalyticsDay.safeParse({ date: "2026-06-07", profile_visits: "1.5", new_follows: "1" }).success).toBe(false);
   });
 
-  it("rejects a missing required column (empty cell was dropped by the parser)", () => {
-    expect(AnalyticsDay.safeParse({ date: "2026-06-07", new_follows: "1" }).success).toBe(false);
+  it("rejects a missing required column with a path naming the field", () => {
+    const r = AnalyticsDay.safeParse({ date: "2026-06-07", new_follows: "1" });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const paths = r.error.issues.map((i) => i.path.join("."));
+      expect(paths).toContain("profile_visits");
+    }
   });
 
   it("rejects a non-ISO date", () => {
