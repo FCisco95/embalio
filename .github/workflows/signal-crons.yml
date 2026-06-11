@@ -1,0 +1,28 @@
+name: signal-crons
+
+on:
+  schedule:
+    - cron: "15 6-22/2 * * *"   # targeting + tracking, every 2h waking hours (UTC; Lisbon=UTC+1)
+    - cron: "45 0 * * *"        # follower snapshot, daily 00:45 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: targeting
+        if: github.event.schedule != '45 0 * * *'
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 360 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/targeting")
+          cat /tmp/out; echo; [ "$code" = "200" ]
+      - name: tracking
+        if: github.event.schedule != '45 0 * * *'
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 360 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/tracking")
+          cat /tmp/out; echo; [ "$code" = "200" ]
+      - name: follower-snapshot
+        if: github.event.schedule != '15 6-22/2 * * *'
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 180 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/follower-snapshot")
+          cat /tmp/out; echo; [ "$code" = "200" ]
