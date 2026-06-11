@@ -31,7 +31,7 @@ export async function pullTweets(
   client: ApifyLike,
   actor: string,
   opts: { handles: string[]; maxPerHandle?: number },
-): Promise<CandidateInput[]> {
+): Promise<(CandidateInput & { raw?: Record<string, unknown> })[]> {
   const items = await runActor(client, actor, {
     searchTerms: opts.handles.map((h) => `from:${h.replace(/^@/, "")}`),
     maxItems: (opts.maxPerHandle ?? 20) * opts.handles.length,
@@ -51,6 +51,7 @@ export async function pullTweets(
         authorFollowers: t.author?.followers ?? t.author?.followersCount ?? t.authorFollowers ?? 0,
         createdAt: t.createdAt ?? new Date().toISOString(),
       },
+      raw: t,
     };
   });
 }
