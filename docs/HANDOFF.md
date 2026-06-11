@@ -1,12 +1,48 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-08 (Session 9 — repositioned to AI growth-operator; Phase 1a gate+coach shipped)
-**Active branch:** `feat/recording-cockpit` — the de-facto trunk (`main` is 198 commits behind and lacks deps). Phase 1a fast-forwarded here + pushed. Cut new work off this branch. (Prior tip `make-it-true` is historical.)
-**Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. (Was: local single-user X growth engine.) Canonical strategy lives in the cisco-brain vault (paths in Session 9 below).
+**Last updated:** 2026-06-11 (Session 10 — P2 topic board SHIPPED + phone-dogfooded; prod live on Vercel; GH Actions workers self-running)
+**Active branch:** `main` — the real trunk since the P0 merge train (2026-06-11). Direct-to-main, suite-green-gated. (`feat/recording-cockpit` is historical.)
+**Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
+**Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 10 (2026-06-11, evening) — P2 Topic Board SHIPPED end-to-end + phone dogfood PASSED
+
+**TL;DR:** P2 (the #1 pain: stale topics) shipped same-day, subagent-driven: `/topics` mobile board (score 0-100 + why-chips + freshness stamps + dated citations + one-tap Draft this), pure scorer, never-empty freshness chain, and a $0 GH Actions refresh worker running claude CLI on Max-plan OAuth. **Step-zero infra unblock first**: Vercel Hobby prod + `signal-crons.yml` scheduler (warehouse was frozen at 278 rows — now growing). Suite 442 → **488 green**. Phone dogfood passed live: PWA installed → board → Draft this → voiced Gemini draft in sign-off queue (verified in `drafts` table). Note: P0+P1 shipped the same morning (separate session; see vault task docs — that session didn't write a handoff section here).
+
+**Canonical docs (don't re-litigate):**
+- Spec: vault `10 - PROJECTS/Embalio/specs/2026-06-11-growth-operator-revamp-design.md` (12 locked decisions)
+- P2 plan (all tasks done): repo `docs/superpowers/plans/2026-06-11-p2-topic-board.md`
+- Roadmap: vault `10 - PROJECTS/Embalio/_hub/Embalio — Next Steps.md` (P0/P1/P2 marked shipped)
+
+**What shipped (this repo, commits 3534816..9ab6505 — 14 commits on main):**
+- `src/lib/topics/` — `schemas` (dated `sources.min(1)` zod-required; sourceless generation auto-retries), `heat.ts` (topic velocity from own `signal_tweets`, 24h vs prior 24h — sanity-checks LLM trend claims), `score.ts` (pure 0-100: niche 35 / heat 30 / cred 20 / timing 15; react/verdict/saturated windows), `board.ts` (full pipeline: warehouse-grounded generation → gateTrend → embed → heat → score → persist `topic_history`; worker-safe, injected Supabase client, NO next/* imports), `dispatch.ts` (workflow_dispatch background refresh, env-gated `GITHUB_DISPATCH_TOKEN` — optional, not yet set), `format.ts` (`formatAgo`, null = don't render).
+- `src/server/topics.ts` — `getTopicBoard` 5-state freshness chain (fresh <60min → cached + background dispatch → today's `research_briefings` low-confidence → ≤48h stale banner → labeled empty; phone NEVER triggers live LLM) + `draftFromTopicRow(profileId, topicId)` — IDs only, row re-read server-side (review-driven security fix).
+- `src/app/(app)/topics/` + `src/components/topics/` — mobile board UI; nav now Home · **Topics** · Engage · Composer · Reach (`src/components/shell/nav-items.ts`; Brand Voice demoted from primary).
+- `src/lib/voice-prompt.ts` — `buildTopicBoardPrompt` (LLM ranks against injected high-velocity warehouse tweets; all scraped fields sanitized + whitespace-collapsed — prompt-injection review fixes).
+- `scripts/refresh-topics.ts` + `.github/workflows/refresh-topics.yml` — worker every 3h waking UTC, claude CLI on `CLAUDE_CODE_OAUTH_TOKEN` secret (rides Max plan), Gemini fallback, skips pillarless profiles.
+- `.github/workflows/signal-crons.yml` — curls `/api/cron/targeting|tracking` (2h waking) + `/api/cron/follower-snapshot` (daily 00:45Z) with `CRON_SECRET` bearer against prod.
+- `src/lib/generate/gemini.ts` — **`gemini-2.5-flash`** (Google shut down `gemini-2.0-flash` 2026-06-01; env-overridable `GEMINI_MODEL`).
+
+**Infra state (all verified live-fire):**
+- Vercel: project linked (`ciscos-projects-c3b3be54/embalio`), 13 prod env vars incl. `GEN_BACKEND=gemini` + `GOOGLE_GENERATIVE_AI_API_KEY` (created during dogfood debugging). GitHub-connected: push to main = auto prod deploy.
+- GH secrets: `CRON_SECRET`, supabase URL/service key, `OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `GOOGLE_GENERATIVE_AI_API_KEY`; variable `APP_BASE_URL`. **Windows gotcha (cost ~1h): never pipe tokens into `gh secret set` — trailing `\r` breaks API headers; use `--body`. Recorded in Claude memory.**
+- CI worker live-fired green: `board written: @fcisco95 → 4 topics` from GitHub runners; scheduled crons self-firing since.
+- Warehouse: signal_tweets 278 → 323+ and growing; `topic_history` serving fresh boards.
+
+**NEXT (in order):**
+1. **P3 — KPI dashboard + CSV import** (4-5 days; spec section 7): header-tolerant fail-loud CSV import (only source for profile-visits/follows), `getKpis()` aggregator, `/performance` card grid + drill-downs, follower star card on home, follow-conversion north star. Open with its own `writing-plans` cycle.
+2. Residual dogfood: Engage one-tap Done from phone + nudge/Telegram triggers (P0 leftovers).
+3. Optional polish: `GITHUB_DISPATCH_TOKEN` on Vercel (enables in-app background refresh; scheduled cadence already covers freshness), upgrade actions/checkout+setup-node to Node-24-ready versions before 2026-06-16 (CI deprecation warning).
+
+**Suggested skills next session:** `superpowers:writing-plans` (P3 plan from spec section 7) → `superpowers:subagent-driven-development` (mirror the P2 loop: TDD + spec-review + quality-review per task) → `superpowers:verification-before-completion`. Read this handoff + spec before any code.
+
+**Risks/notes:** topic_history RLS disabled (service-role-only posture, same as research_briefings) — revisit in P7 hardening. `expire→insert` in `board.ts` is non-atomic (next scheduled run self-heals; fine for worker). Stub `@a` profiles in prod DB are skipped by the worker but still pollute `profiles` — consider cleanup. Free-tier Gemini limits: ~10 RPM — fine for single-user dogfood.
 
 ---
 
