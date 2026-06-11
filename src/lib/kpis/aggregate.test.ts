@@ -26,10 +26,18 @@ describe("dedupeSnapshots", () => {
     ]);
     expect(out.map((s) => s.followers)).toEqual([98, 105]);
   });
+
+  it("compares captured_at as timestamps, not strings", () => {
+    const out = dedupeSnapshots([
+      snap("2026-06-10", 100, "Wed, 10 Jun 2026 22:00:00 GMT"),
+      snap("2026-06-10", 105, "2026-06-10T07:00:00Z"),
+    ]);
+    expect(out[0].followers).toBe(100); // 22:00 GMT beats 07:00Z regardless of format
+  });
 });
 
 describe("computeFollowerStat", () => {
-  it("returns count, 7d delta vs the snapshot at/before -7d, and the series", () => {
+  it("returns count, 7d delta vs the snapshot at/before -7d, and a series capped at 14 (10 here)", () => {
     const snaps = Array.from({ length: 10 }, (_, i) => snap(`2026-06-${String(i + 2).padStart(2, "0")}`, 100 + i));
     const stat = computeFollowerStat(snaps)!;
     expect(stat.followers).toBe(109); // 2026-06-11
@@ -99,5 +107,9 @@ describe("computeKpis", () => {
       { date: "2026-06-06", value: 0 },
       { date: "2026-06-07", value: 0.04 },
     ]);
+  });
+
+  it("throws loudly at the KpiSummary boundary on corrupt input (NaN now)", () => {
+    expect(() => computeKpis({ analytics: [day("2026-06-07", 1, 1)], snapshots: [], now: NaN })).toThrow();
   });
 });

@@ -30,12 +30,17 @@ export function followRateBand(rate: number): "low" | "good" | "high" {
   return "high";
 }
 
+const capturedMs = (s: FollowerSnapshotRow) => {
+  const ms = s.captured_at ? Date.parse(s.captured_at) : NaN;
+  return Number.isFinite(ms) ? ms : -Infinity;
+};
+
 /** One snapshot per day — (date,source) duplicates resolve to the newest captured_at. */
 export function dedupeSnapshots(rows: FollowerSnapshotRow[]): FollowerSnapshotRow[] {
   const byDate = new Map<string, FollowerSnapshotRow>();
   for (const r of rows) {
     const prev = byDate.get(r.snapshot_date);
-    if (!prev || (r.captured_at ?? "") > (prev.captured_at ?? "")) byDate.set(r.snapshot_date, r);
+    if (!prev || capturedMs(r) > capturedMs(prev)) byDate.set(r.snapshot_date, r);
   }
   return [...byDate.values()].sort((a, b) => utc(a.snapshot_date) - utc(b.snapshot_date));
 }
