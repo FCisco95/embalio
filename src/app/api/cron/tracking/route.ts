@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
         const { data: st } = await sb.from("signal_tweets")
           .upsert({ source: "apify", source_tweet_id: tid, author_handle: "", url: p.tweet_url, last_seen_at: new Date().toISOString() }, { onConflict: "source_tweet_id" })
           .select("id").single();
-        if (st) await sb.from("tweet_metric_snapshots").insert({ signal_tweet_id: st.id, likes: m.likes, views: m.views, replies: m.replies });
+        if (st) {
+          const { error: snapErr } = await sb.from("tweet_metric_snapshots").insert({ signal_tweet_id: st.id, likes: m.likes, views: m.views, replies: m.replies });
+          if (snapErr) console.error("tracking snapshot failed", p.id, snapErr.message);
+        }
       }
       updated++;
     } catch (e) { failed++; console.error("tracking failed", p.id, e); }
