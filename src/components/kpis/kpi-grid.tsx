@@ -11,12 +11,14 @@ function KpiCard({
   value,
   chip,
   spark,
+  sparkId,
 }: {
   href: string;
   label: string;
   value: string;
   chip?: { text: string; className: string } | null;
   spark?: number[];
+  sparkId: string;
 }) {
   return (
     <Link href={href} className="block">
@@ -32,7 +34,7 @@ function KpiCard({
             ) : (
               <span />
             )}
-            {spark && spark.length >= 2 && <Sparkline data={spark} width={72} height={22} />}
+            {spark && spark.length >= 2 && <Sparkline data={spark} width={72} height={22} gradientId={sparkId} />}
           </div>
         </CardContent>
       </Card>
@@ -50,23 +52,27 @@ export function KpiGrid({ kpis }: { kpis: KpiSummary }) {
         value={formatRate(kpis.followRate7d)}
         chip={bandChip(kpis.followRateBand)}
         spark={kpis.rateSeries.map((p) => p.value)}
+        sparkId="spark-rate"
       />
       <KpiCard
         href="/performance/follows"
         label="Follows / day (7d)"
         value={formatPerDay(kpis.followsPerDay7d)}
         spark={kpis.followsSeries.map((p) => p.value)}
+        sparkId="spark-follows"
       />
       <KpiCard
         href="/performance/visits"
         label="Profile visits / day (7d)"
         value={formatPerDay(kpis.visitsPerDay7d)}
         spark={kpis.visitsSeries.map((p) => p.value)}
+        sparkId="spark-visits"
       />
       <KpiCard
         href="/performance/followers"
         label="Followers"
         value={kpis.followerCount === null ? "—" : kpis.followerCount.toLocaleString()}
+        sparkId="spark-followers"
         chip={
           kpis.followerDelta7d === null
             ? null

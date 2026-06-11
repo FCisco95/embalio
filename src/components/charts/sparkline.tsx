@@ -3,9 +3,10 @@ interface SparklineProps {
   width?: number
   height?: number
   className?: string
+  gradientId?: string
 }
 
-export function Sparkline({ data, width = 60, height = 20, className }: SparklineProps) {
+export function Sparkline({ data, width = 60, height = 20, className, gradientId = "spark-fill" }: SparklineProps) {
   if (data.length < 2) return null
 
   const pad = 2
@@ -34,12 +35,12 @@ export function Sparkline({ data, width = 60, height = 20, className }: Sparklin
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
           <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill="url(#spark-fill)" />
+      <path d={areaPath} fill={`url(#${gradientId})`} />
       <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={lastX} cy={lastY} r="2" fill="var(--primary)" />
     </svg>

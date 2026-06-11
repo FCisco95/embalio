@@ -27,6 +27,7 @@ export function CsvImportCard({
 
   function onPick(file: File | null) {
     if (!file || !profileId) return;
+    setResult(null);
     if (file.size > MAX_CSV_BYTES) {
       setResult({ ok: false, error: "File too large — X's analytics export is never more than a few hundred KB." });
       if (inputRef.current) inputRef.current.value = "";
@@ -72,7 +73,8 @@ export function CsvImportCard({
             ref={inputRef}
             type="file"
             accept=".csv,text/csv"
-            className="hidden"
+            className="sr-only"
+            aria-label="Upload X analytics CSV"
             onChange={(e) => onPick(e.target.files?.[0] ?? null)}
           />
         </div>
