@@ -2,6 +2,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { TweetUrl, PostMetrics } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/activity";
 
 export async function markPosted(draftId: string, tweetUrl: string) {
   const parsed = TweetUrl.safeParse(tweetUrl);
@@ -17,6 +18,7 @@ export async function markPosted(draftId: string, tweetUrl: string) {
 
   await sb.from("drafts").update({ status: "posted" }).eq("id", draftId);
   if (draft.candidate_id) await sb.from("candidates").update({ status: "engaged" }).eq("id", draft.candidate_id);
+  await logActivity(sb, draft.profile_id, draft.kind === "reply" ? "reply_posted" : "post_published", { refId: draftId, meta: { tweet_url: parsed.data } });
   revalidatePath("/performance");
 }
 
@@ -112,6 +114,7 @@ export async function markRepliedQuick(
 
   await sb.from("drafts").update({ status: "posted" }).eq("id", draftId);
   if (input.candidateId) await sb.from("candidates").update({ status: "engaged" }).eq("id", input.candidateId);
+  await logActivity(sb, profileId, "reply_posted", { refId: draftId, meta: { via: "quick" } });
   revalidatePath("/engage");
   revalidatePath("/");
 }
