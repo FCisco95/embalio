@@ -1,7 +1,7 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-11 (Session 11 — P3 KPI dashboard + CSV import BUILT on `feat/kpi-csv-import`; awaiting merge to main)
-**Active branch:** `feat/kpi-csv-import` (16 commits ahead of `main`, suite 545 green — merge is the next action). Trunk policy: direct-to-main, suite-green-gated. (`feat/recording-cockpit` is historical.)
+**Last updated:** 2026-06-11 (Session 11 — P3 KPI dashboard + CSV import SHIPPED: merged to `main`, prod-verified live)
+**Active branch:** `main` (P3 merged fast-forward `cf5a192..b0da6e9`, suite 545 green, prod deploy verified serving the new Stats page). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
@@ -28,7 +28,7 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 - Home — `FollowerCard` star card (count + 7d delta badge + sparkline; honest empty state) next to CoachCard.
 
 **NEXT (in order):**
-1. **Merge `feat/kpi-csv-import` → `main`** (auto-deploys to prod) — then phone-dogfood: export the X analytics CSV → import on `/performance` → cards fill → drill-down → home star card.
+1. ✅ Merged + deployed (prod verified ~80s after push). **Phone-dogfood now:** export the X analytics CSV → import on `/performance` → cards fill → drill-down → home star card.
 2. **P4 — Predictions** (spec row: `src/lib/predict/` — trajectory, what-if, breakout pre-check, weekly forecast; `predictions` table receipts). Open with its own `writing-plans` cycle.
 3. Residual P0 leftovers (Engage one-tap Done from phone + nudge/Telegram triggers) still pending from Session 10.
 
