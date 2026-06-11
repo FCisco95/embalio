@@ -236,7 +236,7 @@ export function buildTopicBoardPrompt(
     lines.push(
       `These high-velocity tweets come from our own signal warehouse (scraped in the last 48h). Treat them as ground truth for what is ACTUALLY moving — prefer topics corroborated by them, and rank harder evidence above vibes:`,
       ...warehouseTweets.map(
-        (t) => `- @${sanitizeForPrompt(t.handle, 40)} (${t.createdAt ?? "unknown time"}): ${sanitizeForPrompt(t.text, 200)} [${t.url}]`,
+        (t) => `- @${sanitizeForPrompt(t.handle, 40)} (${t.createdAt ? sanitizeForPrompt(t.createdAt, 40) : "unknown time"}): ${sanitizeForPrompt(t.text, 200)} [${sanitizeForPrompt(t.url, 150)}]`,
       ),
     );
   }
