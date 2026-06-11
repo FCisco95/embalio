@@ -35,8 +35,10 @@ import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
 import { getDailyAssignment } from "@/server/coach"
 import { getStreak } from "@/server/streak"
+import { getFollowerStat } from "@/server/kpis"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
 import { CoachCard } from "@/components/coach-card"
+import { FollowerCard } from "@/components/follower-card"
 import { StreakBadge } from "@/components/streak-badge"
 
 const CARD = "rounded-xl border border-border bg-card"
@@ -55,6 +57,7 @@ export default async function DashboardPage() {
   let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
   let assignment: Awaited<ReturnType<typeof getDailyAssignment>> | null = null
   let streak = 0
+  let followerStat: Awaited<ReturnType<typeof getFollowerStat>> = null
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
@@ -66,6 +69,7 @@ export default async function DashboardPage() {
       growthPlan = await getGrowthPlan(profile.id)
       assignment = await getDailyAssignment(profile.id)
       streak = await getStreak(profile.id)
+      followerStat = await getFollowerStat(profile.id)
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
@@ -107,6 +111,9 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-2">
         {/* Daily coach assignment */}
         {assignment && <CoachCard assignment={assignment} />}
+
+        {/* Follower star card (P3) */}
+        <FollowerCard stat={followerStat} />
 
         {/* Reach hero */}
         <div
