@@ -7,6 +7,10 @@ describe("normalizeWatchHandle", () => {
     expect(normalizeWatchHandle("https://x.com/levelsio")).toBe("levelsio");
     expect(normalizeWatchHandle("  levelsio  ")).toBe("levelsio");
   });
+  it("survives X share-URLs with query strings and trailing paths", () => {
+    expect(normalizeWatchHandle("https://x.com/levelsio?s=21")).toBe("levelsio");
+    expect(normalizeWatchHandle("https://x.com/LevelsIo/status/123")).toBe("levelsio");
+  });
   it("rejects empty and invalid handles", () => {
     expect(normalizeWatchHandle("")).toBeNull();
     expect(normalizeWatchHandle("not a handle!")).toBeNull();

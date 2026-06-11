@@ -6,7 +6,7 @@ export function normalizeWatchHandle(input: string): string | null {
     .trim()
     .replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "")
     .replace(/^@/, "")
-    .replace(/\/.*$/, "")
+    .replace(/[/?#].*$/, "")
     .toLowerCase();
   return /^[a-z0-9_]{1,15}$/.test(h) ? h : null;
 }
