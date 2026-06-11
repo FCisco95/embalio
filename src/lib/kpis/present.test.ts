@@ -8,6 +8,12 @@ describe("formatRate", () => {
   it("em-dash for null", () => {
     expect(formatRate(null)).toBe("—");
   });
+  it("treats undefined like null", () => {
+    expect(formatRate(undefined)).toBe("—");
+    expect(formatPerDay(undefined)).toBe("—");
+    expect(formatDelta(undefined)).toBe("—");
+    expect(bandChip(undefined)).toBeNull();
+  });
 });
 
 describe("formatPerDay", () => {
