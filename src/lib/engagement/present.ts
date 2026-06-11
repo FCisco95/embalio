@@ -5,8 +5,8 @@ export function fitBadge(authorFollowers: number, ownerEstimate: number): FitBad
     return { label: "size unknown", inBand: false };
   }
   const ratio = authorFollowers / ownerEstimate;
-  if (ratio >= 5 && ratio <= 20) return { label: `${Math.round(ratio)}× your size · in band`, inBand: true };
-  if (ratio > 20) return { label: "big acct · visibility play", inBand: false };
+  if (ratio >= 2 && ratio <= 10) return { label: `${Math.round(ratio)}× your size · in band`, inBand: true };
+  if (ratio > 10) return { label: "big acct · visibility play", inBand: false };
   return { label: `${ratio.toFixed(1)}× · small`, inBand: false };
 }
 

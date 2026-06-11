@@ -36,7 +36,7 @@ describe("compositeScore — engagement targeting factors", () => {
     expect(s.composite).toBeCloseTo(0.7551, 3);
   });
 
-  it("full credit when author is inside the 5-20x band", () => {
+  it("full credit when author is inside the 2-10x band", () => {
     const inBand = compositeScore({ ...strong, authorFollowers: 25000, ownerFollowerEstimate: 2750 });
     const baseline = compositeScore(strong);
     expect(inBand.composite).toBeCloseTo(baseline.composite);
@@ -70,24 +70,31 @@ describe("compositeScore — engagement targeting factors", () => {
   });
 });
 
-describe("sizeFit — direct unit tests", () => {
-  const owner = 2750;
-
-  it("returns 1.0 when author is exactly 5× owner (lower band edge)", () => {
-    expect(sizeFit(5 * owner, owner)).toBe(1);
+describe("sizeFit — 2-10x band (playbook §4)", () => {
+  it("gives full credit inside 2-10x", () => {
+    expect(sizeFit(2_600, 1_300)).toBe(1);   // 2x
+    expect(sizeFit(13_000, 1_300)).toBe(1);  // 10x
+  });
+  it("ramps below 2x and decays above 10x", () => {
+    expect(sizeFit(1_300, 1_300)).toBeCloseTo(0.5);   // 1x → ratio/2
+    expect(sizeFit(130_000, 1_300)).toBeCloseTo(0.1); // 100x → 10/ratio
   });
 
-  it("returns 1.0 when author is exactly 20× owner (upper band edge)", () => {
-    expect(sizeFit(20 * owner, owner)).toBe(1);
+  it("returns 1.0 when author is exactly 2× owner (lower band edge)", () => {
+    expect(sizeFit(2 * 2750, 2750)).toBe(1);
   });
 
-  it("returns < 1 when author is just below 5× (4× owner)", () => {
-    expect(sizeFit(4 * owner, owner)).toBeLessThan(1);
-    expect(sizeFit(4 * owner, owner)).toBeCloseTo(0.8, 5);
+  it("returns 1.0 when author is exactly 10× owner (upper band edge)", () => {
+    expect(sizeFit(10 * 2750, 2750)).toBe(1);
   });
 
-  it("decays to ~0.5 when author is 40× owner (twice the upper bound)", () => {
-    expect(sizeFit(40 * owner, owner)).toBeCloseTo(0.5, 5);
+  it("returns < 1 when author is just below 2× (1× owner)", () => {
+    expect(sizeFit(1 * 2750, 2750)).toBeLessThan(1);
+    expect(sizeFit(1 * 2750, 2750)).toBeCloseTo(0.5, 5);
+  });
+
+  it("decays to ~0.5 when author is 20× owner (twice the upper bound)", () => {
+    expect(sizeFit(20 * 2750, 2750)).toBeCloseTo(0.5, 5);
   });
 
   it("returns 1 when ownerEstimate is 0 (guard against division by zero)", () => {

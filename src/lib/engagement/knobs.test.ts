@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
 
 describe("knobsFromProfile", () => {
-  it("derives a 5-20x target follower band from account_size", () => {
+  it("derives a 2-10x target follower band from account_size", () => {
     const k = knobsFromProfile({ account_size: "500-5k", daily_capacity: "30m", north_star_metric: "grow reach", reply_playbook: null });
     expect(k.ownerFollowerEstimate).toBe(2750);
-    expect(k.targetFollowerBand.min).toBe(2750 * 5);
-    expect(k.targetFollowerBand.max).toBe(2750 * 20);
+    expect(k.targetFollowerBand.min).toBe(2750 * 2);
+    expect(k.targetFollowerBand.max).toBe(2750 * 10);
   });
 
   it("maps capacity to a daily reply target", () => {
@@ -27,9 +27,14 @@ describe("knobsFromProfile", () => {
     expect(knobsFromProfile({ account_size: null, daily_capacity: null, north_star_metric: "generate inbound leads / clients", reply_playbook: null }).goal).toBe("leads");
   });
 
+  it("500-5k band is 2750×2 / 2750×10", () => {
+    expect(knobsFromProfile({ account_size: "500-5k", daily_capacity: "30m", north_star_metric: null, reply_playbook: null }).targetFollowerBand)
+      .toEqual({ min: 5500, max: 27500 }); // 2750 × 2 / × 10
+  });
+
   it("falls back to the smallest estimate for an unrecognized account_size bucket", () => {
     const k = knobsFromProfile({ account_size: "not-a-bucket", daily_capacity: null, north_star_metric: null, reply_playbook: null });
     expect(k.ownerFollowerEstimate).toBe(250);
-    expect(k.targetFollowerBand.min).toBe(250 * 5);
+    expect(k.targetFollowerBand.min).toBe(250 * 2);
   });
 });

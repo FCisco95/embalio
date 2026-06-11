@@ -17,6 +17,15 @@ describe("fitBadge", () => {
   });
 });
 
+describe("fitBadge — 2-10x band", () => {
+  it("labels 2-10x as in band", () => {
+    expect(fitBadge(6_500, 1_300)).toEqual({ label: "5× your size · in band", inBand: true });
+  });
+  it("labels >10x as a visibility play", () => {
+    expect(fitBadge(130_000, 1_300).inBand).toBe(false);
+  });
+});
+
 describe("freshnessLabel", () => {
   const now = new Date("2026-06-01T12:00:00Z").getTime();
   it("renders minutes for fresh posts", () => {

@@ -2,7 +2,7 @@ export interface ScoreInputs {
   relevance: number;   // 0..1 cosine similarity, already normalized
   likesPerHour: number;
   ageHours: number;
-  authorFollowers?: number;        // for the 5-20x size-fit rule
+  authorFollowers?: number;        // for the 2-10x size-fit rule
   ownerFollowerEstimate?: number;  // owner's approx size (from knobs)
   replyCount?: number;             // crowding: <20 replies stays visible
   botBait?: number;                // 0..1 quality multiplier (1 clean, →0 baity)
@@ -21,12 +21,13 @@ const RECENCY_HALFLIFE_HOURS = 12;
 const REPLY_CROWD_FULL = 20;      // <= this many replies: full credit
 const REPLY_CROWD_ZERO = 100;     // >= this many: no credit
 
-// 1.0 inside the 5-20x band; ramps from 0 below 5x, decays toward 0 above 20x.
+// 1.0 inside the 2-10x band (playbook §4: ride out-of-network reach without
+// being buried); ramps from 0 below 2x, decays toward 0 above 10x.
 export function sizeFit(authorFollowers: number, ownerEstimate: number): number {
   if (ownerEstimate <= 0 || authorFollowers <= 0) return 1;
   const ratio = authorFollowers / ownerEstimate;
-  if (ratio < 5) return clamp01(ratio / 5);
-  if (ratio > 20) return clamp01(20 / ratio);
+  if (ratio < 2) return clamp01(ratio / 2);
+  if (ratio > 10) return clamp01(10 / ratio);
   return 1;
 }
 

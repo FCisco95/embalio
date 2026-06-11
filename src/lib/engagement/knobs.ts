@@ -44,7 +44,7 @@ export function knobsFromProfile(p: ProfileKnobInput): EngagementKnobs {
   return {
     goal: normalizeGoal(p.north_star_metric),
     ownerFollowerEstimate,
-    targetFollowerBand: { min: ownerFollowerEstimate * 5, max: ownerFollowerEstimate * 20 },
+    targetFollowerBand: { min: ownerFollowerEstimate * 2, max: ownerFollowerEstimate * 10 },
     dailyReplyTarget: CAPACITY_TARGET[p.daily_capacity ?? ""] ?? 10,
     replyPlaybook: p.reply_playbook ?? "",
   };
