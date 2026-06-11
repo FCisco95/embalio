@@ -9,6 +9,8 @@ import { notify } from "@/lib/notify";
 import { sendTelegram } from "@/lib/telegram";
 import { sendWebPush } from "@/lib/push";
 import { logActivity } from "@/lib/activity";
+import { freshnessLabel } from "@/lib/engagement/present";
+import { revalidatePath } from "next/cache";
 import type { CandidateInput } from "@/lib/apify";
 import type { Json } from "@/lib/supabase/types";
 
@@ -231,4 +233,72 @@ export async function runSniperPollAll(): Promise<{ profiles: number; pulled: nu
     }
   }
   return { profiles: profileIds.length, pulled, alerts };
+}
+
+const PIN_WINDOW_H = 3; // pins expire with the first-to-comment window
+
+export interface SniperPin {
+  alertId: string;
+  authorHandle: string;
+  text: string;
+  url: string;
+  score: number;     // 0-100
+  freshness: string;
+  latencyMin: number; // detection latency — the paid-tier baseline, surfaced honestly
+}
+
+export interface SniperAlertRowLite {
+  id: string;
+  author_handle: string;
+  tweet_text: string;
+  tweet_url: string;
+  score: number;
+  latency_ms: number;
+  created_at: string;
+}
+
+export function toSniperPin(row: SniperAlertRowLite, nowMs: number): SniperPin {
+  return {
+    alertId: row.id,
+    authorHandle: row.author_handle,
+    text: row.tweet_text,
+    url: row.tweet_url,
+    score: Math.round(row.score * 100),
+    freshness: freshnessLabel(row.created_at, nowMs),
+    latencyMin: Math.round(row.latency_ms / 60_000),
+  };
+}
+
+/** Active (un-acted, in-window) sniper alerts, hottest first — pinned on /engage. */
+export async function getSniperPins(profileId: string): Promise<SniperPin[]> {
+  const sb = supabaseService();
+  const cutoff = new Date(Date.now() - PIN_WINDOW_H * 3600_000).toISOString();
+  const { data } = await sb
+    .from("sniper_alerts")
+    .select("id, author_handle, tweet_text, tweet_url, score, latency_ms, created_at")
+    .eq("profile_id", profileId)
+    .eq("status", "sent")
+    .gte("created_at", cutoff)
+    .order("score", { ascending: false })
+    .limit(5);
+  const now = Date.now();
+  return (data ?? []).map((row) => toSniperPin(row, now));
+}
+
+export async function markSniperAlert(
+  profileId: string,
+  alertId: string,
+  action: "acted" | "dismissed",
+): Promise<void> {
+  const sb = supabaseService();
+  const { error } = await sb
+    .from("sniper_alerts")
+    .update({ status: action })
+    .eq("id", alertId)
+    .eq("profile_id", profileId);
+  if (error) throw new Error(`marking sniper alert failed: ${error.message}`);
+  if (action === "acted") {
+    await logActivity(sb, profileId, "sniper_alert_acted", { refId: alertId });
+  }
+  revalidatePath("/engage");
 }

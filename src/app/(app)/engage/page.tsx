@@ -1,5 +1,7 @@
 import { listProfiles } from "@/server/profiles";
 import { getEngageQueue } from "@/server/engage-queue";
+import { getSniperPins } from "@/server/sniper";
+import { SniperPins } from "@/components/sniper-pins";
 import { EngageQueuePanel } from "@/components/engage-queue-panel";
 import { ReplyQueuePanel } from "@/components/reply-queue";
 import { TrendRadarPanel } from "@/components/trend-radar";
@@ -16,6 +18,7 @@ export default async function EngagePage({
   // Pre-load the first profile's surfaced candidates so the queue is populated on
   // open (the cron fills `candidates`; no scan-click needed for the dead-time loop).
   const initialItems = profiles[0] ? await getEngageQueue(profiles[0].id).catch(() => []) : [];
+  const sniperPins = profiles[0] ? await getSniperPins(profiles[0].id).catch(() => []) : [];
   const { tab } = await searchParams;
   const activeTab =
     tab === "deepscan" ? "deepscan" : tab === "trends" ? "trends" : "engage";
@@ -41,6 +44,7 @@ export default async function EngagePage({
               <PushOptIn profileId={profiles[0].id} />
             </div>
           )}
+          {profiles[0] && <SniperPins profileId={profiles[0].id} pins={sniperPins} />}
           <p className="text-[13px] text-muted-foreground mb-4">
             Scan seed accounts and draft replies in one step.
           </p>
