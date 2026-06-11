@@ -25,4 +25,11 @@ describe("apify SignalSource", () => {
     expect(tweets[0].metrics_snapshot.authorFollowers).toBe(5000);
     expect(tweets[0].raw).toMatchObject({ id: "111" });
   });
+
+  it("maps scrape metrics for a single tweet url", async () => {
+    const src = makeApifySource(fakeApify([{ likeCount: 7, viewCount: 900, replyCount: 2 }]), "actor/x");
+    await expect(src.pullTweetMetrics("https://x.com/a/status/111")).resolves.toEqual({
+      likes: 7, views: 900, replies: 2,
+    });
+  });
 });

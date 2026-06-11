@@ -4,7 +4,7 @@ import type { CandidateInput } from "@/lib/apify";
  *  existing scan/rank pipeline consumes it unchanged; `raw` feeds the warehouse. */
 export type SignalTweet = CandidateInput & { raw?: Record<string, unknown> };
 
-export type SignalSourceId = "apify" | "twitterapi" | "grok" | "xapi";
+export type SignalSourceId = "apify" | "twitterapi" | "grok";
 
 export interface SignalSource {
   readonly id: SignalSourceId;
