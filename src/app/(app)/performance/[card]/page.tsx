@@ -18,6 +18,7 @@ const CARDS: Record<
     format: (v: number) => string;
     /** AreaChart y value (rate is charted as a percent number). */
     chartY: (v: number) => number;
+    chartUnit?: string;
   }
 > = {
   "follow-rate": {
@@ -26,6 +27,7 @@ const CARDS: Record<
     series: (k) => k.rateSeries,
     format: (v) => `${(v * 100).toFixed(1)}%`,
     chartY: (v) => Math.round(v * 1000) / 10,
+    chartUnit: "%",
   },
   follows: {
     title: "New follows",
@@ -52,8 +54,8 @@ const CARDS: Record<
 
 export default async function KpiDrilldownPage({ params }: { params: Promise<{ card: string }> }) {
   const { card } = await params;
+  if (!Object.hasOwn(CARDS, card)) return notFound();
   const def = CARDS[card];
-  if (!def) return notFound();
   const profiles = (await listProfiles()) ?? [];
   const profileId = profiles[0]?.id;
   const kpis = profileId ? await getKpis(profileId) : null;
@@ -73,7 +75,7 @@ export default async function KpiDrilldownPage({ params }: { params: Promise<{ c
 
         <Card>
           <CardHeader>
-            <CardTitle>Last 14 days</CardTitle>
+            <CardTitle>{`Last 14 days${def.chartUnit ? ` (${def.chartUnit})` : ""}`}</CardTitle>
           </CardHeader>
           <CardContent>
             {chartData.length >= 2 ? (
