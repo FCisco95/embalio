@@ -1,5 +1,8 @@
 import { listProfiles } from "@/server/profiles";
 import { listPerformance } from "@/server/posts";
+import { getKpis } from "@/server/kpis";
+import { KpiGrid } from "@/components/kpis/kpi-grid";
+import { CsvImportCard } from "@/components/kpis/csv-import-card";
 import {
   Table,
   TableBody,
@@ -27,6 +30,7 @@ export default async function PerformancePage({
   const posts: Array<Record<string, any>> = active
     ? ((await listPerformance(active)) ?? [])
     : [];
+  const kpis = active ? await getKpis(active) : null;
 
   // Stat calculations
   const totalLikes = posts.reduce((s, p) => s + (p.metrics?.likes ?? 0), 0);
@@ -51,8 +55,8 @@ export default async function PerformancePage({
 
   return (
     <PageShell
-      title="Reach"
-      subtitle="Per-post performance across your connected platforms."
+      title="Stats"
+      subtitle="What actually moves the account — import your weekly X analytics CSV to feed the KPI cards."
     >
       <div className="space-y-6">
         {/* Profile filter */}
@@ -72,6 +76,16 @@ export default async function PerformancePage({
             </a>
           ))}
         </div>
+
+        {/* KPI cards — follow conversion north star (P3) */}
+        {kpis && <KpiGrid kpis={kpis} />}
+        {active && (
+          <CsvImportCard
+            profileId={active}
+            dataThrough={kpis?.dataThrough ?? null}
+            staleDays={kpis?.staleDays ?? null}
+          />
+        )}
 
         {/* Stat chips */}
         <div className="grid grid-cols-2 gap-[18px] sm:grid-cols-4">

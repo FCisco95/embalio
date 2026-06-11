@@ -14,7 +14,7 @@ export const NAV: NavItem[] = [
   { href: "/engage",      icon: Reply,     label: "Engage",      primary: true },
   { href: "/compose",     icon: PenLine,   label: "Composer",    primary: true },
   { href: "/board",       icon: Target,    label: "Targeting"                  },
-  { href: "/performance", icon: LineChart, label: "Reach",       primary: true },
+  { href: "/performance", icon: LineChart, label: "Stats",       primary: true },
   { href: "/studio",      icon: Video,     label: "Studio"                     },
   { href: "/profiles",    icon: Settings2, label: "Brand Voice"                },
 ];
