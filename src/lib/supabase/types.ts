@@ -422,6 +422,44 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          profile_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          profile_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          profile_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_size: string | null
@@ -663,6 +701,59 @@ export type Database = {
         }
         Relationships: []
       }
+      sniper_alerts: {
+        Row: {
+          author_handle: string
+          channels: Json
+          created_at: string
+          id: string
+          latency_ms: number
+          profile_id: string
+          score: number
+          score_parts: Json
+          source_tweet_id: string
+          status: string
+          tweet_text: string
+          tweet_url: string
+        }
+        Insert: {
+          author_handle: string
+          channels?: Json
+          created_at?: string
+          id?: string
+          latency_ms: number
+          profile_id: string
+          score: number
+          score_parts?: Json
+          source_tweet_id: string
+          status?: string
+          tweet_text: string
+          tweet_url: string
+        }
+        Update: {
+          author_handle?: string
+          channels?: Json
+          created_at?: string
+          id?: string
+          latency_ms?: number
+          profile_id?: string
+          score?: number
+          score_parts?: Json
+          source_tweet_id?: string
+          status?: string
+          tweet_text?: string
+          tweet_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sniper_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topic_history: {
         Row: {
           angle: string | null
@@ -788,6 +879,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "video_projects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_targets: {
+        Row: {
+          active: boolean
+          created_at: string
+          handle: string
+          id: string
+          priority: number
+          profile_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          handle: string
+          id?: string
+          priority?: number
+          profile_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          handle?: string
+          id?: string
+          priority?: number
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_targets_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
