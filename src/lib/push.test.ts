@@ -32,4 +32,12 @@ describe("sendWebPush", () => {
     };
     await expect(sendWebPush(sub, payload, impl)).rejects.toBeInstanceOf(PushSubscriptionGone);
   });
+
+  it("converts 404 into PushSubscriptionGone so callers can prune", async () => {
+    const impl = {
+      setVapidDetails: vi.fn(),
+      sendNotification: vi.fn().mockRejectedValue(Object.assign(new Error("not found"), { statusCode: 404 })),
+    };
+    await expect(sendWebPush(sub, payload, impl)).rejects.toBeInstanceOf(PushSubscriptionGone);
+  });
 });
