@@ -219,6 +219,9 @@ export interface WarehouseTweetLine {
   createdAt: string | null;
 }
 
+// Untrusted scraped fields must never split a list entry across prompt lines.
+const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+
 /**
  * P2 topic board prompt: the LLM RANKS against our own scraped signal instead of
  * discovering blind. Dated sources are mandatory — schema rejects sourceless output.
@@ -236,7 +239,7 @@ export function buildTopicBoardPrompt(
     lines.push(
       `These high-velocity tweets come from our own signal warehouse (scraped in the last 48h). Treat them as ground truth for what is ACTUALLY moving — prefer topics corroborated by them, and rank harder evidence above vibes:`,
       ...warehouseTweets.map(
-        (t) => `- @${sanitizeForPrompt(t.handle, 40)} (${t.createdAt ? sanitizeForPrompt(t.createdAt, 40) : "unknown time"}): ${sanitizeForPrompt(t.text, 200)} [${sanitizeForPrompt(t.url, 150)}]`,
+        (t) => `- @${oneLine(sanitizeForPrompt(t.handle, 40))} (${t.createdAt ? oneLine(sanitizeForPrompt(t.createdAt, 40)) : "unknown time"}): ${oneLine(sanitizeForPrompt(t.text, 200))} [${oneLine(sanitizeForPrompt(t.url, 150))}]`,
       ),
     );
   }
