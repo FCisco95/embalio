@@ -1,4 +1,4 @@
-import { Home, Target, PenLine, Reply, LineChart, Settings2, Video, type LucideIcon } from "lucide-react";
+import { Home, Flame, Target, PenLine, Reply, LineChart, Settings2, Video, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -10,10 +10,11 @@ export interface NavItem {
 
 export const NAV: NavItem[] = [
   { href: "/",            icon: Home,      label: "Home",        primary: true },
+  { href: "/topics",      icon: Flame,     label: "Topics",      primary: true },
   { href: "/engage",      icon: Reply,     label: "Engage",      primary: true },
   { href: "/compose",     icon: PenLine,   label: "Composer",    primary: true },
   { href: "/board",       icon: Target,    label: "Targeting"                  },
   { href: "/performance", icon: LineChart, label: "Reach",       primary: true },
   { href: "/studio",      icon: Video,     label: "Studio"                     },
-  { href: "/profiles",    icon: Settings2, label: "Brand Voice", primary: true },
+  { href: "/profiles",    icon: Settings2, label: "Brand Voice"                },
 ];
