@@ -1,5 +1,7 @@
 import { supabaseService } from "@/lib/supabase/server";
-import { makeApify, pullTweets, type CandidateInput } from "@/lib/apify";
+import { type CandidateInput } from "@/lib/apify";
+import { getSignalSource } from "@/lib/signals";
+import { warehouseTweets } from "@/lib/signals/warehouse";
 import { embedText, embedTexts, relevanceFromVectors } from "@/lib/embeddings";
 import { compositeScore } from "@/lib/scoring";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
@@ -60,7 +62,10 @@ export async function scanTargetsForProfile(profileId: string): Promise<number> 
   const handles = (targets ?? []).map((t) => t.handle!).filter(Boolean);
   if (handles.length === 0) return 0;
 
-  const raw = await pullTweets(makeApify(), process.env.APIFY_TWEET_SCRAPER_ACTOR!, { handles, maxPerHandle: MAX_PER_HANDLE });
+  const source = getSignalSource();
+  const raw = await source.pullAuthorTweets(handles, { maxPerHandle: MAX_PER_HANDLE });
+  // Warehouse EVERY pulled tweet (even non-top-N, even text-less) — the dataset is the asset.
+  await warehouseTweets(sb, source.id, raw);
   // Skip text-less tweets (media-only / link-only): they can't be embedded and
   // aren't reply targets — drafting against an empty post would be slop.
   const scannable = raw.filter((r) => r.tweet_text.trim().length > 0);

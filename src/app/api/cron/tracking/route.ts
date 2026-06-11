@@ -3,6 +3,7 @@ import { supabaseService } from "@/lib/supabase/server";
 import { makeApify, scrapeMetrics } from "@/lib/apify";
 import type { Json } from "@/lib/supabase/types";
 import { cronAuthError } from "@/lib/cron-auth";
+import { tweetIdFromUrl } from "@/lib/signals/tweet-id";
 
 export const maxDuration = 300;
 const MAX_POSTS_PER_RUN = 50;
@@ -24,6 +25,14 @@ export async function GET(req: NextRequest) {
     try {
       const m = await scrapeMetrics(makeApify(), process.env.APIFY_TWEET_SCRAPER_ACTOR!, p.tweet_url);
       await sb.from("posts").update({ metrics: m as unknown as Json, last_scraped_at: new Date().toISOString() }).eq("id", p.id);
+      // Own posts enter the warehouse minimal — a later KPI phase reads these first-hour snapshots.
+      const tid = tweetIdFromUrl(p.tweet_url);
+      if (tid) {
+        const { data: st } = await sb.from("signal_tweets")
+          .upsert({ source: "apify", source_tweet_id: tid, author_handle: "", url: p.tweet_url, last_seen_at: new Date().toISOString() }, { onConflict: "source_tweet_id" })
+          .select("id").single();
+        if (st) await sb.from("tweet_metric_snapshots").insert({ signal_tweet_id: st.id, likes: m.likes, views: m.views, replies: m.replies });
+      }
       updated++;
     } catch (e) { failed++; console.error("tracking failed", p.id, e); }
   }
