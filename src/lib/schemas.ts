@@ -126,6 +126,28 @@ export const TrendReport = z.object({
 export type Trend = z.infer<typeof Trend>;
 export type TrendReport = z.infer<typeof TrendReport>;
 
+// P2 topic board: every topic MUST carry dated sources — sourceless generation
+// is rejected at the schema layer, which makes generateStructured retry.
+export const TopicSource = z.object({
+  url: z.string().url(),
+  title: z.string().min(1),
+  published_at: z.string().min(1),
+});
+export const TopicCandidate = z.object({
+  topic: z.string().min(1),
+  why_now: z.string().min(1),
+  angle: z.string().min(1),
+  kind: z.enum(["spike", "durable"]),
+  sources: z.array(TopicSource).min(1),
+});
+export const TopicBoardReport = z.object({
+  topics: z.array(TopicCandidate).min(1).max(6),
+  generatedAt: z.string(),
+});
+export type TopicSource = z.infer<typeof TopicSource>;
+export type TopicCandidate = z.infer<typeof TopicCandidate>;
+export type TopicBoardReport = z.infer<typeof TopicBoardReport>;
+
 // Credibility gate: does THIS account have standing to post about a trend?
 // keep=false means drop it; angle is the specific take to draft if kept.
 export const CredibilityVerdict = z.object({
