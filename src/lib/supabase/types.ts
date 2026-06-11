@@ -49,6 +49,65 @@ export type Database = {
           },
         ]
       }
+      analytics_daily: {
+        Row: {
+          bookmarks: number | null
+          date: string
+          engagements: number | null
+          id: string
+          imported_at: string
+          impressions: number | null
+          likes: number | null
+          new_follows: number
+          profile_id: string
+          profile_visits: number
+          replies: number | null
+          reposts: number | null
+          shares: number | null
+          unfollows: number | null
+        }
+        Insert: {
+          bookmarks?: number | null
+          date: string
+          engagements?: number | null
+          id?: string
+          imported_at?: string
+          impressions?: number | null
+          likes?: number | null
+          new_follows: number
+          profile_id: string
+          profile_visits: number
+          replies?: number | null
+          reposts?: number | null
+          shares?: number | null
+          unfollows?: number | null
+        }
+        Update: {
+          bookmarks?: number | null
+          date?: string
+          engagements?: number | null
+          id?: string
+          imported_at?: string
+          impressions?: number | null
+          likes?: number | null
+          new_follows?: number
+          profile_id?: string
+          profile_visits?: number
+          replies?: number | null
+          reposts?: number | null
+          shares?: number | null
+          unfollows?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_daily_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       algorithm_briefs: {
         Row: {
           brief: Json
