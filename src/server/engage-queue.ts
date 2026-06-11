@@ -1,8 +1,8 @@
 "use server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
-import { fitBadge, freshnessLabel, type FitBadge } from "@/lib/engagement/present";
-import { refreshTargetsForProfile } from "@/server/targeting";
+import { fitBadge, freshnessLabel, isFresh, type FitBadge } from "@/lib/engagement/present";
+import { scanTargetsForProfile, draftSingleCandidate } from "@/server/targeting";
 import { revalidatePath } from "next/cache";
 
 export interface EngageItem {
@@ -32,11 +32,17 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
     .eq("profile_id", profileId)
     .eq("status", "surfaced")
     .order("score_composite", { ascending: false })
-    .limit(10);
+    .limit(50);
 
   const now = Date.now();
+  // Freshness gate: a dead-time queue must never show stale posts. Drop anything
+  // outside the window, THEN take the top 10 by score (fetch 50 so fresh-but-
+  // lower-score candidates aren't buried under stale high-score ones).
+  const fresh = (cands ?? [])
+    .filter((c) => isFresh((c.metrics_snapshot as { createdAt?: string } | null)?.createdAt, now))
+    .slice(0, 10);
   const items: EngageItem[] = [];
-  for (const c of cands ?? []) {
+  for (const c of fresh) {
     const { data: drafts } = await sb
       .from("drafts")
       .select("id, body, engagement_scenario")
@@ -63,9 +69,20 @@ export async function getEngageQueue(profileId: string): Promise<EngageItem[]> {
   return items;
 }
 
-/** Local-only: re-scan + re-draft (claude). Returns surfaced count. */
+/**
+ * Surface-only scan (Apify + score, NO claude) — fast, fills the queue in ~10s.
+ * Drafting is lazy/per-card (`draftReplyFor`) so a scan never blocks on 10
+ * sequential claude calls. Returns surfaced count.
+ */
 export async function scanNow(profileId: string): Promise<number> {
-  const n = await refreshTargetsForProfile(profileId);
+  const n = await scanTargetsForProfile(profileId);
   revalidatePath("/engage");
   return n;
+}
+
+/** Draft a reply for ONE card on demand (local claude). Returns the reply text or null. */
+export async function draftReplyFor(profileId: string, candidateId: string): Promise<string | null> {
+  const reply = await draftSingleCandidate(profileId, candidateId);
+  revalidatePath("/engage");
+  return reply;
 }

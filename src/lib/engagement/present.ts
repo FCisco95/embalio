@@ -15,3 +15,21 @@ export function freshnessLabel(createdAtIso: string, nowMs: number): string {
   if (mins < 60) return `${mins} min ago`;
   return `${Math.round(mins / 60)}h ago`;
 }
+
+/**
+ * Dead-time queue freshness gate. Keep only candidates whose tweet is within
+ * `windowH` hours — a stale queue (8-day-old posts) is worse than an empty one.
+ * This is the "fresh wins" rule applied to the QUEUE, not just scan-time scoring.
+ */
+export const FRESH_WINDOW_H = 48;
+
+export function isFresh(
+  createdAtIso: string | undefined | null,
+  nowMs: number,
+  windowH = FRESH_WINDOW_H,
+): boolean {
+  if (!createdAtIso) return false;
+  const t = new Date(createdAtIso).getTime();
+  if (Number.isNaN(t)) return false;
+  return nowMs - t <= windowH * 3600_000;
+}
