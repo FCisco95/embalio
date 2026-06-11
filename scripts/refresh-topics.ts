@@ -11,10 +11,17 @@ async function main() {
   if (!url || !key) throw new Error("missing NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
   const sb = createClient<Database>(url, key, { auth: { persistSession: false } });
 
-  const { data: profiles, error } = await sb.from("profiles").select("id, handle");
+  const { data: all, error } = await sb.from("profiles").select("id, handle, content_pillars");
   if (error) throw new Error(error.message);
-  if (!profiles || profiles.length === 0) {
-    console.log("no profiles — nothing to do");
+  // A board needs pillars to research against — pillarless stubs would only burn
+  // generation minutes and gate-drop everything.
+  const profiles = (all ?? []).filter(
+    (p) => Array.isArray(p.content_pillars) && p.content_pillars.length > 0,
+  );
+  const skipped = (all?.length ?? 0) - profiles.length;
+  if (skipped > 0) console.log(`skipped ${skipped} profile(s) without content pillars`);
+  if (profiles.length === 0) {
+    console.log("no profiles with pillars — nothing to do");
     return;
   }
 
