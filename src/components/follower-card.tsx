@@ -12,7 +12,7 @@ export function FollowerCard({ stat }: { stat: FollowerStat | null }) {
     <Card>
       <CardContent className="flex flex-col gap-2 pt-5">
         <span className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-          <Star className="size-3.5 text-warning" strokeWidth={1.8} />
+          <Star className="size-3.5 text-warning" strokeWidth={1.8} aria-hidden="true" />
           Followers
         </span>
         {stat ? (
@@ -23,7 +23,7 @@ export function FollowerCard({ stat }: { stat: FollowerStat | null }) {
               </span>
               {stat.delta7d !== null && (
                 <Badge variant={stat.delta7d >= 0 ? "good" : "bad"}>
-                  {stat.delta7d >= 0 ? <ArrowUp strokeWidth={2} /> : <ArrowDown strokeWidth={2} />}
+                  {stat.delta7d >= 0 ? <ArrowUp strokeWidth={2} aria-hidden="true" /> : <ArrowDown strokeWidth={2} aria-hidden="true" />}
                   {formatDelta(stat.delta7d)} this week
                 </Badge>
               )}
