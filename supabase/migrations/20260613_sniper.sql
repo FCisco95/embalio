@@ -1,4 +1,4 @@
-﻿-- P5 sniper-lite: watch list, alert ledger, web-push subscriptions.
+-- P5 sniper-lite: watch list, alert ledger, web-push subscriptions.
 -- Same service-role posture as the signal warehouse (RLS disabled; P7 hardening item).
 
 create table if not exists public.watch_targets (
