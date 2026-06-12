@@ -32,9 +32,12 @@ export async function getWeeklyActivity(profileId: string): Promise<WeeklyActivi
       .single(),
   ]);
 
+  if (postsResult.error) console.error("[weekly-activity] posts query failed:", postsResult.error.message);
+  if (repliesResult.error) console.error("[weekly-activity] replies query failed:", repliesResult.error.message);
+
   return {
-    postsThisWeek: postsResult.count ?? 0,
-    repliesThisWeek: repliesResult.count ?? 0,
+    postsThisWeek: postsResult.error ? 0 : (postsResult.count ?? 0),
+    repliesThisWeek: repliesResult.error ? 0 : (repliesResult.count ?? 0),
     bioOptimized: profileResult.data?.bio_optimized ?? false,
     pinnedOptimized: profileResult.data?.pinned_optimized ?? false,
   };

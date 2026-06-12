@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ supabaseServer: vi.fn() }));
 
 function makeSb({
-  postsCount = 0,
-  repliesCount = 0,
+  postsCount = 0 as number | null,
+  repliesCount = 0 as number | null,
   profile = { bio_optimized: false, pinned_optimized: false },
   postsError = null as null | { message: string },
   repliesError = null as null | { message: string },
@@ -99,11 +99,23 @@ describe("getWeeklyActivity", () => {
     expect(result.pinnedOptimized).toBe(false);
   });
 
-  it("falls back to 0 when posts count is null", async () => {
+  it("returns 0 when DB returns null count for posts (Supabase error path)", async () => {
     const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(makeSb({ postsCount: 0 }));
+    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSb({ postsCount: null, postsError: { message: "connection reset" } })
+    );
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
     const result = await getWeeklyActivity("p1");
     expect(result.postsThisWeek).toBe(0);
+  });
+
+  it("returns 0 when DB returns null count for replies (Supabase error path)", async () => {
+    const { supabaseServer } = await import("@/lib/supabase/server");
+    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSb({ repliesCount: null, repliesError: { message: "timeout" } })
+    );
+    const { getWeeklyActivity } = await import("@/server/weekly-activity");
+    const result = await getWeeklyActivity("p1");
+    expect(result.repliesThisWeek).toBe(0);
   });
 });
