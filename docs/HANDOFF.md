@@ -1,13 +1,44 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-11 (Session 11 — P3 KPI dashboard + CSV import SHIPPED: merged to `main`, prod-verified live)
-**Active branch:** `main` (P3 merged fast-forward `cf5a192..b0da6e9`, suite 545 green, prod deploy verified serving the new Stats page). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-12 (Session 12 — P5 Sniper-lite + push SHIPPED: merged to `main`, prod-deployed, live-fire dogfood PASSED)
+**Active branch:** `main` (P5 merged fast-forward `74b9729..a9e03a7`, suite 578 green, prod verified). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 12 (2026-06-12, night) — P5 Sniper-lite + Push SHIPPED end-to-end, dogfood PASSED
+
+**TL;DR:** P5 (moved ahead of P4 on the P3 readout: reach is the bottleneck) built subagent-driven on `feat/sniper-push` (22 commits, every task TDD + spec-reviewed + quality-reviewed + final integration review = READY TO MERGE), merged fast-forward to `main`, prod-deployed. **Suite 545 → 578 green.** Live-fire dogfood passed: migration applied, VAPID set, 4 watch handles seeded, phone subscribed (FCM), workflow green (`{ok:true, profiles:1, pulled:12, alerts:0}` — correct verdict, all pulls >3h stale), direct web-push test landed on the phone (owner-confirmed).
+
+**Canonical docs (don't re-litigate):**
+- Plan (all 12 tasks done): repo `docs/superpowers/plans/2026-06-11-p5-sniper-lite-push.md` — owner-locked decisions incl. **15-min lean cadence** (not the spec's 5-min; Apify budget) and 2-10x band standardization.
+- Spec: vault `10 - PROJECTS/Embalio/specs/2026-06-11-growth-operator-revamp-design.md` P5 row + decision 5/6.
+
+**What shipped:**
+- Schema: `watch_targets` + `sniper_alerts` (UNIQUE(profile_id, source_tweet_id) idempotency, `latency_ms` = discovery latency, `score_parts` jsonb) + `push_subscriptions` — `supabase/migrations/20260613_sniper.sql`, **applied live**.
+- **2-10x size band standardized repo-wide** (was 5-20x): `scoring.ts` `sizeFit`, `knobs.ts` `targetFollowerBand`, `present.ts` `fitBadge`.
+- `src/lib/sniper/score.ts` — pure `targetScore()`: playbook §4 weighted sum (0.30 rel / 0.25 reply-velocity / 0.20 recency / 0.15 size-fit / 0.10 followback, × bait multiplier), hard drops (>30 replies / >3h-unless-hot / bait<0.4).
+- Web push: `web-push` dep, `src/lib/push.ts` (`PushSubscriptionGone` prune signal), `public/sw.js`, `PushOptIn` on `/engage`, `push_subscriptions` persistence.
+- `src/lib/notify.ts` — unified Telegram + web-push fan-out, channel-isolated, dead-sub pruning.
+- `src/server/sniper.ts` — `pickAlerts` pure core + `runSniperPoll` (lean pull maxPerHandle 3, warehouse-everything, embed relevance, real follower count from `follower_snapshots`, idempotent upsert, notify, `sniper_alert_sent` activity) + `runSniperPollAll`.
+- `/api/cron/sniper` + `.github/workflows/sniper-poll.yml` (`*/15 6-22 * * *` UTC).
+- Sniper pins on `/engage` (amber cards, Done/Skip, "detected in Xm" honest latency) + watch-list card on `/board` (capped 10, share-URL paste normalized).
+- `scripts/test-push.mjs` — one-off push smoke test (`node --env-file=.env.local scripts/test-push.mjs`).
+
+**Env/infra state:** 4 VAPID vars on Vercel prod + `.env.local` (this machine); `SNIPER_MIN_SCORE` defaults 0.6 (env-overridable); Telegram vars pre-existing; GH needed nothing new (CRON_SECRET/APP_BASE_URL reused). Telegram vars now documented in `.env.example`.
+
+**NEXT (in order):**
+1. **Dogfood week:** wait for first REAL alert (watched handle posts fresh → Telegram + push + `/engage` pin + latency row). Watch handles: thisiskp_, arvidkahl, tdinh_me, florinpop1705 — arvidkahl 200k = 155x → near-never alerts (visibility play only); **add 4-6 smaller in-band handles (2.6k-13k followers)** for real alert flow.
+2. **Watch Apify burn ~1 day in** (expect ≤$0.50/day; if higher, widen cron to `*/20` or `*/30` — one-line workflow change).
+3. **P4 — Predictions** (3-4 days; spec row: `src/lib/predict/`, trajectory/what-if/breakout pre-check/weekly forecast, `predictions` table receipts; full year of `analytics_daily` to fit from). Open with its own `writing-plans` cycle.
+4. Residual P0 leftovers: nudge/Telegram trigger dogfood from phone.
+
+**Risks/notes:** 17 tables RLS-disabled (3 new ones included) — Supabase advisor critical, accepted posture, **P7 hardening item**; `WatchTargetsCard` remove-chip is non-optimistic (server round-trip lag, minor UX); sw.js notificationclick force-navigates the first open tab to `/engage` (acceptable v1); count-cap race on concurrent watch adds (single-user, fine); Apify junk empty-row warehoused per poll (text-less skip already guards scoring).
 
 ---
 
