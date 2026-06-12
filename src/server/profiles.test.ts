@@ -37,6 +37,15 @@ describe("toggleProfileOptimized", () => {
     expect(updateSpy).toHaveBeenCalledWith({ pinned_optimized: false });
   });
 
+  it("throws when profileId does not match FIXED_PROFILE_ID", async () => {
+    vi.stubEnv("FIXED_PROFILE_ID", "fixed-id")
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(makeUpdateSb());
+    const { toggleProfileOptimized } = await import("@/server/profiles");
+    await expect(toggleProfileOptimized("other-id", "bio_optimized", true)).rejects.toThrow("profile_id mismatch");
+    vi.unstubAllEnvs();
+  });
+
   it("throws on invalid field name", async () => {
     const { supabaseService } = await import("@/lib/supabase/server");
     (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(makeUpdateSb());

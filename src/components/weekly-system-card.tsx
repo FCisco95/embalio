@@ -25,16 +25,19 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
 function OptimizationChip({
   label,
   checked,
+  disabled,
   onClick,
 }: {
   label: string;
   checked: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors",
         checked
@@ -61,7 +64,7 @@ export function WeeklySystemCard({
 }) {
   const [bioOptimized, setBioOptimized] = useState(data.bioOptimized);
   const [pinnedOptimized, setPinnedOptimized] = useState(data.pinnedOptimized);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   function toggle(field: "bio_optimized" | "pinned_optimized") {
     if (field === "bio_optimized") {
@@ -149,11 +152,13 @@ export function WeeklySystemCard({
               <OptimizationChip
                 label="Bio has proof"
                 checked={bioOptimized}
+                disabled={isPending}
                 onClick={() => toggle("bio_optimized")}
               />
               <OptimizationChip
                 label="Pinned shows result"
                 checked={pinnedOptimized}
+                disabled={isPending}
                 onClick={() => toggle("pinned_optimized")}
               />
             </div>

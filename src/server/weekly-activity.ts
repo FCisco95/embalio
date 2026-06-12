@@ -34,6 +34,7 @@ export async function getWeeklyActivity(profileId: string): Promise<WeeklyActivi
 
   if (postsResult.error) console.error("[weekly-activity] posts query failed:", postsResult.error.message);
   if (repliesResult.error) console.error("[weekly-activity] replies query failed:", repliesResult.error.message);
+  if (profileResult.error) console.error("[weekly-activity] profile query failed:", profileResult.error.message);
 
   return {
     postsThisWeek: postsResult.error ? 0 : (postsResult.count ?? 0),

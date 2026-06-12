@@ -60,6 +60,7 @@ export async function toggleProfileOptimized(
   value: boolean,
 ): Promise<void> {
   if (!ALLOWED_OPTIMIZATION_FIELDS.has(field)) throw new Error(`invalid field: ${field}`)
+  if (FIXED_PROFILE_ID && profileId !== FIXED_PROFILE_ID) throw new Error("profile_id mismatch")
   const sb = supabaseService()
   const patch = field === "bio_optimized" ? { bio_optimized: value } : { pinned_optimized: value }
   const { error } = await sb.from("profiles").update(patch).eq("id", profileId)
