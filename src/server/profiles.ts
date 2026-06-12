@@ -51,3 +51,17 @@ export async function listSeedTargets(profileId: string) {
   if (error) throw new Error(error.message)
   return data
 }
+
+const ALLOWED_OPTIMIZATION_FIELDS = new Set(["bio_optimized", "pinned_optimized"] as const)
+
+export async function toggleProfileOptimized(
+  profileId: string,
+  field: "bio_optimized" | "pinned_optimized",
+  value: boolean,
+): Promise<void> {
+  if (!ALLOWED_OPTIMIZATION_FIELDS.has(field)) throw new Error(`invalid field: ${field}`)
+  const sb = supabaseService()
+  const { error } = await sb.from("profiles").update({ [field]: value }).eq("id", profileId)
+  if (error) throw new Error(error.message)
+  revalidatePath("/")
+}
