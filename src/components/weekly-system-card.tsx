@@ -33,6 +33,7 @@ function OptimizationChip({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors",
@@ -64,13 +65,27 @@ export function WeeklySystemCard({
 
   function toggle(field: "bio_optimized" | "pinned_optimized") {
     if (field === "bio_optimized") {
-      const next = !bioOptimized;
+      const prev = bioOptimized;
+      const next = !prev;
       setBioOptimized(next);
-      startTransition(() => toggleProfileOptimized(profileId, field, next));
+      startTransition(async () => {
+        try {
+          await toggleProfileOptimized(profileId, field, next);
+        } catch {
+          setBioOptimized(prev);
+        }
+      });
     } else {
-      const next = !pinnedOptimized;
+      const prev = pinnedOptimized;
+      const next = !prev;
       setPinnedOptimized(next);
-      startTransition(() => toggleProfileOptimized(profileId, field, next));
+      startTransition(async () => {
+        try {
+          await toggleProfileOptimized(profileId, field, next);
+        } catch {
+          setPinnedOptimized(prev);
+        }
+      });
     }
   }
 
