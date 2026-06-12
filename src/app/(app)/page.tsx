@@ -36,10 +36,12 @@ import { getGrowthPlan } from "@/server/growth-plan"
 import { getDailyAssignment } from "@/server/coach"
 import { getStreak } from "@/server/streak"
 import { getFollowerStat } from "@/server/kpis"
+import { getWeeklyActivity } from "@/server/weekly-activity"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
 import { CoachCard } from "@/components/coach-card"
 import { FollowerCard } from "@/components/follower-card"
 import { StreakBadge } from "@/components/streak-badge"
+import { WeeklySystemCard } from "@/components/weekly-system-card"
 
 const CARD = "rounded-xl border border-border bg-card"
 
@@ -58,18 +60,22 @@ export default async function DashboardPage() {
   let assignment: Awaited<ReturnType<typeof getDailyAssignment>> | null = null
   let streak = 0
   let followerStat: Awaited<ReturnType<typeof getFollowerStat>> = null
+  let weeklyActivity: Awaited<ReturnType<typeof getWeeklyActivity>> | null = null
+  let profileId: string | null = null
   try {
     const profiles = await listProfiles()
     const profile = profiles?.[0]
     if (needsSetup(profile)) redirect("/setup")
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
     if (profile?.id) {
+      profileId = profile.id
       pending = await listPendingDrafts(profile.id)
       data = await getDashboardData(profile.id)
       growthPlan = await getGrowthPlan(profile.id)
       assignment = await getDailyAssignment(profile.id)
       streak = await getStreak(profile.id)
       followerStat = await getFollowerStat(profile.id)
+      weeklyActivity = await getWeeklyActivity(profile.id)
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
@@ -114,6 +120,13 @@ export default async function DashboardPage() {
 
         {/* Follower star card (P3) */}
         <FollowerCard stat={followerStat} />
+
+        {/* Weekly system card (P6) */}
+        {weeklyActivity && profileId && (
+          <div className="lg:col-span-2">
+            <WeeklySystemCard data={weeklyActivity} profileId={profileId} />
+          </div>
+        )}
 
         {/* Reach hero */}
         <div
