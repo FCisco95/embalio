@@ -425,6 +425,7 @@ export type Database = {
       profiles: {
         Row: {
           account_size: string | null
+          bio_optimized: boolean
           channel_playbook: Json | null
           content_pillars: string[]
           created_at: string
@@ -437,6 +438,7 @@ export type Database = {
           niche_description: string | null
           north_star_metric: string | null
           onboarding_answers: Json
+          pinned_optimized: boolean
           premium_account: boolean
           reply_playbook: string | null
           retention: Json
@@ -447,6 +449,7 @@ export type Database = {
         }
         Insert: {
           account_size?: string | null
+          bio_optimized?: boolean
           channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
@@ -459,6 +462,7 @@ export type Database = {
           niche_description?: string | null
           north_star_metric?: string | null
           onboarding_answers?: Json
+          pinned_optimized?: boolean
           premium_account?: boolean
           reply_playbook?: string | null
           retention?: Json
@@ -469,6 +473,7 @@ export type Database = {
         }
         Update: {
           account_size?: string | null
+          bio_optimized?: boolean
           channel_playbook?: Json | null
           content_pillars?: string[]
           created_at?: string
@@ -481,6 +486,7 @@ export type Database = {
           niche_description?: string | null
           north_star_metric?: string | null
           onboarding_answers?: Json
+          pinned_optimized?: boolean
           premium_account?: boolean
           reply_playbook?: string | null
           retention?: Json
