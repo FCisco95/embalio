@@ -13,7 +13,7 @@ function makeUpdateSb(error: null | { message: string } = null) {
 }
 
 describe("toggleProfileOptimized", () => {
-  beforeEach(() => vi.resetModules());
+  beforeEach(() => { vi.clearAllMocks(); vi.resetModules(); });
 
   it("updates bio_optimized to true", async () => {
     const { supabaseService } = await import("@/lib/supabase/server");
