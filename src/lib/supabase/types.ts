@@ -962,6 +962,38 @@ export type Database = {
           },
         ]
       }
+      strategy_snapshots: {
+        Row: {
+          id: string
+          profile_id: string
+          week_of: string
+          snapshot_json: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          week_of: string
+          snapshot_json: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          week_of?: string
+          snapshot_json?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_snapshots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_credentials: {
         Row: {
           obtained_at: string
