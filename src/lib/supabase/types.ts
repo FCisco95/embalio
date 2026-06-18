@@ -927,6 +927,41 @@ export type Database = {
           },
         ]
       }
+      predictions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          profile_id: string
+          type: string
+          value_json: Json
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          profile_id: string
+          type: string
+          value_json: Json
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          profile_id?: string
+          type?: string
+          value_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       youtube_credentials: {
         Row: {
           obtained_at: string
