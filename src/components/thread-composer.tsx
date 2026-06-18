@@ -1,13 +1,16 @@
 "use client";
 import { useState } from "react";
-import { generateThread, scoreDraftBreakout } from "@/server/original";
-import type { ThreadDraft, BreakoutScore } from "@/lib/schemas";
+import { generateThread } from "@/server/original";
+import { precheckBreakout } from "@/server/predict";
+import type { ThreadDraft } from "@/lib/schemas";
+import type { BreakoutPrecheck } from "@/lib/predict/schemas";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
+import { BreakoutChip } from "@/components/predict/breakout-chip";
 
 const TYPE_LABELS: Record<string, string> = { hook: "hook", body: "body", cta: "cta" };
 const TYPE_VARIANTS: Record<string, "accent" | "secondary" | "outline"> = {
@@ -16,23 +19,16 @@ const TYPE_VARIANTS: Record<string, "accent" | "secondary" | "outline"> = {
   cta: "outline",
 };
 
-function ScoreBadge({ score }: { score: number }) {
-  const variant = score >= 6 ? "good" : score >= 4 ? "warn" : "bad";
-  return <Badge variant={variant}>{score}/7</Badge>;
-}
-
-function TweetCard({ tweet, type, idx }: { tweet: string; type: string; idx: number }) {
+function TweetCard({ tweet, type, idx, profileId }: { tweet: string; type: string; idx: number; profileId: string }) {
   const [body, setBody] = useState(tweet);
-  const [score, setScore] = useState<BreakoutScore | null>(null);
+  const [precheck, setPrecheck] = useState<BreakoutPrecheck | null>(null);
   const [scoring, setScoring] = useState(false);
 
   async function checkBreakout() {
     setScoring(true);
     try {
-      const result = await scoreDraftBreakout(body);
-      setScore(result);
-    } catch (e) {
-      toast.error(String(e));
+      const r = await precheckBreakout(profileId, body);
+      if (r.ok) setPrecheck(r.precheck); else toast.error(r.error);
     } finally {
       setScoring(false);
     }
@@ -60,18 +56,8 @@ function TweetCard({ tweet, type, idx }: { tweet: string; type: string; idx: num
           <Button size="sm" variant="outline" disabled={scoring} onClick={checkBreakout}>
             {scoring ? "Scoring…" : "Breakout check"}
           </Button>
-          {score && (
-            <div className="flex items-center gap-2">
-              <ScoreBadge score={score.score} />
-              <span className="text-[12px] text-muted-foreground">{score.verdict}</span>
-            </div>
-          )}
         </div>
-        {score && score.fixes.length > 0 && (
-          <ul className="text-[12px] text-muted-foreground list-disc list-inside space-y-0.5">
-            {score.fixes.map((f, i) => <li key={i}>{f}</li>)}
-          </ul>
-        )}
+        {precheck && <BreakoutChip precheck={precheck} />}
       </CardContent>
     </Card>
   );
@@ -142,7 +128,7 @@ export function ThreadComposer({ profiles }: { profiles: { id: string; handle: s
               {i < draft.tweets.length - 1 && (
                 <div className="absolute left-[22px] top-full h-3 w-0.5 bg-primary/20 z-10" />
               )}
-              <TweetCard idx={i} tweet={t.tweet} type={t.type} />
+              <TweetCard idx={i} tweet={t.tweet} type={t.type} profileId={profileId} />
               {i < draft.tweets.length - 1 && <div className="h-3" />}
             </div>
           ))}
