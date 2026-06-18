@@ -6,8 +6,7 @@ import { targetScore, type TargetScoreParts } from "@/lib/sniper/score";
 import { baitScore } from "@/lib/engagement/bait";
 import { knobsFromProfile } from "@/lib/engagement/knobs";
 import { notify } from "@/lib/notify";
-import { sendTelegram } from "@/lib/telegram";
-import { sendWebPush } from "@/lib/push";
+import { buildNotifyDeps } from "./notify-deps";
 import { logActivity } from "@/lib/activity";
 import { freshnessLabel } from "@/lib/engagement/present";
 import { revalidatePath } from "next/cache";
@@ -179,7 +178,6 @@ export async function runSniperPoll(profileId: string): Promise<{ pulled: number
     }
     if (!inserted || inserted.length === 0) continue; // raced — another poll already alerted
 
-    const telegramConfigured = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
     const result = await notify(
       profileId,
       {
@@ -188,20 +186,7 @@ export async function runSniperPoll(profileId: string): Promise<{ pulled: number
         url: "/engage",
         telegramText: alertTelegramText(a),
       },
-      {
-        sendTelegram: telegramConfigured ? (text) => sendTelegram(text) : undefined,
-        loadPushSubs: async (pid) => {
-          const { data } = await sb
-            .from("push_subscriptions")
-            .select("endpoint, p256dh, auth")
-            .eq("profile_id", pid);
-          return data ?? [];
-        },
-        sendPush: (sub, payload) => sendWebPush(sub, payload),
-        prunePushSub: async (endpoint) => {
-          await sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
-        },
-      },
+      buildNotifyDeps(sb),
     );
     await sb
       .from("sniper_alerts")

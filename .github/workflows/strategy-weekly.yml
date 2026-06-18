@@ -1,0 +1,16 @@
+name: strategy-weekly
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger weekly strategy
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 300 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/strategy")
+          cat /tmp/out; echo; [ "$code" = "200" ]
