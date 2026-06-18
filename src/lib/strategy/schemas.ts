@@ -33,6 +33,7 @@ export const ReplyFollowAttribution = z.discriminatedUnion("status", [
 export type ReplyFollowAttribution = z.infer<typeof ReplyFollowAttribution>;
 
 export const RecommendedDrop = z.object({ handle: z.string(), reason: z.string() });
+export type RecommendedDrop = z.infer<typeof RecommendedDrop>;
 export const RecommendationDeltas = z.object({
   adds: z.array(EngagementTarget),
   drops: z.array(RecommendedDrop),

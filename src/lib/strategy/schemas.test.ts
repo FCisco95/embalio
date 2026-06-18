@@ -19,7 +19,8 @@ describe("strategy schemas", () => {
 
   it("attribution forces the correlation label and never carries a causal field", () => {
     const a = ReplyFollowAttribution.parse({ status: "correlation", n: 28, r: 0.4, label: "correlation", disclaimer: "x" });
-    expect(a.status === "correlation" && a.label).toBe("correlation");
+    expect(a.status).toBe("correlation");
+    if (a.status === "correlation") expect(a.label).toBe("correlation");
     expect(() => ReplyFollowAttribution.parse({ status: "correlation", n: 28, r: 0.4, label: "causation", disclaimer: "x" })).toThrow();
     const insuf = ReplyFollowAttribution.parse({ status: "insufficient_data", n: 5, minN: 20, message: "m" });
     expect(insuf.status).toBe("insufficient_data");
