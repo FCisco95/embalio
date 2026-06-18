@@ -1,13 +1,47 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-13 (Session 13 — `feat/recording-cockpit` smoke-tested + branch closed)
-**Active branch:** `main` (suite 596 green, prod in sync). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-18 (Session 14 — P4 Predictions SHIPPED to main)
+**Active branch:** `main` (suite 631 green, prod in sync). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 14 (2026-06-18) — P4 Predictions SHIPPED end-to-end
+
+**TL;DR:** P4 (Predictions) built subagent-driven on `feat/predict-module` (15 commits — every task TDD + spec-reviewed + quality-reviewed), merged `--no-ff` to `main`, prod-deployed. **Suite 597 → 631 green** (+34 predict tests). Dogfooded on @fcisco95 before merge. Also fast-forwarded the pending **OAuth-CSRF + postcss security fix** (`fix/oauth-csrf-state-postcss-vuln`) into main at the start of the session.
+
+**Canonical docs (don't re-litigate):**
+- Plan (all 12 tasks done): repo `docs/superpowers/plans/2026-06-18-predict-module.md` — includes the spec-review fixes (breakout wiring corrected to the inner `TweetCard`; `analytics_daily` used as a sparse-data fallback rate).
+- Spec: vault `10 - PROJECTS/Embalio/specs/2026-06-11-growth-operator-revamp-design.md` §8 (decision 8) + P4 phase row.
+
+**What shipped (new module `src/lib/predict/`, mirrors `lib/kpis/`):**
+- `schemas.ts` — zod: `Trajectory`, `WeeklyForecast`, `WhatIfKnobs`, `BreakoutPrecheck`, `PredictionRecord`.
+- `regression.ts` — pure `linearRegression()` (OLS, flat-data r2=0 guard) + `ema()`.
+- `rate.ts` — `blendedDailyRate()` (shared OLS+EMA blend, snapshot-or-fallback) + `avgDailyFollowsPerDay()` (analytics_daily fallback). DRY core for forecast+trajectory.
+- `forecast.ts` — `weeklyForecast()` (AC#3): blended rate → end-of-week prediction + ±1σ band; `endOfWeekUTC()`.
+- `trajectory.ts` — `projectTrajectory()` (AC#1): solid history + dashed projection.
+- `whatif.ts` — `applyWhatIf()` (AC#2): slider multipliers (product), client-side re-projection.
+- `breakout.ts` — `breakoutScore0to100()` + `summarizeBreakout()` (AC#4): maps the existing 1–7 `scoreDraftBreakout()` output → 0–100 + band. **Reuses `buildBreakoutPrompt` — not rewritten.**
+- `persist.ts` — `buildPredictionRecord()` (pure receipt builder).
+- `src/server/predict.ts` — `getForecastBundle()` (reads `follower_snapshots` + `analytics_daily`, persists trajectory+forecast receipts) + `precheckBreakout()` (calls existing scorer, persists). Result-union, never-throw, mirrors `server/kpis.ts`.
+- UI: `src/components/predict/forecast-card.tsx` + `trajectory-chart.tsx` on `/performance` (after KpiGrid); `breakout-chip.tsx` wired into the inner `TweetCard` of `thread-composer.tsx` (0–100 chip replaces the old 1–7 badge).
+
+**Schema:** `supabase/migrations/20260618_predictions.sql` — `predictions` (type CHECK trajectory|weekly_forecast|breakout, value_json jsonb, created_at, expires_at) — **applied live** (project `vzxpakxjnuaesfxihyvl`). RLS disabled (P7 posture). Also added `predictions` to `src/lib/supabase/types.ts`.
+
+**Known follow-ups (non-blocking):**
+- No empty-draft guard in `precheckBreakout` (fires LLM on `""`). Cheap hardening.
+- `predictions` RLS deferred to **P7** (same posture as the other 17 service-role tables).
+- Untracked `src/lib/model-router.ts` left in the working tree (global model-router propagation artifact, unrelated to P4 — not committed).
+
+**NEXT:**
+1. Watch the prod deploy of `9f765be` land on https://embalio.vercel.app; spot-check `/performance` Forecast card + `/compose` breakout chip on prod.
+2. Backtest loop: the `predictions` receipts now accumulate — later compare `value_json.predictedFollowers` vs realized `follower_snapshots` for accuracy receipts.
+3. Resume P5 dogfood items (sniper alerts, Apify burn) from Session 13's NEXT list.
 
 ---
 
