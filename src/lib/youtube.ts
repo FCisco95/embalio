@@ -5,7 +5,7 @@ import { withRetry } from "@/lib/retry";
 export const FORCED_PRIVACY = "private" as const;
 export const YT_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
 
-export function buildAuthUrl(opts: { clientId: string; redirectUri: string }): string {
+export function buildAuthUrl(opts: { clientId: string; redirectUri: string; state: string }): string {
   const params = new URLSearchParams({
     client_id: opts.clientId,
     redirect_uri: opts.redirectUri,
@@ -13,9 +13,15 @@ export function buildAuthUrl(opts: { clientId: string; redirectUri: string }): s
     access_type: "offline",
     prompt: "consent",
     scope: YT_SCOPES.join(" "),
+    // CSRF token: echoed back by Google to the callback, which verifies it
+    // against an HttpOnly cookie set at /start before honoring the code.
+    state: opts.state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
+
+/** Cookie name holding the OAuth CSRF state token between /start and /callback. */
+export const YT_OAUTH_STATE_COOKIE = "yt_oauth_state";
 
 function oauthClient(redirectUri: string) {
   return new google.auth.OAuth2(

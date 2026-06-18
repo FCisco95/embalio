@@ -9,9 +9,13 @@ describe("youtube helpers", () => {
     expect(YT_SCOPES).toContain("https://www.googleapis.com/auth/youtube.upload");
   });
   it("buildAuthUrl includes offline access so we get a refresh token", () => {
-    const url = buildAuthUrl({ clientId: "cid", redirectUri: "http://localhost:3000/cb" });
+    const url = buildAuthUrl({ clientId: "cid", redirectUri: "http://localhost:3000/cb", state: "xyz" });
     expect(url).toContain("access_type=offline");
     expect(url).toContain("prompt=consent");
     expect(url).toContain("client_id=cid");
+  });
+  it("buildAuthUrl carries the CSRF state token", () => {
+    const url = buildAuthUrl({ clientId: "cid", redirectUri: "http://localhost:3000/cb", state: "tok123" });
+    expect(url).toContain("state=tok123");
   });
 });
