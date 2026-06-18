@@ -2,6 +2,7 @@ import { listProfiles } from "@/server/profiles";
 import { listWatchTargets } from "@/server/watch-targets";
 import { TargetBoardPanel } from "@/components/target-board";
 import { WatchTargetsCard } from "@/components/watch-targets-card";
+import { StrategyBoard } from "@/components/strategy/strategy-board";
 import { PageShell } from "@/components/shell/page-shell";
 
 export default async function BoardPage() {
@@ -14,6 +15,7 @@ export default async function BoardPage() {
     >
       {profiles[0] && <WatchTargetsCard profileId={profiles[0].id} targets={watchTargets} />}
       <TargetBoardPanel profiles={profiles} />
+      <StrategyBoard profiles={profiles} />
     </PageShell>
   );
 }
