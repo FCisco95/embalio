@@ -14,9 +14,17 @@ export async function GET(req: Request) {
   const results: Array<{ id: string; ok: boolean }> = [];
   let failed = 0;
   for (const id of profileIds) {
-    const r = await runWeeklyStrategy(id);
-    results.push({ id, ok: r.ok });
-    if (!r.ok) failed++;
+    try {
+      const r = await runWeeklyStrategy(id);
+      results.push({ id, ok: r.ok });
+      if (!r.ok) failed++;
+    } catch (e) {
+      // Defensive: runWeeklyStrategy is a never-throw result-union, but a single
+      // profile must never abort the rest of the cron (mirrors the targeting route).
+      results.push({ id, ok: false });
+      failed++;
+      console.error("[strategy] weekly run threw for profile", id, String(e).slice(0, 200));
+    }
   }
   // Total outage → 500 so the cron is visibly failing (mirrors targeting route).
   const allFailed = profileIds.length > 0 && failed === profileIds.length;

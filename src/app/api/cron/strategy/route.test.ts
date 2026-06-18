@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/server/strategy", () => ({ runWeeklyStrategy: vi.fn(async () => ({ ok: true, weekOf: "2026-06-15", pushed: true })) }));
 vi.mock("@/lib/supabase/server", () => ({
@@ -10,6 +10,7 @@ import { runWeeklyStrategy } from "@/server/strategy";
 
 describe("GET /api/cron/strategy", () => {
   beforeEach(() => { process.env.CRON_SECRET = "secret"; vi.clearAllMocks(); });
+  afterEach(() => { delete process.env.CRON_SECRET; });
 
   it("401s without the secret and never runs the worker", async () => {
     const res = await GET(new Request("https://x/api/cron/strategy"));
