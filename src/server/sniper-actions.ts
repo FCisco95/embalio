@@ -1,5 +1,5 @@
 "use server";
-import { markSniperAlert } from "@/server/sniper";
+import { markSniperAlert, markSniperReplySent } from "@/server/sniper";
 
 export async function actOnSniperAlert(
   profileId: string,
@@ -7,4 +7,12 @@ export async function actOnSniperAlert(
   action: "acted" | "dismissed",
 ): Promise<void> {
   await markSniperAlert(profileId, alertId, action);
+}
+
+export async function confirmSentReply(
+  profileId: string,
+  alertId: string,
+  sentText: string,
+): Promise<void> {
+  await markSniperReplySent(profileId, alertId, sentText);
 }

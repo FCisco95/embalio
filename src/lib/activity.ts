@@ -3,7 +3,7 @@ import type { Database, Json } from "@/lib/supabase/types";
 
 export type ActivityKind =
   | "reply_posted" | "post_published" | "engage_done" | "draft_created"
-  | "csv_imported" | "sniper_alert_sent" | "sniper_alert_acted" | "scan_run";
+  | "csv_imported" | "sniper_alert_sent" | "sniper_alert_acted" | "sniper_reply_sent" | "scan_run";
 
 /**
  * Append one row to the activity ledger. Never throws — activity logging must

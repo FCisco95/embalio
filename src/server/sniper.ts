@@ -15,6 +15,8 @@ import type { Json } from "@/lib/supabase/types";
 import { draftReply } from "@/lib/drafting";
 import { buildReplyIntentUrl, buildStatusUrl } from "@/lib/send/intent";
 import type { TelegramButton } from "@/lib/telegram";
+import { checkCaps } from "@/lib/engagement/caps";
+import { loadRecentSends } from "@/server/caps";
 
 const MAX_PER_HANDLE = 3;        // lean pull — owner-locked 15-min cadence budget
 const MAX_WATCH_HANDLES = 10;    // spec: 5-10 priority handles (paid-tier lever later)
@@ -256,32 +258,13 @@ export interface SniperPin {
   alertId: string;
   authorHandle: string;
   text: string;
-  url: string;
-  score: number;     // 0-100
-  freshness: string;
-  latencyMin: number; // detection latency — the paid-tier baseline, surfaced honestly
-}
-
-export interface SniperAlertRowLite {
-  id: string;
-  author_handle: string;
-  tweet_text: string;
-  tweet_url: string;
+  url: string;          // status URL (fallback / "open tweet")
+  replyUrl: string;     // one-tap reply intent (or status URL when flag off / no draft)
+  draft: string | null;
+  blockedBy: import("@/lib/engagement/caps").CapBlock[];
   score: number;
-  latency_ms: number;
-  created_at: string;
-}
-
-export function toSniperPin(row: SniperAlertRowLite, nowMs: number): SniperPin {
-  return {
-    alertId: row.id,
-    authorHandle: row.author_handle,
-    text: row.tweet_text,
-    url: row.tweet_url,
-    score: Math.round(row.score * 100),
-    freshness: freshnessLabel(row.created_at, nowMs),
-    latencyMin: Math.round(row.latency_ms / 60_000),
-  };
+  freshness: string;
+  latencyMin: number;
 }
 
 /** Active (un-acted, in-window) sniper alerts, hottest first — pinned on /engage. */
@@ -290,14 +273,38 @@ export async function getSniperPins(profileId: string): Promise<SniperPin[]> {
   const cutoff = new Date(Date.now() - PIN_WINDOW_H * 3600_000).toISOString();
   const { data } = await sb
     .from("sniper_alerts")
-    .select("id, author_handle, tweet_text, tweet_url, score, latency_ms, created_at")
+    .select("id, source_tweet_id, author_handle, tweet_text, tweet_url, draft_reply, score, latency_ms, created_at")
     .eq("profile_id", profileId)
     .eq("status", "sent")
     .gte("created_at", cutoff)
     .order("score", { ascending: false })
     .limit(5);
+
   const now = Date.now();
-  return (data ?? []).map((row) => toSniperPin(row, now));
+  const recent = await loadRecentSends(profileId, now);
+  const flagOn = process.env.REPLY_INTENT_ENABLED === "1";
+
+  return (data ?? []).map((row) => {
+    const draft = row.draft_reply;
+    const statusUrl = buildStatusUrl(row.author_handle, row.source_tweet_id);
+    const replyUrl =
+      draft && flagOn ? buildReplyIntentUrl(row.source_tweet_id, row.author_handle, draft) : statusUrl;
+    const verdict = draft
+      ? checkCaps({ now, draft, targetHandle: row.author_handle, recent })
+      : { ok: true as const, blocks: [] };
+    return {
+      alertId: row.id,
+      authorHandle: row.author_handle,
+      text: row.tweet_text,
+      url: statusUrl,
+      replyUrl,
+      draft,
+      blockedBy: verdict.blocks,
+      score: Math.round(row.score * 100),
+      freshness: freshnessLabel(row.created_at, now),
+      latencyMin: Math.round(row.latency_ms / 60_000),
+    };
+  });
 }
 
 export async function markSniperAlert(
@@ -315,5 +322,22 @@ export async function markSniperAlert(
   if (action === "acted") {
     await logActivity(sb, profileId, "sniper_alert_acted", { refId: alertId });
   }
+  revalidatePath("/engage");
+}
+
+export async function markSniperReplySent(
+  profileId: string,
+  alertId: string,
+  sentText: string,
+): Promise<void> {
+  const sb = supabaseService();
+  const { error } = await sb
+    .from("sniper_alerts")
+    .update({ status: "acted", sent_at: new Date().toISOString(), sent_reply_text: sentText })
+    .eq("id", alertId)
+    .eq("profile_id", profileId)
+    .eq("status", "sent"); // idempotent: only an un-acted alert transitions
+  if (error) throw new Error(`marking sniper reply sent failed: ${error.message}`);
+  await logActivity(sb, profileId, "sniper_reply_sent", { refId: alertId });
   revalidatePath("/engage");
 }
