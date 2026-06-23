@@ -136,6 +136,15 @@ describe("approval gate", () => {
     await expect(postDraft("draft-1")).rejects.toThrow("empty");
     expect(mockPostTweet).not.toHaveBeenCalled();
   });
+
+  it("refuses to post a reply draft (manual-send only, ToS)", async () => {
+    // A reply-kind draft must NEVER reach AdsPower automation.
+    const sb = buildSb({ draftRow: { ...DRAFT, status: "approved", kind: "reply" } });
+    vi.mocked(supabaseServer).mockResolvedValue(sb as any);
+
+    await expect(postDraft("draft-1")).rejects.toThrow(/manual-send only/i);
+    expect(mockPostTweet).not.toHaveBeenCalled();
+  });
 });
 
 describe("postDraft — Fix 1: follow-up DB writes must be checked for errors", () => {
