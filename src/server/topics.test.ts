@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const dispatchTopicRefresh = vi.fn(async () => true);
 vi.mock("@/lib/topics/dispatch", () => ({ dispatchTopicRefresh: () => dispatchTopicRefresh() }));
 
-const draftFromTrend = vi.fn(async () => ({}));
+const draftFromTrend = vi.fn(async (..._a: unknown[]) => ({}));
 vi.mock("@/server/trends", () => ({ draftFromTrend: (...a: unknown[]) => draftFromTrend(...a) }));
 
 let topicRows: unknown[] = [];
