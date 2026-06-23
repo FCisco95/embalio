@@ -712,11 +712,14 @@ export type Database = {
           author_handle: string
           channels: Json
           created_at: string
+          draft_reply: string | null
           id: string
           latency_ms: number
           profile_id: string
           score: number
           score_parts: Json
+          sent_at: string | null
+          sent_reply_text: string | null
           source_tweet_id: string
           status: string
           tweet_text: string
@@ -726,11 +729,14 @@ export type Database = {
           author_handle: string
           channels?: Json
           created_at?: string
+          draft_reply?: string | null
           id?: string
           latency_ms: number
           profile_id: string
           score: number
           score_parts?: Json
+          sent_at?: string | null
+          sent_reply_text?: string | null
           source_tweet_id: string
           status?: string
           tweet_text: string
@@ -740,11 +746,14 @@ export type Database = {
           author_handle?: string
           channels?: Json
           created_at?: string
+          draft_reply?: string | null
           id?: string
           latency_ms?: number
           profile_id?: string
           score?: number
           score_parts?: Json
+          sent_at?: string | null
+          sent_reply_text?: string | null
           source_tweet_id?: string
           status?: string
           tweet_text?: string
