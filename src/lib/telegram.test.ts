@@ -59,6 +59,24 @@ describe("sendTelegram", () => {
     await expect(sendTelegram("x", { fetchImpl })).rejects.toThrow("Telegram sendMessage failed (500)");
     expect(fetchImpl).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
   });
+
+  it("serializes url, copy and callback buttons into reply_markup", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(okResponse());
+    await sendTelegram("hello", {
+      fetchImpl,
+      buttons: [
+        [{ text: "Open & reply", url: "https://x.com/intent/post?in_reply_to=1&text=hi" }],
+        [{ text: "📋 Copy", copyText: "hi there" }],
+        [{ text: "✅ Sent", data: "alert:sent:1" }],
+      ],
+    });
+    const body = JSON.parse((fetchImpl.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.reply_markup.inline_keyboard).toEqual([
+      [{ text: "Open & reply", url: "https://x.com/intent/post?in_reply_to=1&text=hi" }],
+      [{ text: "📋 Copy", copy_text: { text: "hi there" } }],
+      [{ text: "✅ Sent", callback_data: "alert:sent:1" }],
+    ]);
+  });
 });
 
 import { getTelegramUpdates, answerCallbackQuery } from "./telegram";

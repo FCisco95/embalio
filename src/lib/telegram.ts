@@ -5,8 +5,12 @@ const API_BASE = "https://api.telegram.org";
 export interface TelegramButton {
   /** Button label shown to the user. */
   text: string;
-  /** Callback payload delivered back when tapped (≤64 bytes). */
-  data: string;
+  /** Callback payload delivered back when tapped (≤64 bytes). Mutually exclusive with url/copyText. */
+  data?: string;
+  /** Open this URL on tap (e.g. the X reply-intent). */
+  url?: string;
+  /** One-tap copy to clipboard (Bot API 7.11; ≤256 chars). */
+  copyText?: string;
 }
 
 export interface SendOpts {
@@ -46,7 +50,11 @@ export async function sendTelegram(text: string, opts: SendOpts = {}): Promise<v
   if (opts.buttons) {
     body.reply_markup = {
       inline_keyboard: opts.buttons.map((row) =>
-        row.map((b) => ({ text: b.text, callback_data: b.data })),
+        row.map((b) => {
+          if (b.url) return { text: b.text, url: b.url };
+          if (b.copyText !== undefined) return { text: b.text, copy_text: { text: b.copyText } };
+          return { text: b.text, callback_data: b.data ?? "" };
+        }),
       ),
     };
   }
