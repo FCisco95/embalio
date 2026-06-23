@@ -12,6 +12,9 @@ import { freshnessLabel } from "@/lib/engagement/present";
 import { revalidatePath } from "next/cache";
 import type { CandidateInput } from "@/lib/apify";
 import type { Json } from "@/lib/supabase/types";
+import { draftReply } from "@/lib/drafting";
+import { buildReplyIntentUrl, buildStatusUrl } from "@/lib/send/intent";
+import type { TelegramButton } from "@/lib/telegram";
 
 const MAX_PER_HANDLE = 3;        // lean pull — owner-locked 15-min cadence budget
 const MAX_WATCH_HANDLES = 10;    // spec: 5-10 priority handles (paid-tier lever later)
@@ -74,18 +77,35 @@ export function pickAlerts(
   return picked.sort((a, b) => b.score - a.score).slice(0, cap);
 }
 
-function alertTelegramText(a: PickedAlert): string {
+function alertTelegramText(a: PickedAlert, draft: string | null): string {
   const body = a.tweet_text.length > 220 ? `${a.tweet_text.slice(0, 220)}…` : a.tweet_text;
-  return [
+  const lines = [
     `🎯 Sniper: @${a.author_handle} — ${a.ageMinutes}m old · ${a.replies} replies · score ${Math.round(a.score * 100)}`,
     body,
-    a.tweet_url,
-  ].join("\n");
+  ];
+  if (draft) lines.push(`\n✍️ Draft: ${draft}`);
+  return lines.join("\n");
+}
+
+function alertButtons(a: PickedAlert, draft: string | null): TelegramButton[][] {
+  // Primary action is the one-tap reply-intent (flagged); fallback is the status URL.
+  const replyUrl =
+    draft && process.env.REPLY_INTENT_ENABLED === "1"
+      ? buildReplyIntentUrl(a.source_tweet_id, a.author_handle, draft)
+      : buildStatusUrl(a.author_handle, a.source_tweet_id);
+  const rows: TelegramButton[][] = [[{ text: "Open & reply ↗", url: replyUrl }]];
+  if (draft && draft.length <= 256) rows.push([{ text: "📋 Copy draft", copyText: draft }]);
+  rows.push([
+    { text: "✅ Sent", data: `alert:sent:${a.source_tweet_id}` },
+    { text: "⏭️ Skip", data: `alert:skip:${a.source_tweet_id}` },
+  ]);
+  return rows;
 }
 
 /**
  * One poll for one profile. Cloud-safe (signal source + embeddings + pure
- * scoring — no claude). Returns counts for the cron response.
+ * scoring). Each alert's reply is drafted best-effort via GEN_BACKEND; a
+ * drafting failure never drops the alert. Returns counts for the cron response.
  */
 export async function runSniperPoll(profileId: string): Promise<{ pulled: number; alerts: number }> {
   const sb = supabaseService();
@@ -156,6 +176,14 @@ export async function runSniperPoll(profileId: string): Promise<{ pulled: number
 
   let alerts = 0;
   for (const a of picked) {
+    let draft: string | null = null;
+    try {
+      const d = await draftReply(profile, a.tweet_text);
+      draft = d.body?.trim() || null;
+    } catch (err) {
+      console.error("[sniper] draft failed (alert still sent):", String(err).slice(0, 160));
+    }
+
     const { data: inserted, error } = await sb
       .from("sniper_alerts")
       .upsert(
@@ -168,6 +196,7 @@ export async function runSniperPoll(profileId: string): Promise<{ pulled: number
           score: a.score,
           score_parts: a.parts as unknown as Json,
           latency_ms: a.latencyMs,
+          draft_reply: draft,
         },
         { onConflict: "profile_id,source_tweet_id", ignoreDuplicates: true },
       )
@@ -184,7 +213,8 @@ export async function runSniperPoll(profileId: string): Promise<{ pulled: number
         title: `🎯 @${a.author_handle} just posted`,
         body: a.tweet_text.slice(0, 140),
         url: "/engage",
-        telegramText: alertTelegramText(a),
+        telegramText: alertTelegramText(a, draft),
+        telegramButtons: alertButtons(a, draft),
       },
       buildNotifyDeps(sb),
     );

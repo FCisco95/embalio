@@ -8,11 +8,13 @@ import { PushSubscriptionGone, type WebPushPayload, type WebPushSub } from "@/li
 export interface NotifyPayload extends WebPushPayload {
   /** Pre-formatted Telegram text; falls back to `${title}\n${body}` when absent. */
   telegramText?: string;
+  /** Inline keyboard rows for the Telegram message (manual-send buttons). */
+  telegramButtons?: import("@/lib/telegram").TelegramButton[][];
 }
 
 export interface NotifyDeps {
   /** Omit (undefined) when Telegram is not configured for this deployment. */
-  sendTelegram?: (text: string) => Promise<void>;
+  sendTelegram?: (text: string, opts?: { buttons?: import("@/lib/telegram").TelegramButton[][]; parseMode?: "HTML" | "MarkdownV2" }) => Promise<void>;
   loadPushSubs: (profileId: string) => Promise<WebPushSub[]>;
   sendPush: (sub: WebPushSub, payload: WebPushPayload) => Promise<void>;
   prunePushSub: (endpoint: string) => Promise<void>;
@@ -33,7 +35,10 @@ export async function notify(
   const telegramWork = (async () => {
     if (!deps.sendTelegram) return;
     try {
-      await deps.sendTelegram(payload.telegramText ?? `${payload.title}\n${payload.body}`);
+      await deps.sendTelegram(
+        payload.telegramText ?? `${payload.title}\n${payload.body}`,
+        { buttons: payload.telegramButtons },
+      );
       result.telegram = "sent";
     } catch (err) {
       console.error("[notify] telegram failed:", err);

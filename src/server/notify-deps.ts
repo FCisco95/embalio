@@ -8,7 +8,7 @@ import type { Database } from "@/lib/supabase/types";
 export function buildNotifyDeps(sb: SupabaseClient<Database>): NotifyDeps {
   const telegramConfigured = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
   return {
-    sendTelegram: telegramConfigured ? (text) => sendTelegram(text) : undefined,
+    sendTelegram: telegramConfigured ? (text, opts) => sendTelegram(text, opts) : undefined,
     loadPushSubs: async (pid) => {
       const { data } = await sb.from("push_subscriptions").select("endpoint, p256dh, auth").eq("profile_id", pid);
       return data ?? [];
