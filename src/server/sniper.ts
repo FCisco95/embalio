@@ -97,10 +97,13 @@ function alertButtons(a: PickedAlert, draft: string | null): TelegramButton[][] 
       : buildStatusUrl(a.author_handle, a.source_tweet_id);
   const rows: TelegramButton[][] = [[{ text: "Open & reply ↗", url: replyUrl }]];
   if (draft && draft.length <= 256) rows.push([{ text: "📋 Copy draft", copyText: draft }]);
-  rows.push([
-    { text: "✅ Sent", data: `alert:sent:${a.source_tweet_id}` },
-    { text: "⏭️ Skip", data: `alert:skip:${a.source_tweet_id}` },
-  ]);
+  // The in-Telegram "Sent/Skip" confirm buttons were removed: their callback data
+  // (alert:sent/skip:*) had no parser (telegram-callback.ts only matches posted|skip)
+  // and the drainer route /api/telegram/poll is unscheduled, so they silently
+  // no-opped — a tester would believe a send was recorded when it never was.
+  // Confirm sends on the /engage web pin (markSniperReplySent), which feeds the caps
+  // window. To restore one-tap confirm: extend parseCallback+applyCallback to handle
+  // alert:sent|skip against sniper_alerts AND schedule the poll route.
   return rows;
 }
 

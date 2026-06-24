@@ -1,5 +1,10 @@
-// Engagement Playbook hard caps (enforced, not coached): <=50/day, <=20/hr,
-// <=3 to the same account/day, no links in replies, no near-identical replies.
+// Engagement Playbook caps (ADVISORY guardrail, NOT server-enforced): <=50/day,
+// <=20/hr, <=3 to the same account/day, no links in replies, no near-identical
+// replies. These are computed at pin render (getSniperPins) only to disable the web
+// Send button; the record-the-send path (markSniperReplySent) does NOT re-check, and
+// a manual-send product cannot hard-block a human from x.com — so the caps COACH
+// rather than enforce. (Post-gate: move checkCaps into the send-record path, backed
+// by a DB constraint, if true enforcement is ever required.)
 // Semantics (owner decision 2026-06-23): a cap blocks when the count of prior
 // acted sends in the window is >= the cap (i.e. up to `cap` are allowed, the next
 // is refused). Pure: the server layer supplies `recent` (acted sends in last 24h).
