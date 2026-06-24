@@ -1,13 +1,54 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-18 (Session 14 — P4 Predictions SHIPPED to main)
-**Active branch:** `main` (suite 631 green, prod in sync). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-24 (Session 15 — Sniper ToS-redesign GATE-1 shipped + GATE-2 ignition merged)
+**Active branch:** `main` (suite **675 green / 1 skip**, tsc clean). **13 commits ahead of `origin/main` — UNPUSHED** (owner to decide push vs PR). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 15 (2026-06-22 → 06-24) — Sniper ToS-redesign GATE-1 SHIPPED + GATE-2 ignition merged
+
+**TL;DR:** Built the **ToS-compliant manual-send Sniper** (GATE-1, tasks T1–T9, commits `bfa5831`…`ba4a03c`) — every send opens X's first-party composer (reply-intent or status URL); **no API write, no automation post, ever** (X Automation Rules, Apr 2026; a ban ends the project). Then a **17-agent audit (2026-06-23)** found GATE-2 *can't physically start* — three config/wiring gaps hid under the "shipped" headline. Fixed in `a711ad4` (+2 ride-along fixes), **merged to `main` 2026-06-24**. Suite **631 → 675 green**, tsc clean.
+
+**Strategic pivot — LOCKED, do not re-litigate** (full report: vault `10 - PROJECTS/Embalio/research/Embalio — Improvement Report (2026-06-23).md`; repo-local executable half: `docs/superpowers/notes/2026-06-23-gate2-ignition-reconciliation.md`):
+- **P4 Predictions + P6 Strategy Engine are FROZEN** — shipped against the Q3 cut; decorative / disconnected from reach. Zero further investment, no P7 hooks, until GATE-2 clears. Keep their numbers OUT of how GATE-2 is judged.
+- **Reach (~0.66% OON out-of-network) is the metric GATE-2 is judged on.** Pass only if sniper replies *measurably move OON reach* — not if "alerts fire."
+- **YouTube Phase-1 Studio UI is already in `main`** (not shelved). Frozen-in-place.
+- **Deadline: 2026-09-04** — a 3-stranger, 2-week dogfood trial must complete before it.
+
+**What shipped (GATE-1, `src/lib/send/` · `src/lib/engagement/` · `src/server/`):**
+- `lib/send/intent.ts` — pure `buildReplyIntentUrl` / `buildStatusUrl` (X first-party composer URLs; human posts by hand).
+- `lib/engagement/caps.ts` — pure `checkCaps`/`hasLink`/`similarity`. **Advisory guardrail, NOT server-enforced** (only disables the `/engage` web button; `markSniperReplySent` does no check — you can't hard-block a human from x.com).
+- `server/caps.ts` — `loadRecentSends` (24h acted-send window). Caps: ≤3/account/day, 50/day, 20/hr (the 4th/51st/21st blocks).
+- `server/sniper.ts` — drafts reply at alert time (best-effort, `GEN_BACKEND=gemini` cloud-side; failure → `draft=null` → status-URL fallback, alert still fires); ships one-tap intent via PWA + Telegram. `getSniperPins` carries draft + cap verdict; `markSniperReplySent` + `confirmSentReply` log manual sends.
+- `posting.ts` refuses `kind==='reply'` (AdsPower reply auto-post vector **severed**). T9: manual-send card on `/engage` (edit draft → `window.open` intent synchronously in tap handler → log via `confirmSentReply`; Skip → `dismissed`; cap-blocked cards disable Send).
+
+**GATE-2 ignition (`a711ad4`, merged) — the 3 blockers + 2 ride-alongs, all freeze-safe:**
+1. **In-band seed** `supabase/seeds/2026-06-22-inband-handles.sql` — **TEMPLATE ONLY, not filled, not applied.** Watch list is still 100k+ handles so `sizeFit` collapses → sniper fires near-never (Session-12 live-fire = `alerts:0`). Fill 4–6 handles in the 2.6–13k follower band via x-target-finder before any GATE-2 alert.
+2. **`REPLY_INTENT_ENABLED`** documented in `.env.example`; **UNSET in prod** → one-tap pre-filled reply is dark, falls back to bare status URL.
+3. **Dead Telegram Sent/Skip buttons removed** — their `alert:sent/skip:*` callbacks had no parser and no scheduled drain route (silent no-op). Open & reply + Copy kept; the `/engage` web pin records sends + feeds caps.
+4. **Relevance floor** — degenerate/zero embedding now → relevance 0 (was 0.5), so an embedding failure can't clear the 0.6 score threshold on recency+size alone (+test, red→green).
+5. **`caps.ts` header honesty** — downgraded "enforced/non-bypassable" → "advisory guardrail."
+
+**Schema / config status:**
+- Migration `supabase/migrations/20260622_sniper_manual_send.sql` (3 nullable cols + 1 partial index on `sniper_alerts`) — **written/committed (`bfa5831`), NOT applied to live Supabase.** Additive + idempotent.
+- Seed = template (see above). `REPLY_INTENT_ENABLED` unset in prod.
+
+**NEXT — all OWNER-DRIVEN + OUTWARD (Day-1 sequence; an agent must STOP and ask before any of these):**
+1. **Decide disposition of the 13 unpushed `main` commits** — push to origin and/or open a PR.
+2. **Fill seed** (x-target-finder: 4–6 in-band handles + real @FCisco95 `profile_id`) → **apply migration `20260622`** to live Supabase → **set `REPLY_INTENT_ENABLED=1`** on Vercel prod; verify native composer pre-fills on a phone, then verify status-URL fallback when unset.
+3. **Pre-flight:** one manual `workflow_dispatch` of the sniper poll; confirm `pulled>0` for the new handles.
+4. **Fire 1 real alert end-to-end** (detect → draft → notify → manual send → `sniper_alerts.status='acted'`, `sent_at`, `sent_reply_text`).
+5. **GDPR LIA one-pager BEFORE any stranger's data hits the shared DB** — repo permanently warehouses others' tweets (`signal_tweets.deleted_at` never written, no purge). EDPB Guidelines 1/2024 require the LIA before processing. Overrides the Q3 "defer LIA to first paying client."
+6. **Recruit 3 strangers in parallel** — highest schedule risk vs 2026-09-04; no code de-risks it.
+7. Free/codeless reach wins alongside (not this repo): strip external links from main tweets (link-in-reply), native video/threads, X Premium.
+
+**Watch / risks:** caps are advisory (no server hard-block) · alert volume ungoverned (~64 polls/day × 3 → 100+ notifs/day possible; consider a daily alert cap for the dogfood) · "$0 Apify" is really *cheap* Apify (paid actor per poll) · predictions receipts duplicate on every `/performance` load (`predict.ts:57`, fix post-gate) · **Week-6 anti-burnout tripwire armed for ~2026-07-30** (auto-audits GATE-2 progress, recommends scope cuts if ignition stalled). **DEFER post-gate:** server-side cap enforcement · P7 (RLS on ~17 service-role tables) · P8 (Stripe/twitterapi.io/Grok adapters — keep OFF) · sniper studio-original-post AdsPower removal (last auto-post vector). **FREEZE:** X API official write (reintroduces the severed auto-post vector).
 
 ---
 
