@@ -1,13 +1,41 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-24 (Session 15 — Sniper ToS-redesign GATE-1 shipped + GATE-2 ignition merged)
-**Active branch:** `main` (suite **675 green / 1 skip**, tsc clean). **13 commits ahead of `origin/main` — UNPUSHED** (owner to decide push vs PR). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-25 (Session 16 — GATE-2 ignition EXECUTED LIVE; dogfood armed)
+**Active branch:** `main` (suite **675 green / 1 skip**, tsc clean). T1–T9 + ignition pushed (`origin/main` @ `0173447`); **3 docs/data commits ahead, UNPUSHED** (LIA · seed file · this handoff — push owner-gated). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 16 (2026-06-25) — GATE-2 ignition EXECUTED LIVE (dogfood armed)
+
+**TL;DR:** Walked the live ignition end-to-end with the owner. Migration applied to live Supabase, prod deployed with `REPLY_INTENT_ENABLED=1`, **6 in-band watch handles seeded**, relevance niche **recalibrated to the owner's REAL niche** (AI-dev-tooling-first). Poll pipe confirmed: **`pulled:18`**. `alerts:0` is **timing, not config** — the system is validated; STEP 5 (first real alert) is armed on the schedule.
+
+**What went live (via Supabase MCP / Vercel / git — live state applied independently of the repo):**
+- **Migration** `20260622_sniper_manual_send` → applied (live version `20260624215645`): 3 nullable cols + partial index on `sniper_alerts`. Was the deploy-break blocker (code selects `draft_reply`/`sent_at`; without it `/engage` 400s). Verified ordering: migrate **before** push.
+- **`REPLY_INTENT_ENABLED=1`** set on Vercel prod (owner, dashboard) → baked into the deploy. Code check is strict `=== "1"` (`sniper.ts:95,288`).
+- **Pushed** `main` → prod auto-deploy (`origin/main` @ `0173447`); `npm run build` green pre-flight.
+- **Seed** — 6 in-band `watch_targets` for `FCisco95` (id `7a728122-569a-4db0-8773-1e537fd1a92f`): `kaixcreator`(5), `heymike777`(5), `w3_surfer`(5), `dom_gag_96`(4), `saadpastadev`(4), `sahilpanhotra`(3). Retired 4 oversized (`thisiskp_`, `arvidkahl`, `tdinh_me`, `florinpop1705`). Sourced via **Grok** (live X data). Seed file synced (`21b7822`).
+- **Niche recalibrated** (`profiles.niche_description` + `content_pillars`, `voice_corpus` untouched). Owner's REAL niche (from a month of posts): solo founder building **Organic** (Solana launchpad on BONK) + **heavy AI-dev-tooling discourse** (Claude Code, model routing, Mythos/Fable, MCP/agents) + content/livestreaming. **Anchor is AI-tooling-FIRST** then Solana then build-in-public. Proven 65k-view reply was AI-tooling (to @KaiXCreator), not Solana — AI-tooling is the reach lane.
+- **GDPR LIA** written (`docs/compliance/2026-06-24-gdpr-lia-signal-warehouse.md`, `03bd3ca`) — Art. 6(1)(f) basis before warehousing strangers. **Condition R1:** `signal_tweets` has NO purge (`deleted_at` never written) — ship retention before scaling past the dogfood.
+
+**Prune-by-actuals (real follower counts from first poll):** `heymike777` 2,680 (2.0× ✅), `KaiXCreator` **9,492 (7.2× ✅ in-band — NOT oversized)**. Other 4 quiet this window → keep, verify when they post. **No prune needed.**
+
+**Why `alerts:0` (NOT a bug):** every qualifying post was hours-stale (>180min hard-drop) — late-evening lull. `KaiXCreator`'s viral "Gemini 3.5 vs Fable 5" post (**104 replies / 16,768 views**) was ~18h old when polled → dropped. Caught fresh (<60min) it scores ≈ **0.82** → easy alert. System validated; it just needs to poll a fresh viral post *in-window*.
+
+**NEXT (priority order):**
+1. **⭐ POLL-WINDOW MISALIGNMENT (highest leverage, deferred):** cron = `*/15 6-22 UTC` (owner waking hrs, *owner-locked*). Targets (esp. KaiXCreator, US) post viral in **US prime ~20:00–04:00 UTC** — partly OUTSIDE the window → best posts uncatchable fresh. Widen toward 24h (`*/15 * * * *`); cost ~64→96 Apify runs/day. File: `.github/workflows/sniper-poll.yml`.
+2. **STEP 5:** let the schedule catch the first fresh Kai-class post → real alert → manual reply → confirm `sniper_alerts.status='acted'`, `sent_at`, `sent_reply_text`.
+3. **7–10 day dogfood**, judged on the reach scorecard (visits/day +≥25% traceable to reply days; ≥3 replies each clearing ≥2× author median reply impressions; precision ≥70%).
+4. **GDPR LIA R1:** ship `signal_tweets` retention/purge before scaling.
+5. **Watch-list tuning:** `heymike777` is mostly low-signal replies — consider swapping for an AI-dev/Claude-ecosystem account (the reach lane); add more in-band AI-tooling handles via Grok.
+6. **Recruit 3 strangers** (schedule risk vs 2026-09-04). Week-6 anti-burnout tripwire armed ~2026-07-30.
+
+**Unpushed:** 3 docs/data commits on `main` (LIA `03bd3ca`, seed `21b7822`, this handoff). The live DB/prod changes are already applied via MCP/Vercel — these commits only *document* them. Push is owner-gated.
 
 ---
 
