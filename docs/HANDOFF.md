@@ -30,7 +30,7 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 **Freeze-safe:** zero touch to P4 predict / P6 strategy; their numbers stay off the scorecard. No new activity-event kind. No read-path change.
 
 **NEXT (owner-driven):**
-1. **Apply migration `20260626`** to live Supabase + **push** Sessions 17–18 → the scorecard + retention cron go live.
+1. **Apply migration `20260626` to live Supabase BEFORE pushing** — `/performance` now selects the new `sniper_alerts` columns, so pushing the code without the migration 500s the Stats page (same ordering trap as Session 16's manual-send deploy). Then **push** Sessions 17–18 → scorecard + retention cron go live.
 2. STEP-5: first real alert → manual reply → record its outcome on `/performance/gate-2`; watch the scorecard fill.
 3. Poll-window widen (Session 16 #1) still owner-locked. R2/R3 GDPR still deferred (gate strangers, ~Day 12+).
 
