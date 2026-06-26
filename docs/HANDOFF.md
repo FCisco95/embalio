@@ -1,7 +1,7 @@
 # Embalio — Handoff (canonical)
 
 **Last updated:** 2026-06-26 (Session 18 — GATE-2 dogfood scorecard + outcome instrumentation SHIPPED)
-**Active branch:** `main` (suite **717 green / 1 skip**, tsc clean). Session 16 docs/data on `origin/main` @ `1c0a393`; **Sessions 17 (R1 retention, `8f54d35`) + 18 (scorecard) commits are unpushed — push owner-gated**. Trunk policy: direct-to-main, suite-green-gated.
+**Active branch:** `main` (suite **718 green / 1 skip**, tsc clean), **fully pushed** (`origin/main` @ `93392c6`). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26 (ops session):** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
@@ -21,7 +21,7 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 - Author median reply-impressions **cannot be derived** (X hides reply-source impressions) → manual capture, confirmed.
 
 **What shipped:**
-- **Migration** `supabase/migrations/20260626_sniper_scorecard.sql` — `sniper_alerts +=` `skip_reason` (CHECK enum), `reply_impressions`, `author_median_reply_impressions`, `author_reply_back` (all nullable/additive/idempotent). Types hand-reflected. **NOT applied live — owner-gated** (the surface needs it before it works against prod).
+- **Migration** `supabase/migrations/20260626_sniper_scorecard.sql` — `sniper_alerts +=` `skip_reason` (CHECK enum), `reply_impressions`, `author_median_reply_impressions`, `author_reply_back` (all nullable/additive/idempotent). Types hand-reflected. **Applied live 2026-06-26** to PROD `vzxpakxjnuaesfxihyvl` (4 cols verified).
 - `src/lib/gate/scorecard.ts` (+test) — pure `computeScorecard`: precision · false-alert + skip breakdown · author-reply-back rate · cleared-2× count · reply-day visit-lift; all null-guarded; `pass` flags vs DoD (precision ≥0.70 · ≥3 cleared-2× · lift ≥+0.25). `present.ts` formatters.
 - `src/server/gate.ts` (+test) — `getGateScorecard` + `listRecentActedAlerts` (throw on read error).
 - `src/server/sniper.ts` — `markSniperAlert(+skipReason)` (validated, written on dismiss) + `setReplyOutcome` (zod, status='acted' guard); wrappers `actOnSniperAlert(+skipReason)` / `recordReplyOutcome` in `sniper-actions.ts`.
@@ -30,9 +30,10 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 **Freeze-safe:** zero touch to P4 predict / P6 strategy; their numbers stay off the scorecard. No new activity-event kind. No read-path change.
 
 **NEXT (owner-driven):**
-1. **Apply migration `20260626` to live Supabase BEFORE pushing** — `/performance` now selects the new `sniper_alerts` columns, so pushing the code without the migration 500s the Stats page (same ordering trap as Session 16's manual-send deploy). Then **push** Sessions 17–18 → scorecard + retention cron go live.
-2. STEP-5: first real alert → manual reply → record its outcome on `/performance/gate-2`; watch the scorecard fill.
+1. ✅ **DONE 2026-06-26 (ops session):** migration `20260626` applied to PROD, 3 commits pushed (`origin/main` @ `93392c6`), prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok,deleted:0,cutoff:2026-03-28}`). Scorecard + R1 retention are LIVE.
+2. **STEP-5 (the one open DoD item):** when awake during US-evening (~20:00–04:00 UTC) and an in-band handle has a FRESH (<30min) strong post, `gh workflow run sniper-poll.yml` → confirm `pulled>0` → first alert (PWA + Telegram) → manual reply via X composer (**manual-send only — never auto-post**) → record outcome on `/performance/gate-2`. Watch the scorecard fill (precision · false-alert · visit-lift · cleared-2×).
 3. Poll-window widen (Session 16 #1) still owner-locked. R2/R3 GDPR still deferred (gate strangers, ~Day 12+).
+4. **Dogfood habit:** read each measured reply's in-app OON% and note it — the direct north-star number the scorecard can't pull from CSV.
 
 ---
 
