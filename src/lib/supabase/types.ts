@@ -710,16 +710,20 @@ export type Database = {
       sniper_alerts: {
         Row: {
           author_handle: string
+          author_median_reply_impressions: number | null
+          author_reply_back: boolean | null
           channels: Json
           created_at: string
           draft_reply: string | null
           id: string
           latency_ms: number
           profile_id: string
+          reply_impressions: number | null
           score: number
           score_parts: Json
           sent_at: string | null
           sent_reply_text: string | null
+          skip_reason: string | null
           source_tweet_id: string
           status: string
           tweet_text: string
@@ -727,16 +731,20 @@ export type Database = {
         }
         Insert: {
           author_handle: string
+          author_median_reply_impressions?: number | null
+          author_reply_back?: boolean | null
           channels?: Json
           created_at?: string
           draft_reply?: string | null
           id?: string
           latency_ms: number
           profile_id: string
+          reply_impressions?: number | null
           score: number
           score_parts?: Json
           sent_at?: string | null
           sent_reply_text?: string | null
+          skip_reason?: string | null
           source_tweet_id: string
           status?: string
           tweet_text: string
@@ -744,16 +752,20 @@ export type Database = {
         }
         Update: {
           author_handle?: string
+          author_median_reply_impressions?: number | null
+          author_reply_back?: boolean | null
           channels?: Json
           created_at?: string
           draft_reply?: string | null
           id?: string
           latency_ms?: number
           profile_id?: string
+          reply_impressions?: number | null
           score?: number
           score_parts?: Json
           sent_at?: string | null
           sent_reply_text?: string | null
+          skip_reason?: string | null
           source_tweet_id?: string
           status?: string
           tweet_text?: string

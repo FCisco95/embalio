@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { actOnSniperAlert, confirmSentReply } from "@/server/sniper-actions";
 import type { SniperPin } from "@/server/sniper";
+import type { SkipReason } from "@/lib/gate/scorecard";
 
 const BLOCK_LABEL: Record<string, string> = {
   daily: "50/day cap reached",
@@ -10,6 +11,14 @@ const BLOCK_LABEL: Record<string, string> = {
   link: "draft contains a link (not allowed in replies)",
   near_duplicate: "too similar to a recent reply",
 };
+
+// One-tap dismiss reasons — feed the GATE-2 false-alert breakdown.
+const SKIP_BUTTONS: { reason: SkipReason; label: string }[] = [
+  { reason: "off_niche", label: "Off-niche" },
+  { reason: "stale", label: "Stale" },
+  { reason: "bait", label: "Bait" },
+  { reason: "wrong_size", label: "Wrong size" },
+];
 
 export function SniperPins({ profileId, pins: initial }: { profileId: string; pins: SniperPin[] }) {
   const [pins, setPins] = useState(initial);
@@ -38,9 +47,9 @@ export function SniperPins({ profileId, pins: initial }: { profileId: string; pi
     startTransition(() => confirmSentReply(profileId, p.alertId, text).catch(() => {}));
   }
 
-  function skip(alertId: string) {
+  function skip(alertId: string, reason: SkipReason) {
     remove(alertId);
-    startTransition(() => actOnSniperAlert(profileId, alertId, "dismissed").catch(() => {}));
+    startTransition(() => actOnSniperAlert(profileId, alertId, "dismissed", reason).catch(() => {}));
   }
 
   return (
@@ -91,13 +100,19 @@ export function SniperPins({ profileId, pins: initial }: { profileId: string; pi
               >
                 Open tweet
               </a>
-              <button
-                disabled={pending}
-                onClick={() => skip(p.alertId)}
-                className="text-[12px] px-2.5 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground"
-              >
-                ⏭️ Skip
-              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground">⏭️ Skip as:</span>
+              {SKIP_BUTTONS.map(({ reason, label }) => (
+                <button
+                  key={reason}
+                  disabled={pending}
+                  onClick={() => skip(p.alertId, reason)}
+                  className="text-[11px] px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground disabled:opacity-40"
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         );

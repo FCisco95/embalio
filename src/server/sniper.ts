@@ -17,6 +17,8 @@ import { buildReplyIntentUrl, buildStatusUrl } from "@/lib/send/intent";
 import type { TelegramButton } from "@/lib/telegram";
 import { checkCaps } from "@/lib/engagement/caps";
 import { loadRecentSends } from "@/server/caps";
+import { SKIP_REASONS, type SkipReason } from "@/lib/gate/scorecard";
+import { z } from "zod";
 
 const MAX_PER_HANDLE = 3;        // lean pull — owner-locked 15-min cadence budget
 const MAX_WATCH_HANDLES = 10;    // spec: 5-10 priority handles (paid-tier lever later)
@@ -314,11 +316,18 @@ export async function markSniperAlert(
   profileId: string,
   alertId: string,
   action: "acted" | "dismissed",
+  skipReason?: SkipReason | null,
 ): Promise<void> {
+  if (skipReason && !(SKIP_REASONS as readonly string[]).includes(skipReason)) {
+    throw new Error(`invalid skip reason: ${skipReason}`);
+  }
   const sb = supabaseService();
+  const patch: { status: "acted" | "dismissed"; skip_reason?: SkipReason } = { status: action };
+  // skip_reason only carries meaning on a dismissal (GATE-2 false-alert tagging)
+  if (action === "dismissed" && skipReason) patch.skip_reason = skipReason;
   const { error } = await sb
     .from("sniper_alerts")
-    .update({ status: action })
+    .update(patch)
     .eq("id", alertId)
     .eq("profile_id", profileId);
   if (error) throw new Error(`marking sniper alert failed: ${error.message}`);
@@ -343,4 +352,44 @@ export async function markSniperReplySent(
   if (error) throw new Error(`marking sniper reply sent failed: ${error.message}`);
   await logActivity(sb, profileId, "sniper_reply_sent", { refId: alertId });
   revalidatePath("/engage");
+}
+
+const ReplyOutcome = z.object({
+  replyImpressions: z.number().int().nonnegative().nullable().optional(),
+  authorMedianReplyImpressions: z.number().int().nonnegative().nullable().optional(),
+  authorReplyBack: z.boolean().nullable().optional(),
+});
+export type ReplyOutcomeInput = z.infer<typeof ReplyOutcome>;
+
+/**
+ * Record the manual reply outcome on an ACTED alert (GATE-2 scorecard input).
+ * All fields manual + optional — only provided keys are written, so the owner
+ * can fill impressions now and the reply-back flag later. No X scrape.
+ */
+export async function setReplyOutcome(
+  profileId: string,
+  alertId: string,
+  outcome: ReplyOutcomeInput,
+): Promise<void> {
+  const parsed = ReplyOutcome.parse(outcome);
+  const patch: {
+    reply_impressions?: number | null;
+    author_median_reply_impressions?: number | null;
+    author_reply_back?: boolean | null;
+  } = {};
+  if (parsed.replyImpressions !== undefined) patch.reply_impressions = parsed.replyImpressions;
+  if (parsed.authorMedianReplyImpressions !== undefined)
+    patch.author_median_reply_impressions = parsed.authorMedianReplyImpressions;
+  if (parsed.authorReplyBack !== undefined) patch.author_reply_back = parsed.authorReplyBack;
+  if (Object.keys(patch).length === 0) return;
+  const sb = supabaseService();
+  const { error } = await sb
+    .from("sniper_alerts")
+    .update(patch)
+    .eq("id", alertId)
+    .eq("profile_id", profileId)
+    .eq("status", "acted"); // outcomes only attach to alerts the owner actually replied to
+  if (error) throw new Error(`recording reply outcome failed: ${error.message}`);
+  revalidatePath("/performance/gate-2");
+  revalidatePath("/performance");
 }

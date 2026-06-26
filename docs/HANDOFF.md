@@ -1,13 +1,38 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-26 (Session 17 — GDPR LIA R1 retention/purge SHIPPED)
-**Active branch:** `main` (suite **689 green / 1 skip**, tsc clean). Session 16 docs/data (LIA · seed · handoff) are on `origin/main` @ `1c0a393`; **the Session 17 R1 retention commit lands this session and is the only unpushed work — push owner-gated**. Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-26 (Session 18 — GATE-2 dogfood scorecard + outcome instrumentation SHIPPED)
+**Active branch:** `main` (suite **717 green / 1 skip**, tsc clean). Session 16 docs/data on `origin/main` @ `1c0a393`; **Sessions 17 (R1 retention, `8f54d35`) + 18 (scorecard) commits are unpushed — push owner-gated**. Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 18 (2026-06-26) — GATE-2 dogfood scorecard + outcome instrumentation SHIPPED
+
+**TL;DR:** Made the self-dogfood **scoreable** before alert #1 fires. The sniper was armed but had zero instrumentation — an acted reply captured nothing. Now: one-tap **skip-reason** tagging on the alert pin, manual **reply-outcome** capture (impressions · author-median · author-reply-back) on acted alerts, and a read-only **GATE-2 scorecard** at `/performance/gate-2` (+ a summary card on `/performance`). Suite **689 → 717 green**, tsc clean. Plan: `docs/superpowers/plans/2026-06-26-gate2-scorecard.md` (decision record — don't re-litigate).
+
+**Verify-first corrections to the brief (data contradicted it):**
+- **`analytics_daily` has NO out-of-network-reach column** (X CSV doesn't expose it). The "OON reach % from analytics_daily" north star is **not buildable**. Substituted the derivable signal that is the handoff's actual DoD: **reply-day visit-lift** = avg `profile_visits` on acted-reply days vs non-reply days (cross `sniper_alerts.sent_at` × `analytics_daily.date`). Literal OON% stays a manual read-off (not stored).
+- **Reply-outcome can't live on the alert pin** (`getSniperPins` shows only `status='sent'`, 3h window — an acted alert vanishes at action time, outcomes are known days later) → outcome capture lives on the scorecard page. Skip-reason stays on the pin (decision-time).
+- Author median reply-impressions **cannot be derived** (X hides reply-source impressions) → manual capture, confirmed.
+
+**What shipped:**
+- **Migration** `supabase/migrations/20260626_sniper_scorecard.sql` — `sniper_alerts +=` `skip_reason` (CHECK enum), `reply_impressions`, `author_median_reply_impressions`, `author_reply_back` (all nullable/additive/idempotent). Types hand-reflected. **NOT applied live — owner-gated** (the surface needs it before it works against prod).
+- `src/lib/gate/scorecard.ts` (+test) — pure `computeScorecard`: precision · false-alert + skip breakdown · author-reply-back rate · cleared-2× count · reply-day visit-lift; all null-guarded; `pass` flags vs DoD (precision ≥0.70 · ≥3 cleared-2× · lift ≥+0.25). `present.ts` formatters.
+- `src/server/gate.ts` (+test) — `getGateScorecard` + `listRecentActedAlerts` (throw on read error).
+- `src/server/sniper.ts` — `markSniperAlert(+skipReason)` (validated, written on dismiss) + `setReplyOutcome` (zod, status='acted' guard); wrappers `actOnSniperAlert(+skipReason)` / `recordReplyOutcome` in `sniper-actions.ts`.
+- UI — `sniper-pins.tsx` (4 skip-reason buttons), `components/gate/gate-scorecard-card.tsx`, `components/gate/reply-outcome-list.tsx` (+test), `app/(app)/performance/gate-2/page.tsx`, card wired into `/performance`.
+
+**Freeze-safe:** zero touch to P4 predict / P6 strategy; their numbers stay off the scorecard. No new activity-event kind. No read-path change.
+
+**NEXT (owner-driven):**
+1. **Apply migration `20260626`** to live Supabase + **push** Sessions 17–18 → the scorecard + retention cron go live.
+2. STEP-5: first real alert → manual reply → record its outcome on `/performance/gate-2`; watch the scorecard fill.
+3. Poll-window widen (Session 16 #1) still owner-locked. R2/R3 GDPR still deferred (gate strangers, ~Day 12+).
 
 ---
 

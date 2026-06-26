@@ -2,7 +2,9 @@ import { listProfiles } from "@/server/profiles";
 import { listPerformance } from "@/server/posts";
 import { getKpis } from "@/server/kpis";
 import { getForecastBundle } from "@/server/predict";
+import { getGateScorecard } from "@/server/gate";
 import { ForecastCard } from "@/components/predict/forecast-card";
+import { GateScorecardCard } from "@/components/gate/gate-scorecard-card";
 import { KpiGrid } from "@/components/kpis/kpi-grid";
 import { CsvImportCard } from "@/components/kpis/csv-import-card";
 import {
@@ -34,6 +36,7 @@ export default async function PerformancePage({
     : [];
   const kpis = active ? await getKpis(active) : null;
   const bundle = active ? await getForecastBundle(active) : null;
+  const gate = active ? await getGateScorecard(active) : null;
 
   // Stat calculations
   const totalLikes = posts.reduce((s, p) => s + (p.metrics?.likes ?? 0), 0);
@@ -82,6 +85,7 @@ export default async function PerformancePage({
 
         {/* KPI cards — follow conversion north star (P3) */}
         {kpis && <KpiGrid kpis={kpis} />}
+        {gate && <GateScorecardCard gate={gate} />}
         {bundle?.ok && <ForecastCard trajectory={bundle.trajectory} forecast={bundle.forecast} />}
         {active && (
           <CsvImportCard
