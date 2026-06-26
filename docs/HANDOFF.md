@@ -1,13 +1,33 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-25 (Session 16 — GATE-2 ignition EXECUTED LIVE; dogfood armed)
-**Active branch:** `main` (suite **675 green / 1 skip**, tsc clean). T1–T9 + ignition pushed (`origin/main` @ `0173447`); **3 docs/data commits ahead, UNPUSHED** (LIA · seed file · this handoff — push owner-gated). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-26 (Session 17 — GDPR LIA R1 retention/purge SHIPPED)
+**Active branch:** `main` (suite **689 green / 1 skip**, tsc clean). Session 16 docs/data (LIA · seed · handoff) are on `origin/main` @ `1c0a393`; **the Session 17 R1 retention commit lands this session and is the only unpushed work — push owner-gated**. Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 17 (2026-06-26) — GDPR LIA R1 retention/purge SHIPPED
+
+**TL;DR:** Closed GDPR LIA §5 **R1** — the indefinite-retention gap on `signal_tweets`. Shipped a daily hard-delete purge: rows whose `first_seen_at` is older than **90 days** (env `SIGNAL_RETENTION_DAYS`) are deleted, and the `on delete cascade` FK auto-purges their `tweet_metric_snapshots`. Fail-loud (route returns non-200 on DB error so Actions surfaces it). Freeze-safe — touches neither P4 Predictions nor P6 Strategy. No migration, no read-path change, no live DB purge run from this session (the cron does it on schedule once owner-activated). Plan: `docs/superpowers/plans/2026-06-26-signal-retention-r1.md` (decision record — don't re-litigate; hard-delete not soft, anchor on `first_seen_at` not `last_seen_at`).
+
+**What shipped:**
+- `src/lib/signals/retention.ts` (+ `.test.ts`) — pure `retentionCutoffIso` / `retentionDays` (env-overridable, default 90) + `purgeExpiredSignals(sb)` (`.delete().lt("first_seen_at", cutoff).select("id")`, throws on supabase error).
+- `src/app/api/cron/signal-retention/route.ts` (+ `.test.ts`) — `cronAuthError` gate → `purgeExpiredSignals` → 200 `{ ok, deleted, cutoff }`; try/catch → 500. Mirrors the existing sniper/strategy cron routes.
+- `.github/workflows/signal-retention.yml` — daily 02:45 UTC (`45 2 * * *`) + `workflow_dispatch`; curls `/api/cron/signal-retention` with `CRON_SECRET` bearer, asserts HTTP 200. Separate file (NOT a 3rd schedule in `signal-crons.yml`).
+- `.env.example` — `SIGNAL_RETENTION_DAYS=90`.
+- `docs/compliance/2026-06-24-gdpr-lia-signal-warehouse.md` — R1 row ❌ Gap → ✅ **Shipped**; §6 residual-risk softened (R1 closed; R2/R3 now the open conditions).
+
+**What remains (unchanged, owner-driven):**
+- **R2 — privacy notice:** publish a short transparency notice (collected fields, basis = legitimate interest, retention, objection/erasure route) at a stable Embalio URL. Outward task.
+- **R3 — DSR runbook:** document the right-to-object/erasure runbook (deactivate handle in `watch_targets` + purge their `signal_tweets`/`sniper_alerts`). Outward task. (Stretch T6 — a per-handle purge helper — was scoped optional; see the plan.)
+- **Poll-window widen** (Session 16 NEXT #1) still owner-locked: cron `*/15 6-22 UTC` misses US-prime viral posts; widening toward 24h is the highest-leverage GATE-2 move but is the owner's call.
+
+**Activation:** push + live cron activation are owner-gated (consistent with the cron/env posture). The purge does not run until the workflow is on `main` and the schedule fires; no rows are deleted by this session.
 
 ---
 

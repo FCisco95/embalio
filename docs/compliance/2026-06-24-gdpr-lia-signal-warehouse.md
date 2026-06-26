@@ -61,7 +61,7 @@ A less-intrusive alternative (manual browsing) does not scale to the validation 
 
 | # | Safeguard | State | Action |
 |---|---|---|---|
-| **R1** | **Retention + purge.** `signal_tweets.deleted_at` exists but is **never written — no purge job runs** (`src/lib/signals/warehouse.ts`). Data accumulates indefinitely. | ❌ **Gap** | Define a retention window (proposed: **90 days** rolling for raw tweets) + implement a scheduled purge that sets/acts on `deleted_at`. **Required before scaling beyond the dogfood.** |
+| **R1** | **Retention + purge.** `signal_tweets.deleted_at` exists but is **never written — no purge job runs** (`src/lib/signals/warehouse.ts`). Data accumulates indefinitely. | ✅ **Shipped** | Hard-delete `signal_tweets` where `first_seen_at` is older than **90 days** (env `SIGNAL_RETENTION_DAYS`); the `on delete cascade` FK auto-purges the row's `tweet_metric_snapshots`. Runs daily via the `signal-retention` cron (02:45 UTC). Fail-loud: the route returns non-200 on DB error so GitHub Actions surfaces it. |
 | **R2** | **Transparency / privacy notice.** Data subjects are not first-party users. | ❌ Missing | Publish a short privacy notice (what's collected, basis = legitimate interest, retention, contact + objection/erasure route) at a stable Embalio URL. |
 | **R3** | **Data-subject rights (DSR).** Right to object (Art. 21), erasure (Art. 17), access (Art. 15). | ⚠️ Manual | Provide a contact email; on objection/erasure, deactivate the handle in `watch_targets` and purge their `signal_tweets`/`sniper_alerts` rows. Document the runbook. |
 | **R4** | Storage location | ✅ EU (`eu-central-1`) | Maintain EU residency. |
@@ -73,7 +73,7 @@ A less-intrusive alternative (manual browsing) does not scale to the validation 
 ## 6. Outcome & sign-off
 
 - **Decision:** Proceed with the GATE-2 dogfood under Art. 6(1)(f), **with R1–R3 tracked as conditions.** R1 (purge) must ship before processing scales or any third party's data beyond the dogfood watch list is added.
-- **Residual risk:** Low-to-moderate, dominated by R1 (indefinite retention). Mitigated by small scope, public data, manual-only action, EU storage.
+- **Residual risk:** Low. R1 (indefinite retention) is now closed by the shipped 90-day purge; the remaining open conditions are R2 (published transparency notice) and R3 (documented DSR runbook), both outward/owner tasks. Mitigated by small scope, public data, manual-only action, EU storage, and the enforced retention bound.
 - **Review triggers:** onboarding any client; expanding the watch list materially; adding a non-Apify source; before 2026-09-04.
 
 **Operator sign-off:** _______________________  Date: __________

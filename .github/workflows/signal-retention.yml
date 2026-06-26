@@ -1,0 +1,16 @@
+name: signal-retention
+
+on:
+  schedule:
+    - cron: "45 2 * * *"   # daily 02:45 UTC, low-traffic — GDPR LIA R1 retention purge
+  workflow_dispatch: {}
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: signal-retention
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 300 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/signal-retention")
+          cat /tmp/out; echo; [ "$code" = "200" ]
