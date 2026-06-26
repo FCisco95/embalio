@@ -1,13 +1,34 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-26 (Session 18 — GATE-2 dogfood scorecard + outcome instrumentation SHIPPED)
-**Active branch:** `main` (suite **718 green / 1 skip**, tsc clean), **fully pushed** (`origin/main` @ `93392c6`). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26 (ops session):** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
+**Last updated:** 2026-06-26 (Session 19 — ops/reasoning, NO code: Premium confirmed · Rank-2 reach audit · STEP-5 watch ran empty — gate still **ARMED, unfired**)
+**Active branch:** `main` (suite **718 green / 1 skip**, tsc clean), **fully pushed** (`origin/main`; Session 19 added only this handoff + snapshot, no code). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26:** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
 
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 19 (2026-06-26) — ops/reasoning: Premium confirmed · Rank-2 reach audit · STEP-5 watch (no code)
+
+**TL;DR:** No build (Q3 validate-not-build mandate held). Verified state green (HEAD = origin/main, prod 200 on `/performance` + `/performance/gate-2`), then worked the report's **Rank-2 reach lever** while the gate waited. STEP-5 watch opened at 21:20 UTC — **no fresh in-band post landed** before owner closed. Gate remains **ARMED, not yet fired**; the single open DoD item (one real end-to-end alert) is unchanged.
+
+**Confirmed this session (durable facts):**
+- **X Premium ACTIVE** (owner verified blue check). The reply-reach multiplier (≈2× OON on replies) is **ON** — load-bearing for GATE-2, since the whole dogfood rides on replies earning OON reach. No spend decision pending.
+- **Rank-2 reach audit** on 9 of the owner's recent originals: the #1 reach-killer (external link in the **main** tweet) is **already CLEAN** — zero violations. Real gaps = (a) long multi-paragraph posts shipped as single tweets that should be **threads** (hook line solo), (b) **zero native video** despite generating CLI/build footage daily. Posting habit pinned: **"main tweet = hook + native media; every link goes in reply 1."**
+
+**Trend research captured** (live WebSearch; Reddit JSON 403'd from datacenter IP — use WebSearch/Perplexity next time):
+- **Solana sec:** Drift Protocol drained **$285M** (Apr 2026, DPRK abused **durable nonces** — a legit feature pre-approving txns executed weeks later) → Solana Foundation shipped **Stride + SIRN**. **Auth/authorization failures = #1 cause of Solana drains.** ~93% of 361k Raydium pools show soft-rug traits. Rust release builds skip integer-overflow checks (Solana ships release).
+- **AI dev:** Anthropic's June-15 per-token billing change was **PAUSED** (Agent SDK/claude-p still draw from subscription). June-12 export-control order took Claude/Fable **offline** (US access ~July 1) — explains the owner's "Opus 4.8 error" posts.
+
+**Content drafting — SKIPPED by owner.** Repeated attempts to seed an original post kept **recycling the owner's existing tweets** (drain-bug, billing, outage) → owner rejected. Lesson for next session: do NOT rephrase his prior posts; net-new angles only (e.g. durable-nonce mechanism, 93%-soft-rug stat, Rust-overflow gotcha — all un-posted). Owner said "skip this."
+
+**NEXT (owner-driven, unchanged):**
+1. **STEP-5 (the one open DoD):** resume the US-evening watch (~20:00–04:00 UTC). Scan 6 in-band handles top-down — **@kaixcreator** (pri 5) first, then `heymike777`, `w3_surfer`, `dom_gag_96`, `saadpastadev`, `sahilpanhotra`. On a FRESH (<30min) strong in-niche post → `gh workflow run sniper-poll.yml` → confirm `pulled>0` → first alert (PWA + Telegram) → **manual reply via X composer (never auto-post)** → record outcome on `/performance/gate-2` → note the reply's in-app OON% by hand.
+2. Optional codeless win: turn one of the un-posted net-new angles above into a thread (native media) — moves Rank-2 north star without touching code.
+3. Still owner-locked / deferred: poll-window widen (Session 16 #1); R2/R3 GDPR (gate strangers); Rank-5 stranger shortlist (build AFTER the gate fires on the owner, not before).
 
 ---
 
