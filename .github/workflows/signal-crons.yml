@@ -1,9 +1,10 @@
 name: signal-crons
 
 on:
-  schedule:
-    - cron: "15 6-22/2 * * *"   # targeting + tracking, every 2h waking hours (UTC; Lisbon=UTC+1)
-    - cron: "45 0 * * *"        # follower snapshot, daily 00:45 UTC
+  # schedule:
+  #   - cron: "15 6-22/2 * * *"   # targeting + tracking, every 2h waking hours (UTC; Lisbon=UTC+1)
+  #   - cron: "45 0 * * *"        # follower snapshot, daily 00:45 UTC
+  #   # paused: see docs/HANDOFF.md
   workflow_dispatch: {}
 
 jobs:

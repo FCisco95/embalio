@@ -1,8 +1,9 @@
 name: strategy-weekly
 
 on:
-  schedule:
-    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  # schedule:
+  #   - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  #   # paused: see docs/HANDOFF.md
   workflow_dispatch: {}
 
 jobs:

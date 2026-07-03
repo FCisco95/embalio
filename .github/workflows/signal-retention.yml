@@ -1,8 +1,9 @@
 name: signal-retention
 
 on:
-  schedule:
-    - cron: "45 2 * * *"   # daily 02:45 UTC, low-traffic — GDPR LIA R1 retention purge
+  # schedule:
+  #   - cron: "45 2 * * *"   # daily 02:45 UTC, low-traffic — GDPR LIA R1 retention purge
+  #   # paused: see docs/HANDOFF.md
   workflow_dispatch: {}
 
 jobs:
