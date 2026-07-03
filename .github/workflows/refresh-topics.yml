@@ -1,8 +1,9 @@
 name: refresh-topics
 
 on:
-  schedule:
-    - cron: "30 6-22/3 * * *"   # every 3h, waking hours UTC (Lisbon=UTC+1)
+  # schedule:
+  #   - cron: "30 6-22/3 * * *"   # every 3h, waking hours UTC (Lisbon=UTC+1)
+  #   # paused: see docs/HANDOFF.md
   workflow_dispatch: {}
 
 concurrency:
