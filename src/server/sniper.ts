@@ -18,6 +18,7 @@ import type { TelegramButton } from "@/lib/telegram";
 import { checkCaps } from "@/lib/engagement/caps";
 import { loadRecentSends } from "@/server/caps";
 import { SKIP_REASONS, type SkipReason } from "@/lib/gate/scorecard";
+import { parseTweetUrl, manualScoreInputs } from "@/lib/sniper/manual";
 import { z } from "zod";
 
 const MAX_PER_HANDLE = 3;        // lean pull — owner-locked 15-min cadence budget
@@ -392,4 +393,100 @@ export async function setReplyOutcome(
   if (error) throw new Error(`recording reply outcome failed: ${error.message}`);
   revalidatePath("/performance/gate-2");
   revalidatePath("/performance");
+}
+
+const ManualAlertInput = z.object({
+  url: z.string().min(1),
+  tweetText: z.string().trim().min(1).max(4000),
+  authorFollowers: z.number().int().nonnegative().nullable().optional(),
+  replyCount: z.number().int().nonnegative().nullable().optional(),
+  ageMinutes: z.number().nonnegative().nullable().optional(),
+});
+export type ManualAlertInputType = z.infer<typeof ManualAlertInput>;
+
+export type ManualAlertResult =
+  | { ok: true; alertId: string; score: number; parts: TargetScoreParts; drop: string | null; draft: string | null }
+  | { ok: false; reason: string };
+
+/**
+ * Manual sniper mode (zero Apify): the owner pastes a tweet URL while browsing
+ * X. Same scorer, drafter, and ledger as the polled path — the row lands as
+ * status='sent' + source='manual', so getSniperPins, caps, skip-reasons, and
+ * the GATE-2 scorecard all work unchanged. Score/drop are advisory only: the
+ * human already chose this tweet, so we never refuse the insert on score.
+ * No notify() — the owner is looking at the screen that shows the pin.
+ */
+export async function createManualAlert(
+  profileId: string,
+  rawInput: ManualAlertInputType,
+): Promise<ManualAlertResult> {
+  const input = ManualAlertInput.parse(rawInput);
+  const parsed = parseTweetUrl(input.url);
+  if (!parsed) return { ok: false, reason: "unrecognized tweet URL" };
+
+  const sb = supabaseService();
+  const { data: profile } = await sb.from("profiles").select("*").eq("id", profileId).single();
+  if (!profile) return { ok: false, reason: "profile not found" };
+
+  // Same relevance + owner-followers derivation as runSniperPoll.
+  const voiceVec = await embedText(
+    [profile.niche_description, ...((profile.content_pillars ?? []) as string[]), ...profile.voice_corpus]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const tweetVec = await embedText(input.tweetText);
+  const relevance = relevanceFromVectors(voiceVec, tweetVec);
+
+  const { data: snap } = await sb
+    .from("follower_snapshots")
+    .select("followers")
+    .eq("profile_id", profileId)
+    .order("snapshot_date", { ascending: false })
+    .limit(1);
+  const ownerFollowers = snap?.[0]?.followers ?? knobsFromProfile(profile).ownerFollowerEstimate;
+
+  const r = targetScore(
+    manualScoreInputs(
+      { ageMinutes: input.ageMinutes, replyCount: input.replyCount, authorFollowers: input.authorFollowers },
+      relevance,
+      ownerFollowers,
+      baitScore(input.tweetText),
+    ),
+  );
+
+  let draft: string | null = null;
+  try {
+    const d = await draftReply(profile, input.tweetText);
+    draft = d.body?.trim() || null;
+  } catch (err) {
+    console.error("[sniper] manual draft failed (alert still created):", String(err).slice(0, 160));
+  }
+
+  const { data: inserted, error } = await sb
+    .from("sniper_alerts")
+    .upsert(
+      {
+        profile_id: profileId,
+        source_tweet_id: parsed.tweetId,
+        author_handle: parsed.authorHandle,
+        tweet_text: input.tweetText,
+        tweet_url: buildStatusUrl(parsed.authorHandle, parsed.tweetId),
+        score: r.score,
+        score_parts: r.parts as unknown as Json,
+        latency_ms: Math.round((input.ageMinutes ?? 0) * 60_000),
+        draft_reply: draft,
+        source: "manual",
+      },
+      { onConflict: "profile_id,source_tweet_id", ignoreDuplicates: true },
+    )
+    .select("id");
+  if (error) return { ok: false, reason: `saving manual alert failed: ${error.message}` };
+  if (!inserted || inserted.length === 0) return { ok: false, reason: "already alerted for this tweet" };
+
+  await logActivity(sb, profileId, "sniper_alert_sent", {
+    refId: parsed.tweetId,
+    meta: { score: r.score, source: "manual" },
+  });
+  revalidatePath("/engage");
+  return { ok: true, alertId: inserted[0].id, score: r.score, parts: r.parts, drop: r.drop, draft };
 }
