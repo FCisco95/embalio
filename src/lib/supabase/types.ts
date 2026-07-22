@@ -724,6 +724,7 @@ export type Database = {
           sent_at: string | null
           sent_reply_text: string | null
           skip_reason: string | null
+          source: string
           source_tweet_id: string
           status: string
           tweet_text: string
@@ -745,6 +746,7 @@ export type Database = {
           sent_at?: string | null
           sent_reply_text?: string | null
           skip_reason?: string | null
+          source?: string
           source_tweet_id: string
           status?: string
           tweet_text: string
@@ -766,6 +768,7 @@ export type Database = {
           sent_at?: string | null
           sent_reply_text?: string | null
           skip_reason?: string | null
+          source?: string
           source_tweet_id?: string
           status?: string
           tweet_text?: string
