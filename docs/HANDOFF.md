@@ -1,6 +1,6 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-06-26 (Session 19 — ops/reasoning, NO code: Premium confirmed · Rank-2 reach audit · STEP-5 watch ran empty — gate still **ARMED, unfired**)
+**Last updated:** 2026-07-22 (Session 20 — ops/diagnosis, NO product code: **GATE-2 FIRED 2026-06-26 — 2 acted alerts found in DB** (Session 19's "unfired" claim was wrong) · all crons **deliberately PAUSED since 2026-07-03** (PR #4) · outcomes still unrecorded)
 **Active branch:** `main` (suite **718 green / 1 skip**, tsc clean), **fully pushed** (`origin/main`; Session 19 added only this handoff + snapshot, no code). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26:** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
@@ -8,6 +8,28 @@
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 20 (2026-07-22) — ops/diagnosis after 26-day gap: gate DID fire · crons paused · outcomes missing (no product code)
+
+**TL;DR:** Resumed after ~4 weeks (owner vacation ~Jul 7–14). Audited live state against the handoff and found it stale in both directions: **GATE-2's open DoD item was already complete on 2026-06-26** — the DB has **2 `status='acted'` sniper alerts with real sent replies** — while **all 5 cron workflows have been deliberately paused since 2026-07-03** (PR #4, merged from Claude-web branch `claude/stop-embalio-runs-5dfva5`; schedule blocks commented out, `workflow_dispatch` kept). The pause comment says "see docs/HANDOFF.md" but no note was ever written — **this entry is that note.**
+
+**Durable facts verified this session (DB + Actions + prod, 2026-07-22 ~22:25 UTC):**
+- **The 2 acted alerts (GATE-2 STEP-5 end-to-end, both 2026-06-26):**
+  - `@KaiXCreator` — score 0.626, alert 12:59 UTC, reply sent 13:34 UTC ("that's a smart framing…") — https://x.com/KaiXCreator/status/2070485879479779728
+  - `@SahilPanhotra` — score 0.619, alert 14:58 UTC, reply sent 15:28 UTC ("I'm hopeful for open source, too…") — https://x.com/SahilPanhotra/status/2070514740435255644
+  - **Both have NULL outcomes** (`reply_impressions` / `author_median_reply_impressions` / `author_reply_back`) — the Session-18 scorecard instrumentation has never been fed. Precision · reply-back · cleared-2× · visit-lift all uncomputable until the owner backfills these on `/performance/gate-2`.
+- **67 alerts `status='sent'`, never acted or dismissed** (2026-06-26 → 07-03, ~10/day), zero `skip_reason` — the noise side of precision is also unmeasured. (Session-15 "alert volume ungoverned" risk realized.)
+- **Cron pause:** every scheduled workflow (sniper-poll, signal-crons, refresh-topics, signal-retention, strategy-weekly) stopped 2026-07-03 ~23:17 UTC — **intentional** (PR #4 2026-07-03 23:54 UTC), not a scheduler failure. Manual `workflow_dispatch` confirmed working: sniper-poll run 2026-07-22 22:22 UTC → `{ok:true,profiles:1,pulled:18,alerts:0}`.
+- **Prod healthy:** 200 on `/performance` and `/performance/gate-2`. Warehouse at 5,195 `signal_tweets`, 6 active watch targets.
+- **GDPR R1 clock:** oldest `signal_tweets.first_seen_at` = 2026-06-11 → first purge becomes due **~2026-09-09**. Zero rows overdue today, but the paused `signal-retention` cron MUST be re-enabled (or dispatched manually) before that date or R1 is silently violated.
+
+**NEXT (owner decisions — nothing here is agent-actionable without a call):**
+1. **Resume crons or stay paused?** Re-enable = uncomment the schedule blocks in the 5 workflow files. If staying paused: sniper is dark (no GATE-2 data accrues) and `signal-retention` must fire before ~2026-09-09 regardless.
+2. **Backfill the 2 acted-alert outcomes** on `/performance/gate-2` (reply impressions, author median, reply-back) from the X app — this is what makes the gate scoreable at all.
+3. **Decide the 67 stale 'sent' alerts:** bulk-dismiss with skip reasons (feeds precision) or leave as unmeasured noise.
+4. **Calendar pressure:** week-6 anti-burnout tripwire ~2026-07-30 (8 days out); 3-stranger 2-week dogfood must finish before **2026-09-04** (~6 weeks out). With crons paused since Jul 3, GATE-2 has accrued zero new data for 19 days.
 
 ---
 
