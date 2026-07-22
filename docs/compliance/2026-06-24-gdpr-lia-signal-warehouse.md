@@ -62,8 +62,8 @@ A less-intrusive alternative (manual browsing) does not scale to the validation 
 | # | Safeguard | State | Action |
 |---|---|---|---|
 | **R1** | **Retention + purge.** `signal_tweets.deleted_at` exists but is **never written — no purge job runs** (`src/lib/signals/warehouse.ts`). Data accumulates indefinitely. | ✅ **Shipped** | Hard-delete `signal_tweets` where `first_seen_at` is older than **90 days** (env `SIGNAL_RETENTION_DAYS`); the `on delete cascade` FK auto-purges the row's `tweet_metric_snapshots`. Runs daily via the `signal-retention` cron (02:45 UTC). Fail-loud: the route returns non-200 on DB error so GitHub Actions surfaces it. |
-| **R2** | **Transparency / privacy notice.** Data subjects are not first-party users. | ❌ Missing | Publish a short privacy notice (what's collected, basis = legitimate interest, retention, contact + objection/erasure route) at a stable Embalio URL. |
-| **R3** | **Data-subject rights (DSR).** Right to object (Art. 21), erasure (Art. 17), access (Art. 15). | ⚠️ Manual | Provide a contact email; on objection/erasure, deactivate the handle in `watch_targets` and purge their `signal_tweets`/`sniper_alerts` rows. Document the runbook. |
+| **R2** | **Transparency / privacy notice.** Data subjects are not first-party users. | ✅ **Shipped 2026-07-22** | Notice live at **https://embalio.vercel.app/privacy** (`src/app/privacy/page.tsx`): collected fields, basis = legitimate interest, 90-day retention, contact email + objection/erasure route, CNPD complaint right. |
+| **R3** | **Data-subject rights (DSR).** Right to object (Art. 21), erasure (Art. 17), access (Art. 15). | ✅ **Documented 2026-07-22** | Runbook at `docs/compliance/dsr-runbook.md`: verification, Art. 15 export SQL, objection/erasure = deactivate `watch_targets` + purge `signal_tweets`/`sniper_alerts` (snapshots cascade), zero-row verification, DSR log table. Execution remains manual. |
 | **R4** | Storage location | ✅ EU (`eu-central-1`) | Maintain EU residency. |
 | **R5** | Minimisation | ✅ Small list, public fields | Keep watch list small; review additions. |
 | **R6** | No automated significant decisions | ✅ Manual-send only | Preserve human-in-the-loop; do not reintroduce auto-posting (also a ToS/ban control). |
@@ -73,7 +73,7 @@ A less-intrusive alternative (manual browsing) does not scale to the validation 
 ## 6. Outcome & sign-off
 
 - **Decision:** Proceed with the GATE-2 dogfood under Art. 6(1)(f), **with R1–R3 tracked as conditions.** R1 (purge) must ship before processing scales or any third party's data beyond the dogfood watch list is added.
-- **Residual risk:** Low. R1 (indefinite retention) is now closed by the shipped 90-day purge; the remaining open conditions are R2 (published transparency notice) and R3 (documented DSR runbook), both outward/owner tasks. Mitigated by small scope, public data, manual-only action, EU storage, and the enforced retention bound.
+- **Residual risk:** Low. R1–R3 are all closed (90-day purge shipped; notice live at /privacy; DSR runbook documented). Remaining exposure: the `signal-retention` cron is **paused since 2026-07-03** — it must fire (schedule re-enabled or manual dispatch) before **~2026-09-09**, when the oldest warehoused rows (first_seen 2026-06-11) cross the 90-day cutoff; and DSR execution is manual, bounded by the 30-day response deadline.
 - **Review triggers:** onboarding any client; expanding the watch list materially; adding a non-Apify source; before 2026-09-04.
 
 **Operator sign-off:** _______________________  Date: __________
