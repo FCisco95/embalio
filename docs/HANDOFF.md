@@ -1,6 +1,6 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-07-22 (Session 20 — ops/diagnosis, NO product code: **GATE-2 FIRED 2026-06-26 — 2 acted alerts found in DB** (Session 19's "unfired" claim was wrong) · all crons **deliberately PAUSED since 2026-07-03** (PR #4) · outcomes still unrecorded)
+**Last updated:** 2026-07-22 (Session 20 — **GATE-2 FIRED 2026-06-26, 2 acted alerts found in DB** (Session 19's "unfired" claim was wrong) · Apify OFF → sniper crons stay paused, refresh-topics resumed · 67 stale alerts bulk-dismissed · **GDPR R2 /privacy + R3 runbook SHIPPED** — LIA R1–R3 all closed)
 **Active branch:** `main` (suite **718 green / 1 skip**, tsc clean), **fully pushed** (`origin/main`; Session 19 added only this handoff + snapshot, no code). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26:** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
@@ -25,11 +25,20 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 - **Prod healthy:** 200 on `/performance` and `/performance/gate-2`. Warehouse at 5,195 `signal_tweets`, 6 active watch targets.
 - **GDPR R1 clock:** oldest `signal_tweets.first_seen_at` = 2026-06-11 → first purge becomes due **~2026-09-09**. Zero rows overdue today, but the paused `signal-retention` cron MUST be re-enabled (or dispatched manually) before that date or R1 is silently violated.
 
-**NEXT (owner decisions — nothing here is agent-actionable without a call):**
-1. **Resume crons or stay paused?** Re-enable = uncomment the schedule blocks in the 5 workflow files. If staying paused: sniper is dark (no GATE-2 data accrues) and `signal-retention` must fire before ~2026-09-09 regardless.
-2. **Backfill the 2 acted-alert outcomes** on `/performance/gate-2` (reply impressions, author median, reply-back) from the X app — this is what makes the gate scoreable at all.
-3. **Decide the 67 stale 'sent' alerts:** bulk-dismiss with skip reasons (feeds precision) or leave as unmeasured noise.
-4. **Calendar pressure:** week-6 anti-burnout tripwire ~2026-07-30 (8 days out); 3-stranger 2-week dogfood must finish before **2026-09-04** (~6 weeks out). With crons paused since Jul 3, GATE-2 has accrued zero new data for 19 days.
+**Owner decisions taken mid-session (2026-07-22, in-session Q&A):**
+- **Apify spend: OFF.** Owner is not currently paying for Apify → sniper-poll, signal-crons (targeting/tracking/follower-snapshot) and strategy-weekly **stay paused** (all route through `getSignalSource()` = Apify, or are frozen-P6). Directive: *"continue working on whatever we can to make this the best Growth socials side tool"* — i.e. maximize non-Apify value.
+- **67 stale 'sent' alerts → bulk-dismissed** (`status='dismissed'`, `skip_reason='stale'`) — precision math clean going forward.
+
+**Also shipped this session (all pushed, suite 718 green / 1 skip, tsc clean):**
+- **refresh-topics cron RESUMED** (`5df36b8`) — the one Apify-free schedule (Claude OAuth CLI + Gemini over the existing warehouse); topic board freshness is back on the 3h cadence. Manual dispatch fired same night to clear the 19-day-stale board.
+- **GDPR R2 SHIPPED** (`bbf60bc`) — public privacy notice at **https://embalio.vercel.app/privacy** (`src/app/privacy/page.tsx`, static, outside the `(app)` group).
+- **GDPR R3 DOCUMENTED** (`bbf60bc`) — `docs/compliance/dsr-runbook.md` (verify → Art. 15 export SQL → objection/erasure purge + zero-row check + DSR log). LIA §5 now shows R1–R3 all closed; §6 residual risk re-pointed at the paused retention cron.
+
+**NEXT:**
+1. **Owner: backfill the 2 acted-alert outcomes** on `/performance/gate-2` (reply impressions · author median · reply-back, read from the X app) — the only thing standing between the gate and a computable scorecard.
+2. **~2026-09-09 hard date:** `signal-retention` must fire before then (re-enable its schedule — it's a free curl, no Apify — or manual `gh workflow run signal-retention.yml`). Consider just re-enabling it now; it costs nothing.
+3. **Strategy question for owner:** with Apify off indefinitely, GATE-2 accrues no new sniper data — either budget minimal Apify for the dogfood window, find a free signal source (P8 adapters currently OFF by freeze), or re-scope what the 2026-09-04 gate is judged on. Week-6 tripwire ~2026-07-30.
+4. `gate2-scorecard.png` still untracked in the repo root (Jul 14 tweet asset) — commit, move, or delete.
 
 ---
 
