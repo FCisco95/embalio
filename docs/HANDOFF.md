@@ -36,7 +36,7 @@ Point-in-time session snapshots live in `docs/handoffs/`.
 
 **NEXT:**
 1. **Owner: backfill the 2 acted-alert outcomes** on `/performance/gate-2` (reply impressions · author median · reply-back, read from the X app) — the only thing standing between the gate and a computable scorecard.
-2. **~2026-09-09 hard date:** `signal-retention` must fire before then (re-enable its schedule — it's a free curl, no Apify — or manual `gh workflow run signal-retention.yml`). Consider just re-enabling it now; it costs nothing.
+2. ✅ **DONE same night (`304fb15`):** `signal-retention` schedule re-enabled (Apify-free curl) — the ~2026-09-09 GDPR purge deadline is covered. Verify a scheduled run goes green after 02:45 UTC.
 3. **Strategy question for owner:** with Apify off indefinitely, GATE-2 accrues no new sniper data — either budget minimal Apify for the dogfood window, find a free signal source (P8 adapters currently OFF by freeze), or re-scope what the 2026-09-04 gate is judged on. Week-6 tripwire ~2026-07-30.
 4. `gate2-scorecard.png` still untracked in the repo root (Jul 14 tweet asset) — commit, move, or delete.
 
