@@ -1,9 +1,10 @@
 name: signal-retention
 
 on:
-  # schedule:
-  #   - cron: "45 2 * * *"   # daily 02:45 UTC, low-traffic — GDPR LIA R1 retention purge
-  #   # paused: see docs/HANDOFF.md
+  schedule:
+    - cron: "45 2 * * *"   # daily 02:45 UTC, low-traffic — GDPR LIA R1 retention purge
+    # resumed 2026-07-22 — Apify-free (curls our own cron route); required before ~2026-09-09
+    # when the oldest warehoused rows cross the 90-day cutoff
   workflow_dispatch: {}
 
 jobs:
