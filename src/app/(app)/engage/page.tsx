@@ -2,6 +2,7 @@ import { listProfiles } from "@/server/profiles";
 import { getEngageQueue } from "@/server/engage-queue";
 import { getSniperPins } from "@/server/sniper";
 import { SniperPins } from "@/components/sniper-pins";
+import { ManualSniperForm } from "@/components/manual-sniper-form";
 import { EngageQueuePanel } from "@/components/engage-queue-panel";
 import { ReplyQueuePanel } from "@/components/reply-queue";
 import { TrendRadarPanel } from "@/components/trend-radar";
@@ -44,6 +45,7 @@ export default async function EngagePage({
               <PushOptIn profileId={profiles[0].id} />
             </div>
           )}
+          {profiles[0] && <ManualSniperForm profileId={profiles[0].id} />}
           {profiles[0] && <SniperPins profileId={profiles[0].id} pins={sniperPins} />}
           <p className="text-[13px] text-muted-foreground mb-4">
             Scan seed accounts and draft replies in one step.

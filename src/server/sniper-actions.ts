@@ -1,5 +1,13 @@
 "use server";
-import { markSniperAlert, markSniperReplySent, setReplyOutcome, type ReplyOutcomeInput } from "@/server/sniper";
+import {
+  markSniperAlert,
+  markSniperReplySent,
+  setReplyOutcome,
+  createManualAlert,
+  type ReplyOutcomeInput,
+  type ManualAlertInputType,
+  type ManualAlertResult,
+} from "@/server/sniper";
 import type { SkipReason } from "@/lib/gate/scorecard";
 
 export async function actOnSniperAlert(
@@ -25,4 +33,11 @@ export async function recordReplyOutcome(
   outcome: ReplyOutcomeInput,
 ): Promise<void> {
   await setReplyOutcome(profileId, alertId, outcome);
+}
+
+export async function createManualSniperAlert(
+  profileId: string,
+  input: ManualAlertInputType,
+): Promise<ManualAlertResult> {
+  return createManualAlert(profileId, input);
 }
