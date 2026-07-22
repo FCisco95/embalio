@@ -14,14 +14,14 @@ export interface ParsedTweetUrl {
 }
 
 const TWEET_URL_RE =
-  /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d+)(?:\/|\?|#|$)/;
+  /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d+)(?:\/|\?|#|$)/i;
 
-/** x.com / twitter.com status URL → id + handle; null when unrecognized (incl. handle-less /i/web/ links). */
+/** x.com / twitter.com status URL → id + handle; null when unrecognized (incl. handle-less /i/… links). */
 export function parseTweetUrl(raw: string): ParsedTweetUrl | null {
   const m = TWEET_URL_RE.exec(raw.trim());
   if (!m) return null;
   const [, authorHandle, tweetId] = m;
-  if (authorHandle.toLowerCase() === "i") return null; // x.com/i/web/status/<id> has no author handle
+  if (authorHandle.toLowerCase() === "i") return null; // x.com/i/status/<id> has no author handle
   return { tweetId, authorHandle };
 }
 

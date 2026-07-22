@@ -15,6 +15,7 @@ describe("parseTweetUrl", () => {
       "https://www.x.com/foo_bar/status/123",
       "https://mobile.twitter.com/foo_bar/status/123",
       "http://x.com/foo_bar/status/123",
+      "https://X.com/foo_bar/status/123",
     ]) {
       expect(parseTweetUrl(u)).toEqual({ tweetId: "123", authorHandle: "foo_bar" });
     }
@@ -35,6 +36,7 @@ describe("parseTweetUrl", () => {
     expect(parseTweetUrl("not a url")).toBeNull();
     expect(parseTweetUrl("https://x.com/foo")).toBeNull();
     expect(parseTweetUrl("https://x.com/i/web/status/123")).toBeNull();
+    expect(parseTweetUrl("https://x.com/i/status/123")).toBeNull();
     expect(parseTweetUrl("https://example.com/foo/status/123")).toBeNull();
     expect(parseTweetUrl("https://x.com/foo/status/12a3")).toBeNull();
     expect(parseTweetUrl("")).toBeNull();
