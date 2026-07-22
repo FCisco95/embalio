@@ -420,7 +420,14 @@ export async function createManualAlert(
   profileId: string,
   rawInput: ManualAlertInputType,
 ): Promise<ManualAlertResult> {
-  const input = ManualAlertInput.parse(rawInput);
+  // Invalid form input surfaces as ok:false (the /engage form renders reason),
+  // matching every other failure mode of this function — never a throw.
+  const validated = ManualAlertInput.safeParse(rawInput);
+  if (!validated.success) {
+    const first = validated.error.issues[0];
+    return { ok: false, reason: `${first.path.join(".") || "input"}: ${first.message}` };
+  }
+  const input = validated.data;
   const parsed = parseTweetUrl(input.url);
   if (!parsed) return { ok: false, reason: "unrecognized tweet URL" };
 

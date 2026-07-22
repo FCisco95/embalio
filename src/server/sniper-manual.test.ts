@@ -146,4 +146,18 @@ describe("createManualAlert", () => {
     const r = await createManualAlert("p1", input);
     expect(r).toEqual({ ok: false, reason: "profile not found" });
   });
+
+  it("invalid input returns ok:false (never throws), without touching the DB", async () => {
+    const r = await createManualAlert("p1", { ...input, tweetText: "" });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.reason).toMatch(/tweetText/);
+    expect(upsertPayload).toBeNull();
+  });
+
+  it("an upsert error returns ok:false with the DB message", async () => {
+    upsertResult = { data: null, error: { message: "column missing" } };
+    const r = await createManualAlert("p1", input);
+    expect(r).toEqual({ ok: false, reason: "saving manual alert failed: column missing" });
+  });
 });
