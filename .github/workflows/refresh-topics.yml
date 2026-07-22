@@ -1,9 +1,9 @@
 name: refresh-topics
 
 on:
-  # schedule:
-  #   - cron: "30 6-22/3 * * *"   # every 3h, waking hours UTC (Lisbon=UTC+1)
-  #   # paused: see docs/HANDOFF.md
+  schedule:
+    - cron: "30 6-22/3 * * *"   # every 3h, waking hours UTC (Lisbon=UTC+1)
+    # resumed 2026-07-22 — Apify-free (Claude OAuth + Gemini); Apify-dependent crons stay paused
   workflow_dispatch: {}
 
 concurrency:
