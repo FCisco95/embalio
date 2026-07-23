@@ -7,13 +7,18 @@ export interface DailyPlanView {
   items: DailyPlanItem[];
 }
 
+/** Match GATE-2's scorecard window (gate.ts) — older un-outcomed alerts no longer feed it, so don't nag. */
+const OUTCOME_WINDOW_DAYS = 45;
+
 /**
- * Read-only aggregation for the home checklist: existing assignment + topic
- * board reads, plus two tiny selects (pending outcome count, newest analytics
- * date). No new tables, no writes, no P4/P6 touch.
+ * Aggregation for the home checklist: existing assignment + topic board reads
+ * (the board read may kick off its own background refresh), plus two tiny
+ * selects (pending outcome count, newest analytics date). Writes nothing
+ * itself; no new tables, no P4/P6 touch.
  */
 export async function getDailyPlan(profileId: string): Promise<DailyPlanView> {
   const sb = supabaseService();
+  const outcomeCutoff = new Date(Date.now() - OUTCOME_WINDOW_DAYS * 86_400_000).toISOString();
 
   const [assignment, boardResult, pendingResult, analyticsResult] = await Promise.all([
     getDailyAssignment(profileId),
@@ -23,6 +28,7 @@ export async function getDailyPlan(profileId: string): Promise<DailyPlanView> {
       .select("id", { count: "exact", head: true })
       .eq("profile_id", profileId)
       .eq("status", "acted")
+      .gte("created_at", outcomeCutoff)
       .is("reply_impressions", null),
     sb
       .from("analytics_daily")

@@ -19,7 +19,9 @@ vi.mock("@/lib/supabase/server", () => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
-                is: async () => ({ count: pendingCount, error: null }),
+                gte: () => ({
+                  is: async () => ({ count: pendingCount, error: null }),
+                }),
               }),
             }),
           }),
