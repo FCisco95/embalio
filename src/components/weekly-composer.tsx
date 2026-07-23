@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { safeHref } from "@/lib/safe-url";
 import { SkeletonLine } from "@/components/ui/skeleton";
+import { ReachLintHints } from "@/components/reach-lint-hints";
 import { toast } from "sonner";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -84,6 +85,7 @@ function PostCard({ post, profileId }: { post: WeeklyPost; profileId: string }) 
           onChange={(e) => setBody(e.target.value)}
           className="font-mono text-[14px]"
         />
+        <ReachLintHints text={body} kind="post" />
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"

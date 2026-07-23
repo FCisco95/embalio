@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ReachLintHints } from "@/components/reach-lint-hints";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
 import { findHotTopics, draftPostFromAngle } from "@/server/create-post";
@@ -92,6 +93,7 @@ export function CreatePostPanel({ profiles }: { profiles: { id: string; handle: 
         <Card>
           <CardContent className="flex flex-col gap-3 pt-5">
             <Textarea rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} />
+            <ReachLintHints text={draft} kind="post" />
             <div className="flex gap-2">
               <Button
                 size="sm"

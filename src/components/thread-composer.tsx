@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StyledSelect } from "@/components/ui/select-native";
 import { toast } from "sonner";
 import { BreakoutChip } from "@/components/predict/breakout-chip";
+import { ReachLintHints } from "@/components/reach-lint-hints";
 
 const TYPE_LABELS: Record<string, string> = { hook: "hook", body: "body", cta: "cta" };
 const TYPE_VARIANTS: Record<string, "accent" | "secondary" | "outline"> = {
@@ -49,6 +50,7 @@ function TweetCard({ tweet, type, idx, profileId }: { tweet: string; type: strin
           onChange={(e) => setBody(e.target.value)}
           className="font-mono text-[14px]"
         />
+        <ReachLintHints text={body} kind={type === "hook" ? "hook" : "body"} />
         <div className="flex items-center gap-2 flex-wrap">
           <Button size="sm" onClick={() => { navigator.clipboard.writeText(body); toast.success("Copied"); }}>
             Copy
