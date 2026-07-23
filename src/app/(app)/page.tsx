@@ -33,12 +33,12 @@ import { listProfiles } from "@/server/profiles"
 import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
-import { getDailyAssignment } from "@/server/coach"
+import { getDailyPlan } from "@/server/daily-plan"
 import { getStreak } from "@/server/streak"
 import { getFollowerStat } from "@/server/kpis"
 import { getWeeklyActivity } from "@/server/weekly-activity"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
-import { CoachCard } from "@/components/coach-card"
+import { DailyPlanCard } from "@/components/daily-plan-card"
 import { FollowerCard } from "@/components/follower-card"
 import { StreakBadge } from "@/components/streak-badge"
 import { WeeklySystemCard } from "@/components/weekly-system-card"
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
   let pending: Awaited<ReturnType<typeof listPendingDrafts>> = []
   let data: DashboardData = EMPTY_DASHBOARD
   let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
-  let assignment: Awaited<ReturnType<typeof getDailyAssignment>> | null = null
+  let dailyPlan: Awaited<ReturnType<typeof getDailyPlan>> | null = null
   let streak = 0
   let followerStat: Awaited<ReturnType<typeof getFollowerStat>> = null
   let weeklyActivity: Awaited<ReturnType<typeof getWeeklyActivity>> | null = null
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       pending = await listPendingDrafts(profile.id)
       data = await getDashboardData(profile.id)
       growthPlan = await getGrowthPlan(profile.id)
-      assignment = await getDailyAssignment(profile.id)
+      dailyPlan = await getDailyPlan(profile.id)
       streak = await getStreak(profile.id)
       followerStat = await getFollowerStat(profile.id)
       weeklyActivity = await getWeeklyActivity(profile.id)
@@ -115,8 +115,8 @@ export default async function DashboardPage() {
 
       {/* Balanced dashboard grid */}
       <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-2">
-        {/* Daily coach assignment */}
-        {assignment && <CoachCard assignment={assignment} />}
+        {/* Unified daily plan (assignment + topic + data-debt reminders) */}
+        {dailyPlan && <DailyPlanCard plan={dailyPlan} />}
 
         {/* Follower star card (P3) */}
         <FollowerCard stat={followerStat} />
