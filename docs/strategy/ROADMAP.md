@@ -137,6 +137,7 @@ trigger list for early reviews, graduation criteria ("stop tweaking, start execu
 | Original post composer | **Works** | `/compose` → research angles → draft |
 | Board / reply queue | **Broken** | Apify token empty; pipeline dead |
 | AdsPower posting | Configured, untested | `/compose` → approve draft → post |
+| Security posture | **Hardening backlog (P7)** | 2026-07-23 audit: no-auth + service-role server actions. See `docs/security/2026-07-23-audit.md` and the 🔒 SECURITY BACKLOG in `docs/HANDOFF.md`. |
 
 **To use the engine today:**
 1. Ensure Docker + `npx supabase start` are running

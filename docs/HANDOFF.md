@@ -1,6 +1,6 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-07-23 (Session 21 — **MANUAL SNIPER MODE SHIPPED** (paste-a-URL → score → draft → pin, zero Apify — the GATE-2 data flow is back on) · **composer reach-lint** (Rank-2 rules as advisory hints in all 3 composers) · **unified daily-plan home card** (assignment + top topic + outcome/CSV reminders). ✅ **PROD MIGRATION APPLIED** — `source` column + `sniper_alerts_source_check` constraint verified live on PROD 2026-07-23 ~15:00Z; manual submit now works. Remaining is owner-only: run the first manual-mode paste + backfill the 2 acted-alert outcomes.)
+**Last updated:** 2026-07-23 (Session 21 — **MANUAL SNIPER MODE SHIPPED** (paste-a-URL → score → draft → pin, zero Apify — the GATE-2 data flow is back on) · **composer reach-lint** (Rank-2 rules as advisory hints in all 3 composers) · **unified daily-plan home card** (assignment + top topic + outcome/CSV reminders). ✅ **PROD MIGRATION APPLIED** — `source` column + `sniper_alerts_source_check` constraint verified live on PROD 2026-07-23 ~15:00Z; manual submit now works. Remaining is owner-only: run the first manual-mode paste + backfill the 2 acted-alert outcomes.) · **2026-07-23 SECURITY AUDIT** — adversarial report added (`docs/security/2026-07-23-audit.md`); see the 🔒 SECURITY BACKLOG section below (root cause: no-auth + service-role server actions; F2 sniper-actions may warrant pulling forward as it corrupts the GATE-2 dataset).
 **Active branch:** `main` (suite **761 green / 1 skip**, tsc clean), **fully pushed** (`origin/main` @ `9cfa12b`). **Sessions 17 (R1 retention) + 18 (scorecard) SHIPPED LIVE 2026-06-26:** migration `20260626` applied to PROD `vzxpakxjnuaesfxihyvl`, prod 200 on `/performance` + `/performance/gate-2`, R1 `signal-retention` cron fired green (`{ok:true,deleted:0,cutoff:2026-03-28}`). Trunk policy: direct-to-main, suite-green-gated.
 **Production:** **https://embalio.vercel.app** (Vercel Hobby, auto-deploys from main; `GEN_BACKEND=gemini` cloud-side). **Repo PUBLIC since 2026-06-11** (private Actions minutes hit billing wall; history secret-scanned first).
 **Scope:** AI **growth-operator** product (repositioned 2026-06-08) — platform-agnostic core (roadmap · daily coach · credibility-gate · brand-voice · gamification) + swappable per-platform packs; X first; dogfood → Stripe. Canonical strategy lives in the cisco-brain vault (paths in Sessions 9-10 below).
@@ -8,6 +8,29 @@
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🔒 SECURITY BACKLOG (from 2026-07-23 adversarial audit) — expands the old "P7" line
+
+Full report + exploit walkthroughs + clean-surface list: **`docs/security/2026-07-23-audit.md`**.
+Report-only (no code changed, freeze respected). Method: 6 surfaces × 2 rounds → per-candidate skeptic refute → 15 CONFIRMED / 11 PLAUSIBLE / 3 REFUTED → 10 findings.
+
+**Root cause (supersedes "P7 = RLS on ~17 tables"):** the app has **no auth layer** (`src/proxy.ts` middleware is a no-op; `(app)/layout.tsx` has no session) and **`supabaseApp = supabaseService`** (`src/lib/supabase/server.ts:30`), so every `"use server"` action imported by a client component is a **public POST RPC running as service-role (RLS bypassed)** that trusts a client-supplied `profileId`. RLS-on alone does NOT fix this — the live vector is unauthenticated Server Actions, not the anon key.
+
+**Correction the audit produced:** the anon key is **not** in the browser bundle and **not** committed (only referenced in server-only `server.ts` + a test; no `createBrowserClient`). So the "anon key → PostgREST → RLS-off table" path is **NOT reachable today** — the RLS-off tables (F6) are *latent*, not internet-live.
+
+**Env caveat that flips severity:** unverified whether Vercel **Deployment Protection** (password/SSO) fronts the prod URL. If ON, F1–F6/F8 demote to latent. **Confirm this first.**
+
+**Tasks (priority order; all P7-class / post-gate per freeze EXCEPT the F2 note):**
+1. **Confirm Vercel Deployment Protection** status (5-min owner check).
+2. **F2 (High) — consider pulling forward despite the freeze:** unauth `sniper-actions.ts` (`createManualSniperAlert`/`actOnSniperAlert`/`confirmSentReply`/`recordReplyOutcome`) let an anonymous caller fabricate "acted + outcome" rows → **corrupts the GATE-2 scorecard the freeze exists to produce**, plus unbounded OpenAI embedding spend. Minimal freeze-safe fix: add the existing `src/server/targeting-actions.ts:7` ownership guard to those four actions.
+3. **F1 (High) — root fix:** add `middleware.ts`/session gate over `(app)`; stop aliasing `supabaseApp = supabaseService` for user writes. Closes F2–F5, F7 at source.
+4. **F6 (Med, latent) — `enable row level security` + `revoke … from anon, authenticated`** on the 11 RLS-off tables (`sniper_alerts`, `watch_targets`, `push_subscriptions`, `signal_tweets`, `analytics_daily`, `predictions`, `strategy_snapshots`, + snapshots/events/topic/follower). Service-role bypass keeps the app working. Do before the Supabase Data-API exposure change (May 30 / Oct 30 2026).
+5. **F3/F4/F5 (Med)** — owner-auth on YouTube OAuth start+callback (credential-bind takeover); session-scope `savePushSubscription`/`removePushSubscription` (push hijack/eavesdrop); `realpath`-confine `publishProjectVideo` `filePath` (arbitrary read/delete). Bundle with F1.
+6. **F7/F8/F9/F10 (Low/Info)** — extend `FIXED_PROFILE_ID` guard to `profiles`/`watch-targets` siblings; auth+size-cap `/api/studio/upload`; add untrusted-framing to `buildTopicBoardPrompt`/`buildVoiceSystem`; encrypt `youtube_credentials.refresh_token` at rest (only if Studio unfreezes).
+
+**Verified CLEAN (no action):** all cron/nudge/pulse/telegram auth (`cronAuthError` constant-time, fail-closed, GET-only) · YouTube OAuth CSRF state check · no SSRF (manual URL never fetched) · reply/thread/original prompt untrusted-framing · deterministic scoring + human post-gate · no secrets in bundle/logs/git · RLS correct on `profiles`/`drafts`/`posts`/`video_projects`/`youtube_credentials`/etc.
 
 ---
 
@@ -40,6 +63,7 @@ alter table public.sniper_alerts add constraint sniper_alerts_source_check check
 3. **Dogfood the loop daily:** open app → follow the plan card → manual-snipe 1-3 fresh in-band posts during US evening → log outcomes next day. This is what fills the scorecard before 2026-09-04.
 4. `gate2-scorecard.png` still untracked in repo root (Jul 14 tweet asset) — commit, move, or delete (owner call).
 5. Week-6 tripwire ~2026-07-30: audit GATE-2 progress; if no outcome data by then, cut scope further.
+6. **Security (see 🔒 SECURITY BACKLOG above / `docs/security/2026-07-23-audit.md`):** (a) confirm Vercel Deployment Protection; (b) decide whether to pull **F2** forward (unauth `sniper-actions.ts` can poison the GATE-2 scorecard — freeze-safe one-guard fix); (c) the rest is P7-class, post-gate.
 
 **Suggested skills next session:** superpowers:subagent-driven-development (if building), promptfoo (if touching draft/scoring quality), handoff-memory (resume).
 
