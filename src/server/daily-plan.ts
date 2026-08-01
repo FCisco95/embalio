@@ -20,8 +20,11 @@ export async function getDailyPlan(profileId: string): Promise<DailyPlanView> {
   const sb = supabaseService();
   const outcomeCutoff = new Date(Date.now() - OUTCOME_WINDOW_DAYS * 86_400_000).toISOString();
 
-  const [assignment, boardResult, pendingResult, analyticsResult] = await Promise.all([
-    getDailyAssignment(profileId),
+  // The three reads below are independent; the assignment then reuses the topic
+  // board's top pick as its angle. That keeps live trend research (two LLM
+  // calls) OFF the home-page request path — it was the dominant cost in an ~8s
+  // render. One extra serial DB read is a fair trade.
+  const [boardResult, pendingResult, analyticsResult] = await Promise.all([
     getTopicBoard(profileId).catch(() => ({ state: "empty" as const, generatedAt: null, topics: [] })),
     sb
       .from("sniper_alerts")
@@ -39,6 +42,10 @@ export async function getDailyPlan(profileId: string): Promise<DailyPlanView> {
   ]);
 
   const top = boardResult.topics[0] ?? null;
+  const assignment = await getDailyAssignment(profileId, {
+    liveTrends: false,
+    topAngle: top ? { hook: top.angle || top.topic } : null,
+  });
   const items = buildDailyPlan({
     assignment,
     topTopic: top ? { id: top.id, topic: top.topic, angle: top.angle, score: top.score } : null,

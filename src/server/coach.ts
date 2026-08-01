@@ -21,7 +21,22 @@ function replyQuotaFromPlan(plan: GrowthPlan | null): number {
   return m ? parseInt(m[0], 10) : 5;
 }
 
-export async function getDailyAssignment(profileId: string): Promise<DailyAssignment> {
+export interface DailyAssignmentOpts {
+  /**
+   * Run live trend research (findHotTopics -> gateTrends) to pick the angle.
+   * Two LLM calls. Default true for back-compat; the home page passes false and
+   * supplies `topAngle` from the cached topic board instead, because this ran on
+   * the request path and made `/` an ~8s page.
+   */
+  liveTrends?: boolean;
+  /** Pre-resolved angle, used as-is when liveTrends is false. */
+  topAngle?: { hook: string; source?: string } | null;
+}
+
+export async function getDailyAssignment(
+  profileId: string,
+  opts: DailyAssignmentOpts = {},
+): Promise<DailyAssignment> {
   const sb = await supabaseServer();
 
   const { data: posts } = await sb
@@ -52,8 +67,8 @@ export async function getDailyAssignment(profileId: string): Promise<DailyAssign
   const plan = (profile?.growth_plan ?? null) as GrowthPlan | null;
   const replyQuota = replyQuotaFromPlan(plan);
 
-  let topAngle: { hook: string; source?: string } | null = null;
-  if (!postedToday) {
+  let topAngle: { hook: string; source?: string } | null = opts.topAngle ?? null;
+  if (!postedToday && (opts.liveTrends ?? true)) {
     try {
       const trends = await findHotTopics(profileId);
       const gated = await gateTrends(profileId, trends);
