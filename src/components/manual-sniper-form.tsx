@@ -48,11 +48,14 @@ export function ManualSniperForm({ profileId }: { profileId: string }) {
           setMsg({ kind: "err", text: r.reason });
           return;
         }
-        const scoreTxt = `pinned below — score ${Math.round(r.score * 100)}`;
+        // NOT "pinned below": getSniperPins renders only the top 5 by score from
+        // the last 3h, so a saved alert may not appear. Say what's true.
+        const scoreTxt = `saved — score ${Math.round(r.score * 100)}`;
+        const pinNote = "pins show the top 5 by score from the last 3h";
         setMsg(
           r.drop
-            ? { kind: "warn", text: `${scoreTxt} · ⚠ ${DROP_LABEL[r.drop] ?? r.drop} (your call)` }
-            : { kind: "ok", text: scoreTxt },
+            ? { kind: "warn", text: `${scoreTxt} · ⚠ ${DROP_LABEL[r.drop] ?? r.drop} (your call) · ${pinNote}` }
+            : { kind: "ok", text: `${scoreTxt} · ${pinNote}` },
         );
         setUrl(""); setText(""); setFollowers(""); setReplies(""); setAge("");
         router.refresh(); // getSniperPins re-runs → the new pin renders with draft + caps + Send
