@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordReplyOutcome } from "@/server/sniper-actions";
 import { Card, CardContent } from "@/components/ui/card";
+import { daysUntilWindowExit, windowExitDate, EXPIRY_WARN_DAYS, DEFAULT_WINDOW_DAYS } from "@/lib/gate/expiry";
 import type { ActedAlertRow } from "@/server/gate";
 
 function numOrNull(s: string): number | null {
@@ -12,8 +13,33 @@ function numOrNull(s: string): number | null {
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 }
 
+/** Amber "about to age out" chip — the outcome is only worth recording until then. */
+function ExpiryChip({ createdAt, windowDays }: { createdAt: string; windowDays: number }) {
+  const left = daysUntilWindowExit(createdAt, windowDays, new Date());
+  if (left === null || left > EXPIRY_WARN_DAYS) return null;
+  const on = windowExitDate(createdAt, windowDays);
+  const label =
+    left < 0 ? "outside the window" : left === 0 ? "leaves the scorecard today" : `leaves the scorecard in ${left}d`;
+  return (
+    <span
+      title={on ? `Drops out of the ${windowDays}-day window on ${on}` : undefined}
+      className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500"
+    >
+      {label}
+    </span>
+  );
+}
+
 /** Manual reply-outcome capture for acted alerts (GATE-2 input). No X scrape. */
-export function ReplyOutcomeList({ profileId, alerts }: { profileId: string; alerts: ActedAlertRow[] }) {
+export function ReplyOutcomeList({
+  profileId,
+  alerts,
+  windowDays = DEFAULT_WINDOW_DAYS,
+}: {
+  profileId: string;
+  alerts: ActedAlertRow[];
+  windowDays?: number;
+}) {
   if (alerts.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface-2 px-4 py-6 text-center text-[13px] text-muted-foreground">
@@ -24,13 +50,21 @@ export function ReplyOutcomeList({ profileId, alerts }: { profileId: string; ale
   return (
     <div className="space-y-2">
       {alerts.map((a) => (
-        <OutcomeRow key={a.id} profileId={profileId} alert={a} />
+        <OutcomeRow key={a.id} profileId={profileId} alert={a} windowDays={windowDays} />
       ))}
     </div>
   );
 }
 
-function OutcomeRow({ profileId, alert }: { profileId: string; alert: ActedAlertRow }) {
+function OutcomeRow({
+  profileId,
+  alert,
+  windowDays,
+}: {
+  profileId: string;
+  alert: ActedAlertRow;
+  windowDays: number;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -67,7 +101,10 @@ function OutcomeRow({ profileId, alert }: { profileId: string; alert: ActedAlert
           >
             @{alert.author_handle}
           </a>
-          <span className="text-[11px] text-muted-foreground">{alert.sent_at ? alert.sent_at.slice(0, 10) : "—"}</span>
+          <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <ExpiryChip createdAt={alert.created_at} windowDays={windowDays} />
+            {alert.sent_at ? alert.sent_at.slice(0, 10) : "—"}
+          </span>
         </div>
         <p className="text-[12px] text-muted-foreground line-clamp-2">{alert.tweet_text}</p>
         <div className="flex flex-wrap items-end gap-3">

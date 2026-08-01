@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/server";
+import { DEFAULT_WINDOW_DAYS } from "@/lib/gate/expiry";
 import {
   computeScorecard,
   type GateScorecard,
@@ -18,6 +19,8 @@ export interface ActedAlertRow {
   author_handle: string;
   tweet_text: string;
   tweet_url: string;
+  /** Window anchor — the scorecard filters on created_at, not sent_at. */
+  created_at: string;
   sent_at: string | null;
   reply_impressions: number | null;
   author_median_reply_impressions: number | null;
@@ -32,14 +35,14 @@ export async function listRecentActedAlerts(
   profileId: string,
   opts?: { windowDays?: number; limit?: number },
 ): Promise<ActedAlertRow[]> {
-  const windowDays = opts?.windowDays ?? 45;
+  const windowDays = opts?.windowDays ?? DEFAULT_WINDOW_DAYS;
   const limit = opts?.limit ?? 50;
   const sb = supabaseService();
   const cutoff = new Date(Date.now() - windowDays * 86_400_000).toISOString();
   const { data, error } = await sb
     .from("sniper_alerts")
     .select(
-      "id, author_handle, tweet_text, tweet_url, sent_at, reply_impressions, author_median_reply_impressions, author_reply_back",
+      "id, author_handle, tweet_text, tweet_url, created_at, sent_at, reply_impressions, author_median_reply_impressions, author_reply_back",
     )
     .eq("profile_id", profileId)
     .eq("status", "acted")
@@ -59,7 +62,7 @@ export async function getGateScorecard(
   profileId: string,
   opts?: { windowDays?: number },
 ): Promise<GateScorecardResult> {
-  const windowDays = opts?.windowDays ?? 45;
+  const windowDays = opts?.windowDays ?? DEFAULT_WINDOW_DAYS;
   const sb = supabaseService();
   const cutoff = new Date(Date.now() - windowDays * 86_400_000).toISOString();
 

@@ -6,6 +6,7 @@ import { PageShell } from "@/components/shell/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReplyOutcomeList } from "@/components/gate/reply-outcome-list";
 import { pct, signedPct } from "@/lib/gate/present";
+import { clampWindowDays, daysUntilWindowExit, windowExitDate, EXPIRY_WARN_DAYS } from "@/lib/gate/expiry";
 import { cn } from "@/lib/utils";
 
 function Metric({
@@ -36,8 +37,15 @@ function Metric({
   );
 }
 
-export default async function Gate2Page({ searchParams }: { searchParams: Promise<{ profile?: string }> }) {
-  const { profile } = await searchParams;
+const WINDOW_CHOICES = [45, 90, 365];
+
+export default async function Gate2Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ profile?: string; window?: string }>;
+}) {
+  const { profile, window: windowParam } = await searchParams;
+  const windowDays = clampWindowDays(windowParam);
   const profiles = (await listProfiles()) ?? [];
   const active = profile ?? profiles[0]?.id;
 
@@ -49,8 +57,18 @@ export default async function Gate2Page({ searchParams }: { searchParams: Promis
     );
   }
 
-  const gate = await getGateScorecard(active);
-  const acted = await listRecentActedAlerts(active);
+  const gate = await getGateScorecard(active, { windowDays });
+  const acted = await listRecentActedAlerts(active, { windowDays });
+
+  // The window is ROLLING: un-recorded evidence silently drops off the gate on a
+  // fixed date. Surface the soonest one so an outcome gets logged before then.
+  const now = new Date();
+  const expiring = acted
+    .filter((a) => a.reply_impressions === null)
+    .map((a) => ({ alert: a, left: daysUntilWindowExit(a.created_at, windowDays, now) }))
+    .filter((x): x is { alert: (typeof acted)[number]; left: number } => x.left !== null && x.left <= EXPIRY_WARN_DAYS)
+    .sort((a, b) => a.left - b.left);
+  const soonest = expiring[0];
 
   return (
     <PageShell
@@ -64,6 +82,41 @@ export default async function Gate2Page({ searchParams }: { searchParams: Promis
         >
           <ArrowLeft className="size-4" strokeWidth={1.6} /> Back to Stats
         </Link>
+
+        {soonest ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px]">
+            <span className="font-semibold text-amber-500">
+              {expiring.length} un-recorded repl{expiring.length === 1 ? "y" : "ies"} about to leave the scorecard.
+            </span>{" "}
+            <span className="text-muted-foreground">
+              @{soonest.alert.author_handle}
+              {soonest.left <= 0
+                ? " drops out today"
+                : ` drops out in ${soonest.left}d`}
+              {windowExitDate(soonest.alert.created_at, windowDays)
+                ? ` (${windowExitDate(soonest.alert.created_at, windowDays)})`
+                : ""}
+              . The window is rolling — once it passes, that reply stops counting toward precision and cleared-2×.
+            </span>
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <span>Window</span>
+          {WINDOW_CHOICES.map((d) => (
+            <Link
+              key={d}
+              href={`/performance/gate-2?window=${d}`}
+              className={
+                d === windowDays
+                  ? "rounded-md bg-surface-2 px-2 py-0.5 font-medium text-foreground"
+                  : "rounded-md px-2 py-0.5 hover:text-foreground"
+              }
+            >
+              {d}d
+            </Link>
+          ))}
+        </div>
 
         <Card>
           <CardHeader>
@@ -119,7 +172,7 @@ export default async function Gate2Page({ searchParams }: { searchParams: Promis
 
         <div>
           <h3 className="mb-2 text-[13px] font-semibold">Record reply outcomes</h3>
-          <ReplyOutcomeList profileId={active} alerts={acted} />
+          <ReplyOutcomeList profileId={active} alerts={acted} windowDays={windowDays} />
         </div>
       </div>
     </PageShell>
