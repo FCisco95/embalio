@@ -69,13 +69,28 @@ export default async function DashboardPage() {
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
     if (profile?.id) {
       profileId = profile.id
-      pending = await listPendingDrafts(profile.id)
-      data = await getDashboardData(profile.id)
-      growthPlan = await getGrowthPlan(profile.id)
-      dailyPlan = await getDailyPlan(profile.id)
-      streak = await getStreak(profile.id)
-      followerStat = await getFollowerStat(profile.id)
-      weeklyActivity = await getWeeklyActivity(profile.id)
+      const id = profile.id
+      // These seven reads are independent — they only need the profile id. Run
+      // them concurrently: serially they made `/` a 20-30s page while sibling
+      // routes answered in ~1s. allSettled (not all) so one failing read
+      // degrades its own card instead of blanking the whole dashboard, which is
+      // what the surrounding try/catch used to do.
+      const [pendingR, dataR, growthR, planR, streakR, followerR, weeklyR] = await Promise.allSettled([
+        listPendingDrafts(id),
+        getDashboardData(id),
+        getGrowthPlan(id),
+        getDailyPlan(id),
+        getStreak(id),
+        getFollowerStat(id),
+        getWeeklyActivity(id),
+      ])
+      if (pendingR.status === "fulfilled") pending = pendingR.value
+      if (dataR.status === "fulfilled") data = dataR.value
+      if (growthR.status === "fulfilled") growthPlan = growthR.value
+      if (planR.status === "fulfilled") dailyPlan = planR.value
+      if (streakR.status === "fulfilled") streak = streakR.value
+      if (followerR.status === "fulfilled") followerStat = followerR.value
+      if (weeklyR.status === "fulfilled") weeklyActivity = weeklyR.value
     }
   } catch (e) {
     // Let Next.js redirects propagate; only swallow real DB errors.
