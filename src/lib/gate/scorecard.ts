@@ -8,7 +8,15 @@
  * sophistication, NO ML — this only counts and averages what the owner recorded.
  */
 
-export const SKIP_REASONS = ["off_niche", "stale", "bait", "wrong_size", "other"] as const;
+export const SKIP_REASONS = ["off_niche", "stale", "bait", "wrong_size", "other", "not_reviewed"] as const;
+
+/**
+ * Dismissals that were never actually judged (e.g. a bulk cleanup of alerts that
+ * sat unread). They are NOT false alerts and must not count against precision —
+ * doing so measures housekeeping, not scorer quality.
+ * Decision record: docs/superpowers/plans/2026-08-02-precision-metric-definition.md
+ */
+export const UNJUDGED_SKIP_REASONS: readonly string[] = ["not_reviewed"];
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
 /** DoD thresholds (handoff): precision ≥70%, ≥3 cleared-2× replies, ≥+25% reply-day visit lift. */
@@ -34,7 +42,9 @@ export interface GateScorecard {
   acted: number;
   dismissed: number;
   decided: number;
-  /** acted / decided — sniper precision. */
+  /** Dismissed without ever being judged — excluded from precision. */
+  notReviewed: number;
+  /** acted / decided — sniper precision, over JUDGED alerts only. */
   precision: number | null;
   /** dismissed / decided. */
   falseAlertRate: number | null;
@@ -61,7 +71,10 @@ function avg(xs: number[]): number | null {
 export function computeScorecard(alerts: ScorecardAlert[], visitDays: VisitDay[]): GateScorecard {
   const acted = alerts.filter((a) => a.status === "acted");
   const dismissed = alerts.filter((a) => a.status === "dismissed");
-  const decided = acted.length + dismissed.length;
+  // A dismissal only counts as a false alert if a human actually judged it.
+  const unjudged = dismissed.filter((d) => d.skip_reason !== null && UNJUDGED_SKIP_REASONS.includes(d.skip_reason));
+  const judgedDismissed = dismissed.length - unjudged.length;
+  const decided = acted.length + judgedDismissed;
 
   const skipBreakdown = Object.fromEntries(SKIP_REASONS.map((r) => [r, 0])) as Record<SkipReason, number>;
   for (const d of dismissed) {
@@ -97,7 +110,7 @@ export function computeScorecard(alerts: ScorecardAlert[], visitDays: VisitDay[]
       : null;
 
   const precision = decided ? acted.length / decided : null;
-  const falseAlertRate = decided ? dismissed.length / decided : null;
+  const falseAlertRate = decided ? judgedDismissed / decided : null;
   const authorReplyBackRate = replyBackKnown.length ? replyBackYes / replyBackKnown.length : null;
 
   const pass = {
@@ -111,6 +124,7 @@ export function computeScorecard(alerts: ScorecardAlert[], visitDays: VisitDay[]
   return {
     acted: acted.length,
     dismissed: dismissed.length,
+    notReviewed: unjudged.length,
     decided,
     precision,
     falseAlertRate,

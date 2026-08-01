@@ -22,7 +22,8 @@ describe("computeScorecard", () => {
     expect(s.cleared2xCount).toBe(0);
     expect(s.replyDayVisitLift).toBeNull();
     expect(s.pass.overall).toBe(false);
-    expect(s.skipBreakdown).toEqual({ off_niche: 0, stale: 0, bait: 0, wrong_size: 0, other: 0 });
+    expect(s.skipBreakdown).toEqual({ off_niche: 0, stale: 0, bait: 0, wrong_size: 0, other: 0, not_reviewed: 0 });
+    expect(s.notReviewed).toBe(0);
   });
 
   it("precision + false-alert rate from acted/dismissed split", () => {
@@ -126,5 +127,48 @@ describe("computeScorecard", () => {
     );
     expect(fail.pass.cleared2x).toBe(false);
     expect(fail.pass.overall).toBe(false);
+  });
+});
+
+// GATE-2 measurement definition — see
+// docs/superpowers/plans/2026-08-02-precision-metric-definition.md
+describe("precision excludes un-reviewed dismissals", () => {
+  it("a bulk cleanup does not count as false alerts", () => {
+    // 2 acted, 1 genuinely judged off-niche, 67 never looked at (the real
+    // 2026-07-22 shape). Precision must reflect the 3 judged, not all 70.
+    const alerts = [
+      ...Array.from({ length: 2 }, () => A({ status: "acted" })),
+      A({ status: "dismissed", skip_reason: "off_niche" }),
+      ...Array.from({ length: 67 }, () => A({ status: "dismissed", skip_reason: "not_reviewed" })),
+    ];
+    const s = computeScorecard(alerts, []);
+    expect(s.precision).toBeCloseTo(2 / 3);
+    expect(s.falseAlertRate).toBeCloseTo(1 / 3);
+    expect(s.decided).toBe(3);
+    expect(s.notReviewed).toBe(67);
+    expect(s.dismissed).toBe(68); // raw count still honest
+  });
+
+  it("keeps `stale` counting against precision — it is a real judgement", () => {
+    // "the tweet aged out before I could reply" is a latency failure of the
+    // sniper and must stay visible, not be laundered into not_reviewed.
+    const alerts = [A({ status: "acted" }), A({ status: "dismissed", skip_reason: "stale" })];
+    const s = computeScorecard(alerts, []);
+    expect(s.precision).toBeCloseTo(0.5);
+    expect(s.notReviewed).toBe(0);
+  });
+
+  it("all-unreviewed → precision is null, not 0%", () => {
+    const alerts = Array.from({ length: 5 }, () => A({ status: "dismissed", skip_reason: "not_reviewed" }));
+    const s = computeScorecard(alerts, []);
+    expect(s.precision).toBeNull();
+    expect(s.falseAlertRate).toBeNull();
+    expect(s.decided).toBe(0);
+    expect(s.notReviewed).toBe(5);
+  });
+
+  it("counts not_reviewed in the skip breakdown", () => {
+    const s = computeScorecard([A({ status: "dismissed", skip_reason: "not_reviewed" })], []);
+    expect(s.skipBreakdown.not_reviewed).toBe(1);
   });
 });

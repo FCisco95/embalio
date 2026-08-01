@@ -130,7 +130,13 @@ export default async function Gate2Page({
             <Metric
               label="Sniper precision (≥70%)"
               value={pct(gate.precision)}
-              sub={`${gate.acted} acted / ${gate.dismissed} skipped`}
+              // Denominator is JUDGED alerts only — un-reviewed dismissals are
+              // housekeeping, not false alerts. See the precision decision record.
+              sub={
+                gate.notReviewed > 0
+                  ? `${gate.acted} acted / ${gate.dismissed - gate.notReviewed} judged · ${gate.notReviewed} unreviewed`
+                  : `${gate.acted} acted / ${gate.dismissed} skipped`
+              }
               ok={gate.pass.precision}
             />
             <Metric
@@ -150,7 +156,11 @@ export default async function Gate2Page({
               value={pct(gate.authorReplyBackRate)}
               sub={`${gate.authorReplyBackN} recorded`}
             />
-            <Metric label="False-alert rate" value={pct(gate.falseAlertRate)} sub={`${gate.dismissed} skipped`} />
+            <Metric
+              label="False-alert rate"
+              value={pct(gate.falseAlertRate)}
+              sub={`${gate.dismissed - gate.notReviewed} judged skip(s)`}
+            />
           </CardContent>
         </Card>
 
