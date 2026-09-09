@@ -69,11 +69,15 @@ engagement) is a recruiting funnel; Track C (the fee rail) is the actual engine.
 
 ### Owner decisions still open
 
-- **The lock address.** 10% of supply is locked for two years but unpublished,
-  and there is no public address/tx yet. A lock nobody can verify is worth
-  nothing. Also: confirm whether it is 10% of *total supply* or 10% of the
-  *founder allocation* — those are different public claims and the plan says to
-  publish the smaller true one.
+- **The lock address.** **Settled 2026-09-09: 100,000,000 MYCEL — 10% of total
+  supply — locked for two years.** (Exactly 10.0015% of the 999,850,024 supply,
+  so both framings are true.) Still unpublished and **there is still no public
+  address or tx**, which is the part that matters — a lock nobody can verify is
+  worth nothing. The docs now say to lead with the token count and the unlock
+  date rather than the percentage: a wallet balance is a one-click check.
+  **Not verified on-chain from this side** — no ~100M holder appeared in the
+  token accounts sampled, but only page 1 of 388 was read, unsorted, so that is
+  absence of evidence, not a discrepancy.
 - **The treasury wallet does not exist and nothing has routed.** Until both are
   real and public, the fee-rail claim is an intention and the plan says to
   describe it that way.
@@ -163,10 +167,10 @@ prod → then apply the two `20260826` RLS migrations by hand.
 
 ## Unverified claims in this document
 
-- Day-one volume (~$500k), the ~1% fee rate, the ~10 SOL treasury and the 10%
-  supply lock are **operator-supplied approximations**. They reconcile with each
-  other and with the on-chain volume history, but none are independently
-  verified.
+- Day-one volume (~$500k), the ~1% fee rate, the ~10 SOL treasury and the
+  100,000,000-token supply lock are **operator-supplied**. They reconcile with
+  each other and with the on-chain volume history, but none are independently
+  verified — the lock in particular has no address yet.
 - The seed handles in the `watch_targets` SQL were **not** checked for liveness —
   x.com returns HTTP 402 to automated fetches. Verify each before use.
 - The two prod risks in the auth section are **unverified**; the check was
@@ -217,8 +221,9 @@ wrong assumption — two corrections last session came from exactly that.
    first fee payment to a real contributor and posting the tx. Both are mine to
    do, not yours — but tell me what you need from me to make them verifiable,
    and draft the posts.
-   Still unresolved: the supply-lock address, and whether "10%" is of total
-   supply or of my allocation. Those go public, so they have to be exactly right.
+   The lock is 100,000,000 MYCEL (10% of total supply), two years — that's
+   settled. Still unresolved: the lock's public address or tx, which is the part
+   that makes it worth anything.
 
 4. OPTIONAL, ONLY IF 1-3 ARE SETTLED: start Campaign Mode.
    Prompt is docs/research/2026-09-09-embalio-campaign-mode-prompt.md. Plan

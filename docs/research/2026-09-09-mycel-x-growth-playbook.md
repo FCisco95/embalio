@@ -46,7 +46,7 @@ project exists to prove.
 | To community treasury | ~1% of volume, held in SOL (≈1 SOL per $10k) | Internal |
 | Treasury seed | ~10 SOL — wallet not yet created | Internal |
 | Treasury inflow | ~0.7 SOL/day ≈ **~5 SOL/week** at current volume | Derived |
-| Founder supply locked | **10%, two years** — currently unpublicised | Operator |
+| Supply locked | **100,000,000 MYCEL (10% of supply), two years** — unpublicised | Internal |
 
 Internal figures are approximations that reconcile with the volume history, so
 they're good enough to plan against. Swap in exact numbers once the treasury
@@ -130,11 +130,15 @@ price. Volume comes from *traders* (who never join
 a Telegram group); price support comes from *holders*. Two audiences, two content
 tracks — most memecoin marketing collapses them and reaches neither.
 
-**1b. Publish the two-year lock.** 10% of your supply locked for two years and
-nobody knows. "The dev will dump" is the first objection every stranger has about
-a $50k coin, and you have a verifiable on-chain answer you aren't publishing. Bio,
-pinned post, and every A-03 reply — beside the revoked mint/freeze authorities.
-**It needs a public address or tx**: a lock nobody can check is worth nothing.
+**1b. Publish the two-year lock.** 100,000,000 MYCEL — 10% of supply — locked for
+two years, and nobody knows. "The dev will dump" is the first objection every
+stranger has about a $50k coin, and we have a verifiable on-chain answer we
+aren't publishing. Bio, pinned post, and every A-03 reply — beside the revoked
+mint/freeze authorities. **It needs a public address or tx**: a lock nobody can
+check is worth nothing. **Lead with the token count and the unlock date, not the
+percentage** — a wallet balance is a one-click check; a percentage makes people
+do arithmetic against a total they have to look up. (Exact figure: 10.0015% of
+the 999,850,024 supply, so both statements are true.)
 
 **2. The first fee payout is the highest-value action available.** The site
 currently says fees route to workers and *nothing has routed yet*. That's an
