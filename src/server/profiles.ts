@@ -1,8 +1,6 @@
 "use server"
-import { supabaseService } from "@/lib/supabase/server"
+import { supabaseServer } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-
-const FIXED_PROFILE_ID = process.env.FIXED_PROFILE_ID
 
 export async function createProfile(input: {
   handle: string
@@ -11,7 +9,7 @@ export async function createProfile(input: {
   voice_corpus: string[]
   voice_notes?: string
 }) {
-  const sb = supabaseService()
+  const sb = await supabaseServer()
   const { data, error } = await sb.from("profiles").insert(input).select().single()
   if (error) throw new Error(error.message)
   revalidatePath("/profiles")
@@ -19,11 +17,8 @@ export async function createProfile(input: {
 }
 
 export async function listProfiles() {
-  const sb = supabaseService()
-  let query = sb.from("profiles").select("*").order("created_at")
-  if (FIXED_PROFILE_ID) {
-    query = query.eq("id", FIXED_PROFILE_ID)
-  }
+  const sb = await supabaseServer()
+  const query = sb.from("profiles").select("*").order("created_at")
   const { data, error } = await query
   if (error) throw new Error(error.message)
   return data
@@ -35,14 +30,14 @@ export async function addSeedTarget(input: {
   list_url?: string
   note?: string
 }) {
-  const sb = supabaseService()
+  const sb = await supabaseServer()
   const { error } = await sb.from("seed_targets").insert(input)
   if (error) throw new Error(error.message)
   revalidatePath("/profiles")
 }
 
 export async function listSeedTargets(profileId: string) {
-  const sb = supabaseService()
+  const sb = await supabaseServer()
   const { data, error } = await sb
     .from("seed_targets")
     .select("*")
@@ -60,8 +55,7 @@ export async function toggleProfileOptimized(
   value: boolean,
 ): Promise<void> {
   if (!ALLOWED_OPTIMIZATION_FIELDS.has(field)) throw new Error(`invalid field: ${field}`)
-  if (FIXED_PROFILE_ID && profileId !== FIXED_PROFILE_ID) throw new Error("profile_id mismatch")
-  const sb = supabaseService()
+  const sb = await supabaseServer()
   const patch = field === "bio_optimized" ? { bio_optimized: value } : { pinned_optimized: value }
   const { error } = await sb.from("profiles").update(patch).eq("id", profileId)
   if (error) throw new Error(error.message)

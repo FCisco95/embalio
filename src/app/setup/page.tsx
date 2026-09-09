@@ -1,4 +1,5 @@
 import { getSetupProfileId } from "@/server/setup";
+import { requireSessionUser } from "@/server/auth";
 import { SetupQuiz } from "@/components/setup-quiz";
 
 export const metadata = { title: "Set up your account" };
@@ -9,6 +10,7 @@ export const metadata = { title: "Set up your account" };
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
+  await requireSessionUser();
   const profileId = await getSetupProfileId();
   return (
     <main className="min-h-screen bg-background text-foreground">

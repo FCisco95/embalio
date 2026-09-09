@@ -9,7 +9,7 @@ const activityInserts: Record<string, unknown>[] = [];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({
-  supabaseServer: async () => ({
+  supabaseService: () => ({
     from: (table: string) => {
       if (table === "analytics_daily")
         return {

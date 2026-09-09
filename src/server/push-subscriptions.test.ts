@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const upsert = vi.fn().mockResolvedValue({ error: null });
-const del = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+const deleteEqEndpoint = vi.fn().mockResolvedValue({ error: null });
+const deleteEqProfile = vi.fn().mockReturnValue({ eq: deleteEqEndpoint });
+const del = vi.fn().mockReturnValue({ eq: deleteEqProfile });
 vi.mock("@/lib/supabase/server", () => ({
   supabaseService: () => ({
     from: vi.fn((table: string) => {
@@ -16,6 +18,8 @@ import { savePushSubscription, removePushSubscription } from "@/server/push-subs
 beforeEach(() => {
   upsert.mockClear();
   del.mockClear();
+  deleteEqProfile.mockClear();
+  deleteEqEndpoint.mockClear();
 });
 
 describe("push subscription persistence", () => {
@@ -32,8 +36,10 @@ describe("push subscription persistence", () => {
     );
   });
 
-  it("removes by endpoint", async () => {
-    await removePushSubscription("https://p/1");
+  it("removes by profile + endpoint", async () => {
+    await removePushSubscription("profile-1", "https://p/1");
     expect(del).toHaveBeenCalled();
+    expect(deleteEqProfile).toHaveBeenCalledWith("profile_id", "profile-1");
+    expect(deleteEqEndpoint).toHaveBeenCalledWith("endpoint", "https://p/1");
   });
 });
