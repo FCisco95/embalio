@@ -171,3 +171,68 @@ prod → then apply the two `20260826` RLS migrations by hand.
   x.com returns HTTP 402 to automated fetches. Verify each before use.
 - The two prod risks in the auth section are **unverified**; the check was
   interrupted.
+
+---
+
+## Starter prompt for the next session
+
+Run `claude --model claude-fable-5-1`, then `/effort medium` (the routing table
+in the global `CLAUDE.md` caps Fable at medium for cost; that table still lists
+Fable 5 rather than 5.1 and is worth updating). Paste:
+
+```
+Picking up Embalio on a different machine (was on Windows, now MacBook).
+Read docs/HANDOFF.md first — the Session 24 entry at the top is where I left off.
+Full detail: docs/handoffs/2026-09-09-session24-mycel-growth-plan-and-auth-wip.md
+
+State: main @ 273919a (docs only), feat/auth-layer @ 605ddb3 (auth + RLS, NOT
+merged). Working tree was clean. Suite 790 pass / 1 skip, tsc + build green on
+the branch.
+
+Work these in order. Stop and tell me if any of them turns out to rest on a
+wrong assumption — two corrections last session came from exactly that.
+
+1. UNBLOCK THE AUTH MERGE. This gates everything else.
+   The question: does the existing profile (the one holding the GATE-2 data)
+   link to a real Supabase auth user? If not, merging feat/auth-layer means I
+   log in and get a NEW empty profile, and the dashboard looks wiped.
+   Check on prod (vzxpakxjnuaesfxihyvl):
+     select id, handle, user_id from profiles;
+   then confirm a matching row in auth.users.
+   Ask me before running it via the Supabase MCP — I may run it myself in the
+   dashboard.
+   Then give me a go/no-go on merging, covering: the user_id link, that
+   signUpAction has no allow-list, and that Vercel Deployment Protection is
+   still OFF. main auto-deploys to production, so this is a real decision.
+
+2. GATE-2 IS PAST ITS DEADLINE (2026-09-04, no leg moved).
+   Read docs/GOAL-LOG.md. I want a recommendation, not a summary: re-scope it,
+   close it out, or replace it with the MYCEL campaign as the real dogfood.
+   Argue the case — including the case against whichever you pick.
+
+3. MYCEL WEEK ONE.
+   The plan is docs/research/2026-09-09-mycel-colonization-log.html (open it in
+   a browser; the artifact is the same content). The two items that change the
+   trajectory are creating + publishing the treasury wallet, and routing the
+   first fee payment to a real contributor and posting the tx. Both are mine to
+   do, not yours — but tell me what you need from me to make them verifiable,
+   and draft the posts.
+   Still unresolved: the supply-lock address, and whether "10%" is of total
+   supply or of my allocation. Those go public, so they have to be exactly right.
+
+4. OPTIONAL, ONLY IF 1-3 ARE SETTLED: start Campaign Mode.
+   Prompt is docs/research/2026-09-09-embalio-campaign-mode-prompt.md. Plan
+   before building and get my sign-off on the slice order. Slice 1 is the
+   campaign row + daily on-chain snapshot + ladder view — a live SOL/day number
+   is the only thing that makes the rest worth opening.
+
+Constraints:
+- AGENTS.md: this Next.js is not the one you remember. Read the guide in
+  node_modules/next/dist/docs/ before writing any code.
+- Trunk policy is direct-to-main and suite-green-gated. Keep 790 green, tsc and
+  next build green.
+- Write migrations, don't apply them to prod — hand me the SQL.
+- This repo is PUBLIC. Anything in docs/ is world-readable.
+- Helius: use getTokenAccounts for holder counts, never getTokenHolders (it
+  truncates — it reported 20 where the real number is 388).
+```
