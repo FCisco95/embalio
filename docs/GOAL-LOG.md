@@ -239,3 +239,89 @@ harder to misread — and the daily loop got ~20× faster to open.
       2026-09-04 and the gate should be re-scoped to the owner dogfood.
 
 **Resume: open a fresh session in this repo and run `/goal`.**
+
+---
+
+# 2026-09-10 · GATE-2 CLOSE-OUT — recommendation, pending owner decision
+
+**State at the deadline (2026-09-04) and today:** no leg moved, and the window has
+now emptied. The two acted alerts (2026-06-26) and the 67 bulk dismissals left the
+45-day window between 2026-08-10 and 2026-08-17; at the default window the
+scorecard has **0 acted / 0 judged → precision null**, cleared-2× **0 of 0**, visit
+lift **—** (analytics still end 2026-06-11). `source='manual'` rows: **0**. Every
+item in the 2026-08-02 owner queue is still open. The concierge trial never
+recruited. Seventy days after the instrumentation shipped it has not been fed once.
+
+| DoD leg | Bar | 2026-08-02 | 2026-09-10 |
+|---|---|---|---|
+| Precision | ≥70% | 3% (not meaningful) | null — nothing judged in window |
+| Cleared 2× | ≥3 | 0 of 0 | 0 of 0 |
+| Visit lift | ≥+25% | — | — |
+
+## The three options, argued
+
+**(a) Re-scope — extend to ~2026-10-31, owner dogfood only.**
+*For:* keeps the original question intact ("do assisted replies move OON reach"),
+which is the customer's question, not a coin's. The tooling is done; only the habit
+is missing. *Against:* nothing structural changed since 2026-08-02. The loop failed
+on owner action for nine weeks with a working app, a fast home page, a nag card and
+an expiry banner. A new date without a new forcing function is a slip, not a
+re-scope. It also still depends on X analytics CSV imports that have not happened
+since June.
+
+**(b) Close it out as NOT RUN.**
+*For:* honest ledger. The gate did not fail — it was never fired. Recording "no
+evidence either way" is more useful than a 3% that measured a cleanup. It frees the
+roadmap from a deadline everyone has stopped believing. *Against:* leaves the
+product's core hypothesis untested, and the scorecard, expiry logic and outcome
+capture become sunk cost with no consumer.
+
+**(c) Replace it with the MYCEL campaign as the real dogfood.**
+*For:* revealed preference — in one session the owner wrote a 900-line campaign
+plan; in nine weeks he ran zero manual pastes. MYCEL has five operators, a 7-day
+cadence, money on the line, and a north star (SOL/day) that does not depend on an
+X analytics CSV. Campaign replies go through the same manual-sniper primitive, so
+GATE-2's reply evidence accrues as a by-product of work that is going to happen
+anyway. The Campaign Mode prompt already says "one activity, two outcomes".
+*Against — and this is real:* it changes the question. GATE-2 asks whether
+Embalio moves reach for a growth operator (the future customer). MYCEL asks
+whether a coin community can grow its fee flow; reach is a means there, not the
+measured end. The five operators are X accounts, not Embalio users — only the
+owner touches the app, so it is still not a usability test. And the campaign's
+outcome rides on a crypto market the product cannot influence: a MYCEL that dies
+at the day-30 kill rule would take the product gate down with it for reasons that
+have nothing to do with the product. Logging campaign replies into the GATE-2
+dataset also pollutes it unless the two are separated in the schema.
+
+## Recommendation: (b) + (c), with the product leg ring-fenced
+
+1. **Close GATE-2 as NOT RUN** (not failed). One ledger line, numbers above, cause:
+   zero owner-loop iterations. Keep `/performance/gate-2`, the expiry logic and
+   outcome capture — they become the campaign's reply scorecard.
+2. **Open GATE-3 on the MYCEL campaign with two independent legs**, so a coin
+   outcome cannot masquerade as a product outcome or vice versa:
+   - **Campaign leg (the plan's own day-30 rung):** SOL/day ≥ 1.5 *or* ≥ 10
+     contributors holding by 2026-10-09. Judged by the campaign snapshot, not by
+     hand.
+   - **Product leg (GATE-2's question, narrowed to what is measurable without a
+     CSV):** ≥ 40 manual-sniper replies logged with outcomes across ≥ 2 operators,
+     and reply→profile-visit rate per operator recorded weekly (the plan's ladder
+     already tracks it). Judged regardless of the coin's fate.
+   - Schema: `sniper_alerts.campaign_id` (nullable). The GATE-2 view filters
+     `campaign_id is null`; the campaign view filters its own id. This is the
+     ambiguity the Campaign Mode prompt asks to settle before code — settle it
+     this way (slice 3 in the plan).
+3. **Tripwire, two weeks:** if by **2026-09-24** there are fewer than **20**
+   `source='manual'` rows, close GATE-3 too and stop building measurement. No gate
+   design fixes a loop that is not run; at that point the honest product finding is
+   "the operator will not log replies in a separate app", and Campaign Mode should
+   be re-scoped to what the owner *does* open daily (the scoreboard).
+
+**The case against this recommendation:** the hybrid makes Embalio's next 90 days
+serve a single coin, and "product leg judged regardless" is a promise that is easy
+to break when the coin is doing well — the pull to count campaign success as
+product success will be strong. If you do not trust yourself to keep the legs
+separate, pick (b) alone and run MYCEL outside Embalio.
+
+**Owner decision needed:** (a), (b), (c), or the hybrid. Nothing below in this file
+should be started until it is taken.
