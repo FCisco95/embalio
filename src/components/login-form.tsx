@@ -36,21 +36,23 @@ function AuthCard({
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ signupEnabled = false }: { signupEnabled?: boolean }) {
   return (
-    <div className="grid gap-5 md:grid-cols-2">
+    <div className={signupEnabled ? "grid gap-5 md:grid-cols-2" : "grid max-w-md gap-5"}>
       <AuthCard
         title="Sign in"
         subtitle="Use your Supabase Auth credentials."
         action={signInAction}
         cta="Sign in"
       />
-      <AuthCard
-        title="Create account"
-        subtitle="Bootstrap a new authenticated owner account."
-        action={signUpAction}
-        cta="Create account"
-      />
+      {signupEnabled ? (
+        <AuthCard
+          title="Create account"
+          subtitle="Only emails on this deployment's allow-list can sign up."
+          action={signUpAction}
+          cta="Create account"
+        />
+      ) : null}
     </div>
   );
 }

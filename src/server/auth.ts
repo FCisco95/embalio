@@ -10,10 +10,16 @@ export interface AuthProfile {
 }
 
 export const getSessionUser = cache(async () => {
-  const sb = await supabaseServer();
-  const { data, error } = await sb.auth.getUser();
-  if (error) return null;
-  return data.user;
+  try {
+    const sb = await supabaseServer();
+    const { data, error } = await sb.auth.getUser();
+    if (error) return null;
+    return data.user;
+  } catch {
+    // A broken/stale cookie must read as "signed out", never as a 500: the
+    // layout then redirects to /login, whose proxy pass clears the cookies.
+    return null;
+  }
 });
 
 export const getCurrentProfile = cache(async (): Promise<AuthProfile | null> => {

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { isSignupAllowed, SIGNUP_CLOSED_MESSAGE } from "@/lib/auth/signup-allowlist";
 
 export interface AuthFormState {
   error?: string;
@@ -29,6 +30,10 @@ export async function signInAction(_prev: AuthFormState | undefined, formData: F
 export async function signUpAction(_prev: AuthFormState | undefined, formData: FormData): Promise<AuthFormState | undefined> {
   const creds = readCredentials(formData);
   if ("error" in creds) return { error: creds.error };
+  // Public URL, Deployment Protection off: sign-up is closed unless the email
+  // is on AUTH_SIGNUP_ALLOWLIST. Checked here, not only in the UI — the
+  // action is a public POST endpoint whether or not the card renders.
+  if (!isSignupAllowed(creds.email, process.env.AUTH_SIGNUP_ALLOWLIST)) return { error: SIGNUP_CLOSED_MESSAGE };
 
   const sb = await supabaseServer();
   const { error } = await sb.auth.signUp(creds);
