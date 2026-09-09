@@ -11,7 +11,7 @@ let staleRows: unknown[] = [];
 let briefing: unknown = null;
 let draftRow: unknown = null;
 vi.mock("@/lib/supabase/server", () => ({
-  supabaseServer: async () => ({
+  supabaseService: () => ({
     from: (table: string) => {
       if (table === "topic_history")
         return {

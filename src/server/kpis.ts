@@ -1,10 +1,11 @@
 "use server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseService } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
 import { parseAnalyticsCsv, CsvHeaderError, type RejectedRow } from "@/lib/kpis/csv";
 import { computeKpis, computeFollowerStat, type FollowerStat } from "@/lib/kpis/aggregate";
 import type { KpiSummary } from "@/lib/kpis/schemas";
+import { assertFixedProfileAccess } from "@/server/fixed-profile";
 
 export type ImportResult =
   | { ok: true; imported: number; rejected: RejectedRow[] }
@@ -23,6 +24,7 @@ const sinceDate = (days: number) => new Date(Date.now() - days * 86_400_000).toI
  */
 export async function importAnalyticsCsv(profileId: string, csvText: string): Promise<ImportResult> {
   if (!profileId) return { ok: false, error: "no profile" };
+  assertFixedProfileAccess(profileId);
   // Client-callable with attacker-influenced input — bound the work before
   // parsing. X's real export is a few hundred KB at worst.
   const MAX_CSV_BYTES = 2 * 1024 * 1024;
@@ -45,7 +47,7 @@ export async function importAnalyticsCsv(profileId: string, csvText: string): Pr
           : "CSV has no data rows",
     };
   }
-  const sb = await supabaseServer();
+  const sb = supabaseService();
   const importedAt = new Date().toISOString();
   const { error } = await sb.from("analytics_daily").upsert(
     parsed.rows.map((r) => ({ profile_id: profileId, ...r, imported_at: importedAt })),
@@ -65,7 +67,8 @@ export async function importAnalyticsCsv(profileId: string, csvText: string): Pr
 
 /** KPI aggregate for the card grid + drill-downs. Pure math lives in @/lib/kpis. */
 export async function getKpis(profileId: string): Promise<KpiSummary> {
-  const sb = await supabaseServer();
+  assertFixedProfileAccess(profileId);
+  const sb = supabaseService();
   const { data: analytics, error: analyticsError } = await sb
     .from("analytics_daily")
     .select("date, profile_visits, new_follows, imported_at")
@@ -85,7 +88,8 @@ export async function getKpis(profileId: string): Promise<KpiSummary> {
 
 /** Light fetch for the home follower star card. */
 export async function getFollowerStat(profileId: string): Promise<FollowerStat | null> {
-  const sb = await supabaseServer();
+  assertFixedProfileAccess(profileId);
+  const sb = supabaseService();
   const { data, error } = await sb
     .from("follower_snapshots")
     .select("snapshot_date, followers, captured_at")

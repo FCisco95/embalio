@@ -1,8 +1,9 @@
 "use server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseService } from "@/lib/supabase/server";
 import { dispatchTopicRefresh } from "@/lib/topics/dispatch";
 import { draftFromTrend } from "@/server/trends";
 import type { GatedTrend } from "@/server/credibility";
+import { assertFixedProfileAccess } from "@/server/fixed-profile";
 
 export type TopicBoardState = "fresh" | "cached" | "briefing" | "stale" | "empty";
 
@@ -58,7 +59,8 @@ function latestBatch(rows: TopicRowView[]): TopicRowView[] {
  * Read-only against topic_history: phone open NEVER triggers live generation.
  */
 export async function getTopicBoard(profileId: string): Promise<TopicBoardView> {
-  const sb = await supabaseServer();
+  assertFixedProfileAccess(profileId);
+  const sb = supabaseService();
   const now = Date.now();
 
   const { data: freshRaw } = await sb
@@ -117,7 +119,8 @@ export async function getTopicBoard(profileId: string): Promise<TopicBoardView> 
  * existing draftFromTrend → sign-off queue (drafts table).
  */
 export async function draftFromTopicRow(profileId: string, topicId: string) {
-  const sb = await supabaseServer();
+  assertFixedProfileAccess(profileId);
+  const sb = supabaseService();
   const { data: row, error } = await sb
     .from("topic_history")
     .select("id, profile_id, topic, angle, why, sources")

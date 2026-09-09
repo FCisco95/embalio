@@ -4,14 +4,23 @@ const synthesizePersona = vi.fn();
 const savePersona = vi.fn();
 const recommendTargets = vi.fn();
 const updateEq = vi.fn().mockResolvedValue({ error: null });
-const fromUpdate = vi.fn(() => ({ update: () => ({ eq: updateEq }) }));
+const fromUpdate = vi.fn();
+const getUser = vi.fn();
+// finalizeSetup now calls assertOwnProfile before touching the row, so the
+// ownership select has to be mocked alongside the profile update.
+const ownershipRow = vi.fn<() => Promise<{ data: { id: string } | null; error: null }>>();
 
 vi.mock("@/server/persona", () => ({
   synthesizePersona: (...a: unknown[]) => synthesizePersona(...a),
   savePersona: (...a: unknown[]) => savePersona(...a),
 }));
 vi.mock("@/server/target-queue", () => ({ recommendTargets: (...a: unknown[]) => recommendTargets(...a) }));
-vi.mock("@/lib/supabase/server", () => ({ supabaseService: () => ({ from: fromUpdate }) }));
+vi.mock("@/lib/supabase/server", () => ({
+  supabaseServer: async () => ({
+    auth: { getUser: () => getUser() },
+    from: (...a: unknown[]) => fromUpdate(...a),
+  }),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { buildSetupPreview, finalizeSetup } from "@/server/setup";
@@ -28,6 +37,15 @@ beforeEach(() => {
   synthesizePersona.mockReset();
   savePersona.mockReset();
   recommendTargets.mockReset();
+  updateEq.mockClear();
+  updateEq.mockResolvedValue({ error: null });
+  getUser.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
+  ownershipRow.mockResolvedValue({ data: { id: "p-1" }, error: null });
+  fromUpdate.mockReset();
+  fromUpdate.mockImplementation(() => ({
+    select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: () => ownershipRow() }) }) }),
+    update: () => ({ eq: updateEq }),
+  }));
 });
 
 describe("buildSetupPreview", () => {
@@ -69,5 +87,21 @@ describe("finalizeSetup", () => {
       premiumAccount: true,
       northStarMetric: "grow followers",
     }));
+  });
+
+  it("refuses to write to a profile the session user does not own", async () => {
+    ownershipRow.mockResolvedValue({ data: null, error: null });
+
+    await expect(
+      finalizeSetup("p-someone-else", {
+        answers,
+        voiceSpec: "punchy",
+        contentPillars: ["AI agents"],
+        seedHandles: [],
+      }),
+    ).rejects.toThrow(/access denied/i);
+
+    expect(updateEq).not.toHaveBeenCalled();
+    expect(savePersona).not.toHaveBeenCalled();
   });
 });

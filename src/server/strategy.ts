@@ -16,12 +16,14 @@ import { revalidatePath } from "next/cache";
 import type { EngagementTarget } from "@/lib/schemas";
 import type { StrategySnapshot, StrategyTargets } from "@/lib/strategy/schemas";
 import type { Json } from "@/lib/supabase/types";
+import { assertFixedProfileAccess } from "@/server/fixed-profile";
 
 export type StrategyBoardResult = { ok: true; snapshot: StrategySnapshot | null } | { ok: false; error: string };
 
 export async function getStrategyBoard(profileId: string): Promise<StrategyBoardResult> {
   try {
-    const sb = await supabaseServer();
+    assertFixedProfileAccess(profileId);
+    const sb = supabaseService();
     const { data } = await sb
       .from("strategy_snapshots").select("snapshot_json")
       .eq("profile_id", profileId).order("week_of", { ascending: false }).limit(1).maybeSingle();
@@ -35,6 +37,7 @@ export type RunStrategyResult = { ok: true; weekOf: string; pushed: boolean } | 
 
 export async function runWeeklyStrategy(profileId: string, now = Date.now()): Promise<RunStrategyResult> {
   try {
+    assertFixedProfileAccess(profileId);
     const sb = supabaseService();
     const weekOf = weekOfUTC(now);
 
@@ -152,6 +155,7 @@ export async function applyTargetRecommendation(
 ): Promise<ApplyResult> {
   try {
     if (!decision.adds.length && !decision.drops.length) return { ok: false, error: "nothing to apply" };
+    assertFixedProfileAccess(profileId);
     const sb = await supabaseServer();
     if (decision.adds.length) {
       await sb.from("seed_targets").upsert(
