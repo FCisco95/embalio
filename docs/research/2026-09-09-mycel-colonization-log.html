@@ -1,0 +1,1169 @@
+<title>Mycel Colonization Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #EAEBE5;
+    --surface: #F3F4EF;
+    --surface-2: #E1E3DA;
+    --ink: #1E1B16;
+    --ink-2: #57534A;
+    --ink-3: #7C776B;
+    --rule: #CBCEC3;
+    --rule-strong: #A9AD9F;
+    --accent: #8A5A12;
+    --accent-bright: #C8892F;
+    --good: #46583F;
+    --warn: #8E3B22;
+    --warn-wash: #F0E2DB;
+    --accent-wash: #EFE7D6;
+    --code-bg: #E3E5DC;
+
+    --f-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+
+    --col: 70ch;
+    --wide: 1120px;
+    /* Width of the hanging eyebrow column. Section bodies align to it so every
+       block in a section shares one left edge with its heading. */
+    --indent: 158px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15120E;
+      --surface: #1E1A15;
+      --surface-2: #262019;
+      --ink: #E9E5DA;
+      --ink-2: #A79F91;
+      --ink-3: #857D6F;
+      --rule: #332C24;
+      --rule-strong: #4A4136;
+      --accent: #D9A048;
+      --accent-bright: #E0AC57;
+      --good: #93A587;
+      --warn: #D97A56;
+      --warn-wash: #2C1D16;
+      --accent-wash: #241C11;
+      --code-bg: #221D17;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #15120E;
+    --surface: #1E1A15;
+    --surface-2: #262019;
+    --ink: #E9E5DA;
+    --ink-2: #A79F91;
+    --ink-3: #857D6F;
+    --rule: #332C24;
+    --rule-strong: #4A4136;
+    --accent: #D9A048;
+    --accent-bright: #E0AC57;
+    --good: #93A587;
+    --warn: #D97A56;
+    --warn-wash: #2C1D16;
+    --accent-wash: #241C11;
+    --code-bg: #221D17;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: var(--wide); margin: 0 auto; padding: 0 28px 120px; }
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 52px 0 20px;
+    display: flex; flex-wrap: wrap; gap: 28px;
+    align-items: flex-end; justify-content: space-between;
+  }
+  .masthead h1 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(2.5rem, 5.6vw, 4.2rem);
+    line-height: 0.98; letter-spacing: -0.02em; margin: 0;
+    text-wrap: balance; font-variation-settings: "SOFT" 30, "WONK" 1;
+  }
+  .masthead h1 em { font-style: italic; color: var(--accent); }
+  .specimen {
+    font-family: var(--f-mono); font-size: 0.72rem; line-height: 1.9;
+    color: var(--ink-2); text-align: right; min-width: 240px;
+  }
+  .specimen b { color: var(--ink); font-weight: 500; }
+
+  .standfirst {
+    max-width: var(--col); font-size: 1.12rem; line-height: 1.6;
+    color: var(--ink-2); margin: 24px 0 0;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  .toc {
+    margin-top: 30px; padding: 16px 0; border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    display: flex; flex-wrap: wrap; gap: 6px 22px;
+    font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .toc a { color: var(--ink-2); text-decoration: none; }
+  .toc a:hover, .toc a:focus-visible { color: var(--accent); text-decoration: underline; }
+
+  .phase { padding-top: 74px; scroll-margin-top: 20px; }
+  .phase-head {
+    border-top: 1px solid var(--rule-strong); padding-top: 14px;
+    display: grid; grid-template-columns: 158px 1fr; gap: 24px; align-items: baseline;
+  }
+  .phase-num {
+    font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .phase-head h2 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(1.7rem, 3.3vw, 2.4rem); line-height: 1.1;
+    letter-spacing: -0.015em; margin: 0; text-wrap: balance;
+  }
+  .phase-head p { grid-column: 2; margin: 8px 0 0; color: var(--ink-2); max-width: var(--col); }
+
+  /* Align a section's own blocks under its heading. Child combinator only, so
+     nested notes and rosters inherit the offset instead of doubling it. */
+  .phase > .body-block,
+  .phase > .scroller,
+  .phase > .arch-list,
+  .phase > .note,
+  .phase > .checks,
+  .phase > .colophon { margin-left: var(--indent); }
+
+  .body-block { max-width: var(--col); margin-top: 32px; }
+  h3 { font-family: var(--f-body); font-weight: 600; font-size: 1.06rem; margin: 40px 0 12px; }
+  .body-block > h3:first-child { margin-top: 0; }
+  h4 {
+    font-family: var(--f-mono); font-weight: 600; font-size: 0.72rem;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); margin: 28px 0 10px;
+  }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.15em; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--ink-3); }
+  code { font-family: var(--f-mono); font-size: 0.86em; background: var(--surface-2); padding: 1px 5px; }
+
+  .scroller { overflow-x: auto; margin: 22px 0 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.91rem; min-width: 580px; }
+  th {
+    font-family: var(--f-mono); font-weight: 500; font-size: 0.68rem;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
+    text-align: left; padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--rule-strong); vertical-align: bottom;
+  }
+  td { padding: 11px 14px 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
+  tr:last-child td { border-bottom: none; }
+  .src { color: var(--ink-3); font-size: 0.84rem; }
+
+  .vitals {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px;
+    background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    margin: 28px 0 0;
+  }
+  .vital { background: var(--bg); padding: 17px 17px 19px; }
+  .vital .k {
+    font-family: var(--f-mono); font-size: 0.65rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 8px;
+  }
+  .vital .v {
+    font-family: var(--f-display); font-size: 1.7rem; font-weight: 600; line-height: 1;
+    letter-spacing: -0.01em; font-variant-numeric: tabular-nums; display: block;
+  }
+  .vital .n { display: block; margin-top: 7px; font-size: 0.79rem; color: var(--ink-2); line-height: 1.45; }
+  .vital .v.down { color: var(--warn); }
+  .vital .v.up { color: var(--good); }
+
+  /* query blocks */
+  .q {
+    font-family: var(--f-mono); font-size: 0.8rem; line-height: 1.7;
+    background: var(--code-bg); border-left: 2px solid var(--accent-bright);
+    padding: 12px 14px; margin: 0 0 14px; overflow-x: auto;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+    color: var(--ink);
+  }
+  .qlabel {
+    font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-2); margin: 22px 0 7px; display: block;
+  }
+
+  /* Numbered runbook steps. Deliberately NOT display:grid — the list items hold
+     mixed inline content (<strong>, <em>, bare text), and grid would promote each
+     inline run to its own grid item, collapsing the text to one word per line. */
+  .runbook { counter-reset: step; list-style: none; padding: 0; margin: 16px 0 0; }
+  .runbook > li {
+    counter-increment: step; position: relative;
+    padding: 11px 0 11px 42px;
+    border-bottom: 1px solid var(--rule); margin: 0;
+  }
+  .runbook > li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute; left: 0; top: 14px;
+    font-family: var(--f-mono); font-size: 0.75rem; line-height: 1.3; color: var(--accent);
+  }
+  .runbook > li > :last-child { margin-bottom: 0; }
+  .runbook > li:last-child { border-bottom: none; }
+  .runbook .rb-t { display: block; font-weight: 600; }
+  .runbook .rb-eg {
+    display: block; font-family: var(--f-mono); font-size: 0.76rem;
+    color: var(--ink-3); margin: 3px 0 7px;
+  }
+
+  .arch-list { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 26px; }
+  .arch {
+    background: var(--surface); padding: 17px 20px;
+    display: grid; grid-template-columns: 62px 1fr; gap: 6px 18px;
+  }
+  .arch .id { font-family: var(--f-mono); font-size: 0.72rem; color: var(--accent); padding-top: 3px; }
+  .arch .main { display: flex; flex-direction: column; gap: 9px; }
+  .arch .t { font-weight: 600; }
+  .arch .t span {
+    font-family: var(--f-mono); font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-2); border: 1px solid var(--rule-strong); padding: 2px 6px; margin-left: 8px;
+    white-space: nowrap; font-weight: 400;
+  }
+  .arch .sig { font-size: 0.89rem; color: var(--ink-2); }
+  .arch .say {
+    font-family: var(--f-display); font-size: 0.97rem; line-height: 1.5;
+    border-left: 2px solid var(--accent-bright); padding-left: 14px; color: var(--ink);
+  }
+
+  .roster { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 24px; }
+  .rost {
+    background: var(--surface); padding: 15px 20px;
+    display: grid; grid-template-columns: minmax(150px, 190px) 1fr; gap: 6px 22px; align-items: start;
+  }
+  .rost .name { font-family: var(--f-mono); font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+  .rost .role { font-size: 0.9rem; color: var(--ink-2); }
+  .rost .role b { color: var(--ink); font-weight: 600; }
+
+  .note {
+    border: 1px solid var(--rule-strong); background: var(--accent-wash);
+    padding: 19px 23px; margin-top: 28px; max-width: var(--col);
+  }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+  .note h4 { margin-top: 0; }
+  .note.danger { background: var(--warn-wash); border-color: var(--warn); }
+  .note.danger h4 { color: var(--warn); }
+
+  .checks { list-style: none; padding: 0; margin: 22px 0 0; max-width: var(--col); }
+  .checks li {
+    display: grid; grid-template-columns: 26px 1fr; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--rule); margin: 0;
+  }
+  .checks li::before {
+    content: ""; width: 15px; height: 15px; border: 1.5px solid var(--rule-strong); margin-top: 6px;
+  }
+  .checks li.key::before { border-color: var(--accent-bright); background: var(--accent-bright); }
+  .checks .t { font-weight: 500; }
+  .checks .d { display: block; font-size: 0.87rem; color: var(--ink-2); font-weight: 400; margin-top: 2px; }
+
+  .colophon {
+    margin-top: 82px; border-top: 2px solid var(--ink); padding-top: 20px;
+    font-size: 0.83rem; color: var(--ink-2);
+  }
+  .colophon ul { columns: 2; column-gap: 40px; padding-left: 1.1em; }
+  @media (max-width: 620px) { .colophon ul { columns: 1; } }
+
+  @media (max-width: 860px) {
+    :root { --indent: 0px; }
+  }
+
+  @media (max-width: 700px) {
+    .phase-head { grid-template-columns: 1fr; gap: 6px; }
+    .phase-head p { grid-column: 1; }
+    .rost, .arch { grid-template-columns: 1fr; }
+    .specimen { text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <h1>Mycel<br><em>Colonization</em> Log</h1>
+    <div class="specimen">
+      SPECIMEN &nbsp;<b>$MYCEL</b><br>
+      SUBSTRATE &nbsp;<b>Solana / Raydium</b><br>
+      INOCULATED &nbsp;<b>2026-08-27</b><br>
+      LOG OPENED &nbsp;<b>2026-09-09</b><br>
+      OPERATORS &nbsp;<b>5 accounts</b><br>
+      NORTH STAR &nbsp;<b>SOL per day</b>
+    </div>
+  </header>
+
+  <p class="standfirst">Our operating plan for $MYCEL: four tracks, one scoreboard, and the runbooks
+  underneath each. <strong>Everything here is either measurable or already true.</strong> Baseline
+  figures were pulled live from DexScreener and Helius on 2026-09-09. This document is how we work —
+  it is meant to be open next to the compose box, not read once.</p>
+
+  <nav class="toc">
+    <a href="#now">Where we are</a>
+    <a href="#tracks">The four tracks</a>
+    <a href="#standing">A · Standing</a>
+    <a href="#distribution">B · Distribution</a>
+    <a href="#queries">The search stack</a>
+    <a href="#fud">FUD protocol</a>
+    <a href="#contributors">C · The rail</a>
+    <a href="#events">D · Events</a>
+    <a href="#scoreboard">Scoreboard</a>
+    <a href="#weekone">Week one</a>
+    <a href="#appendix">Appendix</a>
+  </nav>
+
+  <!-- ============ WHERE WE ARE ============ -->
+  <section class="phase" id="now">
+    <div class="phase-head">
+      <span class="phase-num">Baseline</span>
+      <h2>Where we are</h2>
+      <p>Not a cold start. A launch spike that decayed, with a warm audience still on-chain and a set
+      of assets most projects at this size do not have.</p>
+    </div>
+
+    <div class="vitals">
+      <div class="vital"><span class="k">Market cap</span><span class="v">$49.8k</span><span class="n">FDV identical — fixed supply</span></div>
+      <div class="vital"><span class="k">Liquidity</span><span class="v">$20.8k</span><span class="n">Raydium, single pool</span></div>
+      <div class="vital"><span class="k">Volume 24h</span><span class="v down">$6.8k</span><span class="n">Day 1 ~$500k. ~99% decay.</span></div>
+      <div class="vital"><span class="k">Trades 24h</span><span class="v">134</span><span class="n">67 buys / 67 sells · avg ~$51</span></div>
+      <div class="vital"><span class="k">Token accounts</span><span class="v up">388</span><span class="n">Incl. emptied wallets — our lapsed list</span></div>
+      <div class="vital"><span class="k">To the treasury</span><span class="v up">~1%</span><span class="n">Of every trade, held in SOL</span></div>
+      <div class="vital"><span class="k">Treasury today</span><span class="v up">~10 SOL</span><span class="n">Seed capital for the crew</span></div>
+      <div class="vital"><span class="k">Supply locked</span><span class="v up">10%</span><span class="n">Two years — not yet published</span></div>
+    </div>
+
+    <div class="body-block">
+      <h3>How the money works</h3>
+      <p><strong>Roughly 1% of every trade is routed into a community treasury, held in SOL.</strong>
+      That treasury pays the people who do the work — replies, memes, mods, clips, code — and every
+      payout is on-chain and auditable. It is the thing MYCEL exists to prove, and it is the reason
+      anyone outside the community should care about a coin this size.</p>
+      <p>The important number is not the balance, it is <strong>the flow</strong>. At today's volume
+      the treasury takes in about <strong>0.7 SOL a day — roughly 5 SOL a week</strong>, and that
+      grows in lockstep with volume. The ~10 SOL sitting there now is seed capital to get the crew
+      started; after that, <strong>the crew is paid out of the flow they create.</strong> That is the
+      whole flywheel, and it is why the scoreboard tracks SOL per day and nothing else.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>As volume grows</th><th class="num">SOL / day</th><th class="num">Into treasury / week</th><th>What that pays for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Today</strong> · $6.8k/day</td><td class="num">0.7</td><td class="num">~5 SOL</td><td>A starting crew of 5–10 on small weekly bounties</td></tr>
+          <tr><td><strong>Day 30</strong> · $15k/day</td><td class="num">1.5</td><td class="num">~10 SOL</td><td>10–15 contributors, paid weekly</td></tr>
+          <tr><td><strong>Day 60</strong> · $30k/day</td><td class="num">3</td><td class="num">~21 SOL</td><td>~30 contributors plus recurring bounties</td></tr>
+          <tr><td><strong>Day 90</strong> · $50k/day</td><td class="num">5</td><td class="num">~35 SOL</td><td>~60 contributors — fully self-funding</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <div class="note">
+        <h4>Two things that are not true yet</h4>
+        <p><strong>The treasury wallet does not exist, and nothing has routed.</strong> Until both are
+        real and public, everything above is an intention, and we should describe it that way —
+        "here is what we are setting up" rather than "here is what happens." Creating the wallet and
+        routing the first payment are the first two items in Track A and Track C for exactly that
+        reason. The moment they are done, this becomes the strongest claim any coin at our size can
+        make. Until then it is a promise, and promises are what everyone else already has.</p>
+      </div>
+
+      <h3>The five operators</h3>
+      <p>We are not one account shouting. Every block in Track B is assigned to a named person below
+      — unassigned work does not happen.</p>
+      <div class="roster">
+        <div class="rost"><span class="name">@organic_mycel</span><span class="role"><b>The network.</b> Lore, the Ledger, the receipts. Never begs, never explains the joke. Answers every organic mention inside 15 minutes.</span></div>
+        <div class="rost"><span class="name">Organic (platform)</span><span class="role"><b>The infrastructure voice.</b> Fee rails, creator economics, launch mechanics. The most under-used account we have.</span></div>
+        <div class="rost"><span class="name">Founder account</span><span class="role"><b>The human.</b> Doxxed, technical, posts real numbers including bad ones. Carries the fee-rail argument — the coin account does not.</span></div>
+        <div class="rost"><span class="name">Ally · 50k</span><span class="role"><b>The megaphone. A scarce resource, not a daily tool.</b> One quote-post or one high-value reply per day. Names the ticker once a week at most.</span></div>
+        <div class="rost"><span class="name">Ally · high activity</span><span class="role"><b>The grinder.</b> Lives in the trenches feeds. Carries the bulk of daily reply volume.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRACKS ============ -->
+  <section class="phase" id="tracks">
+    <div class="phase-head">
+      <span class="phase-num">Overview</span>
+      <h2>The four tracks</h2>
+      <p>Two are one-time setup, two run forever. We do not start B before A is underway — every
+      engagement play below is built around having a receipt to point at.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Track</th><th>Type</th><th>Owner</th><th>Cadence</th><th>Done when</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>A · Standing</strong><br><span class="src">Treasury wallet, locks, verification, diligence page</span></td>
+            <td>One-time</td><td>Founder</td><td>Week 1–2</td>
+            <td>A stranger can verify our trust facts in 90 seconds from one pinned link</td>
+          </tr>
+          <tr>
+            <td><strong>B · Distribution</strong><br><span class="src">The X engagement machine</span></td>
+            <td>Continuous</td><td>All 5 operators</td><td>Daily, 7 days</td>
+            <td>Never — this is the job. Targets reviewed fortnightly</td>
+          </tr>
+          <tr>
+            <td><strong>C · The rail</strong><br><span class="src">Bounties, payouts, gate, rewards page</span></td>
+            <td>Build → continuous</td><td>Founder + crew</td><td>Weekly payouts</td>
+            <td>The rail funds itself from the volume the crew creates</td>
+          </tr>
+          <tr>
+            <td><strong>D · Events</strong><br><span class="src">Streams, Spaces, demos</span></td>
+            <td>Continuous</td><td>Founder</td><td>Weekly, fixed slot</td>
+            <td>Never — a calendar beats a launch</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <div class="note">
+        <h4>The one thing to understand before executing any of it</h4>
+        <p><strong>Replies do not buy volume. Replies buy contributors. Contributors buy volume.</strong>
+        Converting reach into trades at the rates a small account actually gets would need tens of
+        thousands of profile visits a day to add a few hundred trades — it does not work. What works
+        is that Track B finds people, Track C pays them and requires them to hold, and each of those
+        people becomes a buy, a holder, a poster and a recurring trader. <em>Track B is a recruiting
+        funnel wearing a marketing costume.</em></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRACK A ============ -->
+  <section class="phase" id="standing">
+    <div class="phase-head">
+      <span class="phase-num">Track A</span>
+      <h2>Standing</h2>
+      <p>Cheap, one-time, and it removes the objections that otherwise end every conversation before
+      it starts. Most of it is publishing things that are already true.</p>
+    </div>
+
+    <div class="body-block">
+      <h3>A1 · Create the treasury wallet and publish the address</h3>
+      <p>A dedicated wallet, separate from every other wallet, that receives the community share of
+      trade fees. <strong>Publish the address on day one, before there is anything in it.</strong>
+      A treasury anyone can watch is worth an order of magnitude more than a treasury we describe,
+      because it turns every future payout into something the audience verifies rather than something
+      they take our word for. It also means the balance itself becomes a live scoreboard we never
+      have to update by hand.</p>
+
+      <h3>A2 · Publish the fee structure once, in full</h3>
+      <p>State plainly how trade fees split — what goes to the community treasury, and that a
+      creator/platform share exists. <strong>Not amounts. Structure.</strong></p>
+      <p>This matters more than it looks. An undisclosed creator share that someone discovers later is
+      fatal at our size; a disclosed one is completely normal and nobody blinks. Declaring the shape
+      now is what makes it legitimate to take a creator share openly at any point in the future — the
+      disclosure has to come before it matters, not after someone asks.</p>
+
+      <h3>A3 · Publish the two-year lock</h3>
+      <p>10% of supply is locked for two years and almost nobody knows. "The dev will dump" is the
+      first thing every stranger thinks about a coin this size, and we have a verifiable on-chain
+      answer we are not using. <strong>A lock nobody can check is worth nothing</strong> — this needs
+      a public address or transaction, and then it lives in the bio and the pinned post permanently.</p>
+      <p>Be precise about the wording. "10% of total supply" and "10% of the founder's allocation" are
+      very different claims, and overstating it once would destroy the exact trust this whole plan
+      runs on. Publish the smaller true version.</p>
+
+      <h3>A4 · Lock the LP and publish that too</h3>
+      <p>Locked liquidity counts in our favour in Jupiter's assessment and independently removes the
+      second-biggest objection after the dev dump. Same treatment: address, link, pinned.</p>
+
+      <h3>A5 · The verification stack</h3>
+      <p>"Getting verified" is a stack, not a switch — and the top of it is bought by Track B, which
+      makes this the cleanest link between the X grind and something a trader can actually see.</p>
+      <ol class="runbook">
+        <li><strong>Check ticker collisions first.</strong> Other Mycel-named projects exist, and
+        duplicate tickers are among the most common rejection reasons. Know where we stand before
+        applying.</li>
+        <li><strong>Confirm the authority facts.</strong> Mint and freeze revoked, metadata immutable —
+        we already pass this. Screenshot for the diligence page.</li>
+        <li><strong>DexScreener Enhanced Token Info</strong> — from $299, processed in under 15
+        minutes. Puts our description, socials and links on the page every trader lands on before
+        buying. Check whether earlier promotion spend already covered this before paying twice.</li>
+        <li><strong>File CoinGecko and CoinMarketCap.</strong> Free, slow. Worth filing now —
+        DexScreener pulls token info from external lists including CoinGecko, so a listing
+        propagates.</li>
+        <li><strong>Jupiter verification, last.</strong> The green check marks us as the canonical
+        MYCEL wherever Jupiter routes. Their criteria: <em>social support</em> — "Smart Followers" and
+        organic engagement on an X account dedicated to the project, not a personal or KOL account —
+        plus ticker uniqueness, on-chain liquidity (locked liquidity counts), and revoked authorities.
+        <strong>Social proof is the gate, and Track B is how we pass it.</strong> Do not spam
+        re-applications; fix the gap first.</li>
+      </ol>
+
+      <h3>A6 · The diligence page</h3>
+      <p>Buyers with real size do not get convinced, they screen. They check the same handful of
+      things every time, and <strong>we can answer all of them with a link</strong>:</p>
+      <ol class="runbook">
+        <li>Supply concentration — holder distribution, no bundled clusters</li>
+        <li>Can the founder dump — the two-year lock, with its address</li>
+        <li>Is liquidity locked — the LP lock, with its address</li>
+        <li>Can supply be inflated or frozen — revoked mint and freeze authorities</li>
+        <li>Where do fees go — the treasury wallet address and the published split</li>
+        <li>Is anyone accountable — a doxxed founder who streams weekly</li>
+        <li>Is there a product — Organic, the rail, and its auditable payouts</li>
+      </ol>
+      <p>One pinned post or page, kept current. An afternoon of work. It is what we point at in every
+      FUD reply and every conversation with someone holding real size — and then the pitch is not a
+      pitch: <em>"here are the seven things you were going to check, already checked."</em> Nobody at
+      our size writes this, which is exactly why it works.</p>
+    </div>
+  </section>
+
+  <!-- ============ TRACK B ============ -->
+  <section class="phase" id="distribution">
+    <div class="phase-head">
+      <span class="phase-num">Track B</span>
+      <h2>Distribution</h2>
+      <p>Replies, not posts. A reply renders inside an audience that already exists; a post mostly
+      reaches people who already follow us.</p>
+    </div>
+
+    <div class="body-block">
+      <h3>B1 · The daily blocks</h3>
+      <p><strong>~50 replies a day across the roster, seven days a week.</strong> Not 200 — high-volume
+      low-quality replying is the signature X's inauthentic-behavior enforcement looks for, and the
+      March–April 2026 wave caught legitimate accounts too. Roughly 15 thoughtful replies beat 30
+      generic ones, and seven days beats five by about 3× cumulative.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Block</th><th>When</th><th class="num">Volume</th><th>Who</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Strike</strong></td><td>Peak CT hour, 60 min</td><td class="num">20 replies</td><td>Grinder + founder</td><td>All within 15 min of the parent post</td></tr>
+          <tr><td><strong>Relationship</strong></td><td>Any time, 30 min</td><td class="num">10 replies</td><td>Coin account</td><td>Peer coins and their mods → mutual follows</td></tr>
+          <tr><td><strong>Second strike</strong></td><td>~8h later</td><td class="num">20 replies</td><td>Grinder</td><td>The other timezone half of CT</td></tr>
+          <tr><td><strong>Originals</strong></td><td>Spread</td><td class="num">3 posts + 1 thread</td><td>Split</td><td>Something for profile visitors to convert on</td></tr>
+          <tr><td><strong>Amplify</strong></td><td>Once daily</td><td class="num">1–2 QTs</td><td>50k ally</td><td>Their reach, a real opinion</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <p>Expect <strong>100–200 profile visits/day and 20–40 followers/week per active operator</strong>,
+      and expect the first 10–14 days to look like nothing. The curve is convex.</p>
+
+      <h3>B2 · Building the lists</h3>
+      <p>Five lists — four private, one public. The private ones make our feeds show only things worth
+      replying to; the public one is a retention device.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>List</th><th>Visibility</th><th class="num">Size</th><th>Contents &amp; ritual</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Strike</strong></td><td>Private</td><td class="num">25–40</td><td>Terminals, launchpads, mid-tier CT (10k–150k). The main feed during both strike blocks.</td></tr>
+          <tr><td><strong>Peers</strong></td><td>Private</td><td class="num">30–50</td><td>Sub-$1M coins and their loudest repliers. Rebuilt weekly. Our raid-swap partners.</td></tr>
+          <tr><td><strong>Giants</strong></td><td>Private</td><td class="num">15</td><td>Solana core. The 50k ally's territory — the only account heavy enough to surface there.</td></tr>
+          <tr><td><strong>Watchtower</strong></td><td>Private</td><td class="num">20</td><td>News and alpha. Source material for originals. Never reply here.</td></tr>
+          <tr><td><strong>The Substrate</strong></td><td><strong>Public</strong></td><td class="num">growing</td><td>Every holder, contributor and friend. Being added is the reward. Costs nothing, retains people.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <p><strong>The sizing rule that governs everything:</strong> our best targets sit at
+      <strong>2–10× our follower count</strong>. Big enough that their posts get attention, small
+      enough that our reply is not buried under four hundred others. Re-audit Strike every two weeks —
+      targets that were right at 500 followers are wrong at 5,000.</p>
+
+      <h4>Weekly list rebuild — 30 minutes, every Monday</h4>
+      <ol class="runbook">
+        <li>DexScreener → Solana → filter market cap $30k–$500k, liquidity ≥ $20k, pair age under 60
+        days. Sort by 24h transactions, not by price change. Take the top 40.</li>
+        <li>Open each token's X link. Add the coin account to <strong>Peers</strong>.</li>
+        <li>On each coin account's last three posts, take the top three repliers by likes and add them
+        too. <em>Those repliers are the actual community operators</em> — our counterparts, and the
+        people who will raid with us.</li>
+        <li>Any coin launched on Organic goes to the top of Peers regardless of size. We all need the
+        rail to be believed — they are structural allies, not competitors.</li>
+        <li>Drop anything added last week that has not posted in seven days.</li>
+        <li>Every second week, re-audit Strike against the 2–10× rule and demote what we have outgrown.</li>
+      </ol>
+
+      <div class="note">
+        <h4>Trending lists are for eyeballs, not for alpha</h4>
+        <p>By the time a token tops DexScreener trending it has usually done 60–80% of its move,
+        because trending ranks on 24h volume and recent price action — the signal arrives after the
+        price does. <strong>That does not make trending useless to us.</strong> We are not there to
+        buy; we are there because the reply section of a trending coin is the densest concentration of
+        active Solana traders available at that moment. Engage the room, ignore the chart.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUERIES ============ -->
+  <section class="phase" id="queries">
+    <div class="phase-head">
+      <span class="phase-num">Track B · Runbook</span>
+      <h2>The search stack</h2>
+      <p>What to actually type into X to find things worth replying to. Paste these into the search
+      box — <strong>then switch to the <em>Latest</em> tab, never Top.</strong> The 15-minute window is
+      the whole game, and Top shows posts already saturated with replies.</p>
+    </div>
+
+    <div class="body-block">
+      <span class="qlabel">1 · Mentions of us — check first, every session</span>
+      <div class="q">MYCEL OR $MYCEL OR organic_mycel -filter:replies</div>
+      <div class="q">HudkzEWpcUnTYFZMMcbNdwk1S5Am26J2SyEh4NfFworg</div>
+      <p>People post the contract address without the ticker. Both queries, every session. Every
+      organic mention gets an answer inside 15 minutes and a place in The Substrate.</p>
+
+      <span class="qlabel">2 · FUD radar — about us specifically</span>
+      <div class="q">MYCEL (rug OR scam OR jeeted OR dumped OR "dev sold" OR bundled)</div>
+      <p>Run twice a day. See the FUD protocol below — one answer, with a link, fast.</p>
+
+      <span class="qlabel">3 · Creator-fee discourse — our home turf (archetype A-01)</span>
+      <div class="q">("creator fees" OR "dev fees" OR "creator rewards") (solana OR pumpfun OR bags) min_faves:10</div>
+      <div class="q">("who gets the fees" OR "fees go to" OR "deployer") memecoin min_faves:10</div>
+      <p>The single highest-value room on Crypto Twitter for us, because we are the only people in it
+      with a working alternative and an address anyone can watch.</p>
+
+      <span class="qlabel">4 · Unpaid contributors — our best recruiting ground (A-02)</span>
+      <div class="q">(mod OR "community manager" OR "made the memes" OR artist) (unpaid OR "not paid" OR "got nothing") crypto</div>
+      <div class="q">("i moderate" OR "i mod" OR "i run the") (telegram OR discord) crypto -filter:links</div>
+      <p>This converts strangers into contributors rather than followers, and contributors bring their
+      own audience. Highest conversion of anything in the stack.</p>
+
+      <span class="qlabel">5 · General memecoin cynicism — the counterexample play (A-03)</span>
+      <div class="q">(memecoin OR memecoins) (extractive OR "always rug" OR "dev dumped" OR "zero sum") min_faves:20 lang:en</div>
+      <p>Concede first, then differentiate, then invite falsification. Never defend the category.</p>
+
+      <span class="qlabel">6 · Trader rooms — pure profile-click farming (A-04)</span>
+      <div class="q">(axiom OR bullx OR photon OR gmgn OR "nova" OR bloom) solana min_faves:15</div>
+      <p>Never mention the coin in these. We are there for the density of active traders, and the coin
+      gets discovered from the profile, not the reply.</p>
+
+      <span class="qlabel">7 · Peer launches — build the mutual graph (A-05)</span>
+      <div class="q">("just launched" OR "we just deployed" OR "our CA") solana min_faves:10</div>
+      <div class="q">organic OR "launched on Organic" solana</div>
+
+      <span class="qlabel">8 · Watchtower — material for our own posts, do not reply</span>
+      <div class="q">solana min_faves:100 -filter:replies lang:en</div>
+
+      <h4>Operator notes</h4>
+      <ul>
+        <li><strong>Latest tab, always.</strong> Sorting by Top defeats the entire timing strategy.</li>
+        <li><code>min_faves:</code> works and is the most useful filter we have — it is how we skip
+        dead posts. <code>min_replies:</code> is less reliably supported; verify before depending on
+        it.</li>
+        <li>Add <code>-filter:links</code> for conversation rather than announcements, and
+        <code>lang:en</code> to cut noise.</li>
+        <li>Add <code>since:</code> with today's date if a query keeps surfacing week-old posts.</li>
+        <li><strong>Save each query as a column</strong> or bookmark the search URLs. Re-typing them
+        is how the habit dies in week two.</li>
+        <li>Tune the <code>min_faves:</code> numbers as we grow — they are floors for "is anyone
+        actually reading this", not fixed truths.</li>
+      </ul>
+
+      <h3>The nine archetypes</h3>
+      <p>If a post fits none of these, scroll past — the reply we would write is the reply that gets us
+      muted. Adapt the example lines; identical text across our accounts is what gets a network
+      flagged.</p>
+    </div>
+
+    <div class="arch-list">
+      <div class="arch"><span class="id">A-01</span><div class="main">
+        <div class="t">Creator-fee economics <span>Organic / founder</span></div>
+        <div class="sig">Any thread about who earns from a launch.</div>
+        <div class="say">"We're running the version where the fees don't stop at the deployer. About 1% of every MYCEL trade lands in a community treasury and pays whoever does the work — wallet's public, first payout goes out this week. I'll post the tx."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-02</span><div class="main">
+        <div class="t">The unpaid mod <span>Founder</span></div>
+        <div class="sig">Someone did community work and got nothing.</div>
+        <div class="say">"What would a fair rate have been for last month? Asking seriously — I'm building the payout rail and I'd rather price it off real numbers than a guess."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-03</span><div class="main">
+        <div class="t">"Memecoins are extractive" <span>Founder</span></div>
+        <div class="sig">Cynical macro take. Never defend the category.</div>
+        <div class="say">"Mostly agree. The part I think is fixable is who receives the fees. Ours route on-chain to contributors, and the treasury wallet is public. It's small — 388 wallets, $50k cap — but it's falsifiable. Check back in a month and tell me I was wrong."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-04</span><div class="main">
+        <div class="t">Terminal &amp; launchpad posts <span>Grinder</span></div>
+        <div class="sig">Feature launches. Reply sections dense with active traders.</div>
+        <div class="say">"Filter request: hide pairs where the top-10 holders moved in the last hour. Half of what surfaces in the new-pairs tab right now is one wallet cycling."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-05</span><div class="main">
+        <div class="t">Peer launch or milestone <span>Coin</span></div>
+        <div class="sig">Sub-$1M coins, especially anything launched on Organic.</div>
+        <div class="say">"Added you to The Substrate. If you want a raid swap this week we'll show up with real replies, not emojis. No ask on our side."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-06</span><div class="main">
+        <div class="t">Build-in-public threads <span>Founder</span></div>
+        <div class="sig">Someone shipping on Solana. Answer with a real problem, not praise.</div>
+        <div class="say">"How are you handling re-verification on rejoin? We token-gate a TG group and with meme hold times averaging about a minute, a balance check at join is close to meaningless — we're moving to a minimum hold duration instead."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-07</span><div class="main">
+        <div class="t">"What are you buying?" <span>Grinder / 50k</span></div>
+        <div class="sig">The only archetype where we name the ticker — and we state the risk.</div>
+        <div class="say">"MYCEL, small. $50k cap and thin liquidity, so size accordingly. The thesis isn't the chart — it's the test case for a fee rail that pays contributors. If the first payouts don't land, it's dead, and that's checkable."</div>
+      </div></div>
+      <div class="arch"><span class="id">A-08</span><div class="main">
+        <div class="t">Any organic mention <span>Coin</span></div>
+        <div class="sig">Inside 15 minutes, every time, without exception.</div>
+        <div class="say">Answer something specific about <em>them</em> — the trade they described, the point they made, the meme they built. Then add them to The Substrate.</div>
+      </div></div>
+      <div class="arch"><span class="id">A-09</span><div class="main">
+        <div class="t">Solana majors <span>50k ally only</span></div>
+        <div class="sig">Low hit rate, large payoff. Only reply if we can add a fact.</div>
+        <div class="say">An on-chain number, a counter-example, or a correction. Never an opinion without evidence, never "great thread".</div>
+      </div></div>
+    </div>
+
+    <div class="body-block">
+      <h4>What not to engage</h4>
+      <ul>
+        <li><strong>Price-only posts.</strong> Nothing we can add is information.</li>
+        <li><strong>Other coins' threads with our CA in the reply.</strong> Fastest route to being
+        muted and reported by the exact peers we need in Peers.</li>
+        <li><strong>Giveaway and follow-for-follow threads.</strong> They fill the follower graph with
+        accounts that never trade, which degrades every future post's early velocity.</li>
+        <li><strong>Drama and call-outs.</strong> Attention that does not convert and cannot be undone.</li>
+        <li><strong>Anything where the honest reply is "buy our coin."</strong></li>
+      </ul>
+
+      <h3>B3 · Post formats — the five that rotate</h3>
+      <ul>
+        <li><strong>The Ledger</strong> (daily) — treasury balance, fees routed to date, wallets paid,
+        tx links. <em>Post the zeros too.</em> A project that publishes its own zeros earns the right
+        to be believed about its non-zeros.</li>
+        <li><strong>The Receipt</strong> (weekly) — someone worked, someone got paid, here is the
+        transaction. Screenshot in the main tweet, link in reply 1, tag the contributor.</li>
+        <li><strong>The Lore drop</strong> (2–3×/week) — mushroom, network, substrate, the four
+        chapters. Visual, short, unexplained.</li>
+        <li><strong>The Take</strong> (daily) — an opinion about fee models, contributor pay or the
+        trenches that <em>does not mention $MYCEL</em>. A coin account that only talks about its own
+        coin has a follower ceiling equal to its holder count.</li>
+        <li><strong>The Ask</strong> (2–3×/week) — small and answerable. Not bare "gm" — "gm. one open
+        bounty today: ___".</li>
+      </ul>
+
+      <h4>Format rules</h4>
+      <ul>
+        <li>No external link in the main tweet — roughly 30–50% reach cut. Link in reply 1.</li>
+        <li>Native media only, uploaded to X, never a link preview.</li>
+        <li>Zero to two hashtags. Three or more trips spam filtering; X ranks semantically now.</li>
+        <li>Threads: hook tweet alone, no link, no image if the hook is the point.</li>
+        <li>Reply to our own post once at ~20 minutes with the link or an addition.</li>
+        <li>Post inside the strike window so the roster is awake to give first-15-minute velocity.</li>
+      </ul>
+
+      <h4>Reply quality — the only rule</h4>
+      <p>A reply must <strong>add a fact</strong>, <strong>disagree specifically</strong>, <strong>tell
+      a one-sentence story</strong>, or <strong>be funnier than the post</strong>. If it does none of
+      those, don't send it. Our first 500 replies are our entire public reputation.</p>
+    </div>
+
+    <div class="note danger">
+      <h4>Coordinating five accounts without losing them</h4>
+      <p>X treats coordinated activity across multiple associated accounts as platform manipulation,
+      and the March–April 2026 enforcement wave suspended thousands of accounts including, by X's own
+      later admission, many legitimate ones. The 50k ally is the most valuable and most exposed asset
+      we have.</p>
+      <p><strong>Never more than two accounts under the same post</strong>, and only with genuinely
+      different angles. Never identical or near-identical text. Stagger timing — no two accounts
+      replying to the same target within minutes. No scheduled reciprocal like-or-retweet rings. Keep
+      the accounts on the separate people and devices they already belong to. And when the raid bot
+      arrives, <strong>never pay for likes</strong> — they are the cheapest action to fake and the most
+      obviously patterned when a group performs them on cue.</p>
+    </div>
+  </section>
+
+  <!-- ============ FUD ============ -->
+  <section class="phase" id="fud">
+    <div class="phase-head">
+      <span class="phase-num">Track B · Runbook</span>
+      <h2>The FUD protocol</h2>
+      <p>FUD is not an attack to survive, it is the highest-intent audience we will ever get: people
+      already thinking about the coin, in public, with an audience watching. Handled well it is our
+      best conversion surface. Handled badly it is the end.</p>
+    </div>
+
+    <div class="body-block">
+      <h4>Classify before typing</h4>
+      <ol class="runbook">
+        <li>
+          <span class="rb-t">Factually wrong claim</span>
+          <span class="rb-eg">"mint isn't revoked" · "dev holds 40%" · "liquidity isn't locked"</span>
+          <strong>Correct once, with a link, calmly.</strong> This is what the diligence page is for —
+          one URL answers most of them. Then stop.
+        </li>
+        <li>
+          <span class="rb-t">Opinion or vibe</span>
+          <span class="rb-eg">"looks dead" · "another mushroom coin"</span>
+          <strong>Either ignore it, or agree and differentiate.</strong> Arguing with a vibe makes us
+          look small and gives it oxygen.
+        </li>
+        <li>
+          <span class="rb-t">Legitimate criticism</span>
+          <span class="rb-eg">"volume is down 99%" · "nothing has routed yet"</span>
+          <strong>Concede first, publicly, faster than they can press it.</strong> Then say what we are
+          doing about it and by when — and then actually do it. This is the single most
+          credibility-building move available to us, and it costs nothing because the criticism was
+          true anyway.
+        </li>
+      </ol>
+
+      <h4>The rules, in order of how expensive they are to break</h4>
+      <ul>
+        <li><strong>Never argue twice.</strong> One answer, with evidence. If they come back, let the
+        answer stand — the audience already saw it, and round two only makes us look rattled.</li>
+        <li><strong>Never delete, never block a critic.</strong> Screenshots outlive us, a deleted
+        reply becomes the story, and blocking is read as an admission.</li>
+        <li><strong>Answer with a link, never with adjectives.</strong> "It's not a rug, we're legit"
+        is worthless. An address is not.</li>
+        <li><strong>Speed matters as much as content.</strong> Inside 15 minutes. FUD that goes
+        unanswered for an hour becomes the accepted version.</li>
+        <li><strong>The coin account stays flat; the founder account can be human.</strong> Split the
+        emotional register — the network does not get defensive, the person can be annoyed.</li>
+        <li><strong>If the FUD is true, publish it ourselves first.</strong> Being the fastest source
+        of our own bad news is the cheapest credibility there is, and it permanently removes the
+        weapon.</li>
+      </ul>
+
+      <div class="note">
+        <h4>Turn the answer into content</h4>
+        <p>Every good FUD answer is a post. Take the question, strip the attacker, publish the answer
+        as a standalone Take: <em>"Someone asked whether the founder can dump. Here's the lock, here's
+        the address, here's when it opens."</em> We get the same content from an attack that we would
+        otherwise have had to invent — and the next person who wonders finds the post instead of the
+        argument.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRACK C ============ -->
+  <section class="phase" id="contributors">
+    <div class="phase-head">
+      <span class="phase-num">Track C</span>
+      <h2>The rail</h2>
+      <p>The actual growth engine. Everything in Track B exists to feed this.</p>
+    </div>
+
+    <div class="body-block">
+      <h3>C1 · Route the first payment — this week</h3>
+      <p>Right now the story is that fees route to people who work for the coin and that
+      <em>nothing has routed yet</em>. That sentence is an unfired gun. "Here is the first person ever
+      paid by a coin for working on it — tx link" travels outside our community, gets quoted in
+      fee-economics arguments, and recruits in the replies. It converts a claim into a receipt, and
+      receipts are our only durable content advantage. <strong>Do it before starting the daily
+      grind</strong> — every archetype above is stronger with one behind it.</p>
+
+      <h3>C2 · The rewards page on Organic</h3>
+      <p>The onboarding and rewards page being built inside Organic is the home for all of this:
+      contributors sign up there, work is tracked there, and rewards are calculated from volume and
+      fees there. That makes it more than campaign infrastructure — <strong>it is the product demo.</strong>
+      Every contributor who gets paid through it is simultaneously a MYCEL holder and a live proof
+      that Organic's rail works, which is exactly the case Organic needs to make to the next project
+      that launches on it.</p>
+      <p>Ship the crude version first and in public. A build thread about paying people from trade
+      fees will out-perform any meme we make this month, because it is a claim nobody else can make
+      and everyone in our niche has an opinion about it.</p>
+
+      <h3>C3 · How the budget actually works</h3>
+      <p>The treasury holds ~10 SOL of seed capital. <strong>That is not the budget — the flow is.</strong>
+      At current volume roughly 5 SOL a week arrives, and that scales directly with the ladder. So the
+      crew starts small and grows as the volume they create grows, which is the only funding model
+      that does not run out.</p>
+      <ul>
+        <li><strong>Most of the inflow → contributor payouts.</strong> The half that compounds.</li>
+        <li><strong>A standing reserve → liquidity.</strong> Liquidity is the ceiling on trade size —
+        at a $20.8k pool a $1,000 buy is ~5% of the pool and prices like it. Deepening it raises how
+        much volume the pool can host before slippage scares size away. It is capital at risk in an LP
+        position, so size it deliberately.</li>
+        <li><strong>A small slice → event amplification</strong>, spent only behind a receipt: the
+        first payout, a contributor receipt, the lock announcement.</li>
+      </ul>
+      <p><strong>The benchmark that settles every future spend: ~$100 per durable holder</strong> — a
+      contributor who holds, posts and trades. Anything that cannot plausibly beat that is worse than
+      simply routing the same SOL through the rail. Judge boosts, KOLs and giveaways against that
+      line, not against how they feel.</p>
+
+      <div class="note">
+        <h4>What we already learned about paid promotion</h4>
+        <p>We ran a paid-promotion test early on — boosts and placement. The result of that spend is
+        the baseline at the top of this page. That is not a wasted experiment, it is the cleanest
+        evidence we will get about what the channel buys: impressions on a surface populated largely
+        by bots and snipers, converting into trades that stop when the budget stops.</p>
+        <p><strong>The rule it gives us:</strong> at a 1% take, any spend has to induce a hundred times
+        its own value in volume just to break even. Boosts stay in the plan only as amplification
+        behind a real event — never as standalone spend. And before spending again, pull the
+        attribution: we know the dates, and DexScreener keeps the volume history.</p>
+      </div>
+
+      <h3>C4 · The token gate — hold duration, not balance</h3>
+      <p>Average hold time on Solana meme trades is measured in seconds, so a gate that checks balance
+      at the moment of joining is close to meaningless — people buy in, join, sell, and stay. Two
+      decisions fix it: <strong>gate on minimum balance held for a minimum number of days</strong>, and
+      <strong>re-verify continuously with removal on sell</strong>, announced in advance and applied
+      without exception. The gate only works if losing access is real.</p>
+
+      <h3>C5 · Raid bot — write the scoring before the money</h3>
+      <p>The moment engagement pays, we have created a farm. Sybil resistance is a trade-off between
+      openness and abuse, and the answer is several weak barriers rather than one strong one.
+      Retrofitting these means taking money away from people, which is worse than never offering it.</p>
+      <ul>
+        <li><strong>Never pay for likes.</strong> Pay for replies that earned a reply back, and for
+        quote-posts.</li>
+        <li><strong>Weight by target size.</strong> A reply under a 100k post is worth many under a
+        500-follower one, or the farm optimises for dead rooms.</li>
+        <li><strong>Earning requires the hold gate</strong> from C4. That makes the bot and the gate
+        one system, and prices sybil identities above what they can earn.</li>
+        <li><strong>Cap weekly payout per wallet</strong> below the cost of maintaining a credible
+        second identity. The cap <em>is</em> our sybil economics.</li>
+        <li><strong>Decay scores over time</strong> so early contributors cannot rent-seek forever.</li>
+        <li><strong>Human review of top earners before every payout.</strong> Five minutes a week; no
+        automated system replaces it.</li>
+        <li><strong>Publish the leaderboard and the payouts.</strong> The scoreboard is the content —
+        the Ledger post writes itself once this exists.</li>
+      </ul>
+
+      <h3>C6 · Pay in MYCEL, bought on the market</h3>
+      <p>The treasury holds SOL. Using it to buy MYCEL and paying contributors in that makes
+      <strong>every payout a trade</strong> — which at ~1% partially refunds the treasury, while putting
+      the token in the hands of the people doing the work under the same hold requirement as everyone
+      else.</p>
+      <p>Two conditions. Pair it with <strong>vesting or a minimum hold on the paid tokens</strong>, or
+      we have built a faucet that sells into our own pool every week. And describe the mechanism
+      plainly rather than marketing it as a price mechanism — "fees buy the token" has regulatory
+      texture in some jurisdictions. Take advice before scaling it.</p>
+    </div>
+  </section>
+
+  <!-- ============ TRACK D ============ -->
+  <section class="phase" id="events">
+    <div class="phase-head">
+      <span class="phase-num">Track D</span>
+      <h2>Events</h2>
+      <p>A flush is a recurring wave, and that is the principle: <strong>a calendar beats a
+      launch.</strong> One brilliant event gives a spike and a worse chart. The same event every
+      Thursday gives people a reason to come back, and coming back is what a holder is.</p>
+    </div>
+
+    <div class="body-block">
+      <p>Our founder is doxxed, streams, demos and ships. That combination is rare at this size — most
+      of our competition is an anonymous account with a picture. <strong>Everything below is chosen
+      because we can run it and a bundled coin cannot.</strong></p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Event</th><th>Cadence</th><th>Why it works for us specifically</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Build stream</strong> — ship the rewards page / gate on camera</td><td>Weekly, fixed slot</td><td>The most defensible thing we own. Nobody fakes three hours of real work, and the artefact it produces is the product.</td></tr>
+          <tr><td><strong>The payout stream</strong> — route fees live</td><td>Once, then monthly</td><td>Highest-impact single event. Read the treasury address out and let people verify in real time. <strong>This is what the amplification reserve is for.</strong></td></tr>
+          <tr><td><strong>"Who got paid this week"</strong> — Space with the leaderboard</td><td>Weekly, 20 min</td><td>Turns the Ledger into a ritual with names in it. People show up for their own name.</td></tr>
+          <tr><td><strong>Bounty office hours</strong> — price and pay live</td><td>Weekly / fortnightly</td><td>Recruitment disguised as an event. Everyone watching sees a stranger get paid.</td></tr>
+          <tr><td><strong>Organic platform demo</strong></td><td>Per release</td><td>Sells platform and coin in one motion — the coin is the platform's test case.</td></tr>
+          <tr><td><strong>Joint Space with peer Organic launches</strong></td><td>Monthly</td><td>The reply strategy at 100× scale. Borrowed audiences, structurally aligned.</td></tr>
+          <tr><td><strong>Trading competition</strong></td><td>Rarely, structured</td><td>Generates volume but attracts mercenaries by default. Only with a vested or hold-gated prize, funded from the treasury so it is self-financing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <h4>Being doxxed is a strategy, not a fact</h4>
+      <p>We compete against anonymous deployers in a market where the default assumption is that the
+      founder disappears. Every stream where a real face is attached to a commitment, and every
+      commitment then kept on a public timestamp, compounds into the one asset none of them can copy.
+      Use it deliberately: <strong>make dated promises small enough that we always keep them, then keep
+      them in public. Six kept small promises beat one big announcement.</strong></p>
+
+      <h4>What not to run</h4>
+      <ul>
+        <li><strong>Paid AMAs in signal or "ICO" Telegram groups.</strong> The audience is farmers —
+        the event-shaped version of the boost problem.</li>
+        <li><strong>Giveaway streams.</strong> Attracts exactly who we don't want.</li>
+        <li><strong>Countdown "big reveal" events</strong> with nothing behind them. Countdowns train
+        people to sell at the top of the countdown.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ SCOREBOARD ============ -->
+  <section class="phase" id="scoreboard">
+    <div class="phase-head">
+      <span class="phase-num">Scoreboard</span>
+      <h2>The ladder</h2>
+      <p>North star is <strong>SOL per day into the treasury</strong>. Not followers, not market cap,
+      not price.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Horizon</th><th class="num">Volume/day</th><th class="num">Trades/day</th><th class="num">SOL/day</th><th class="num">SOL/week</th><th>What has to be true</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Today</strong></td><td class="num">$6.8k</td><td class="num">134</td><td class="num">0.7</td><td class="num">~5</td><td class="src">Nothing changes. Decay continues.</td></tr>
+          <tr><td><strong>Day 30</strong></td><td class="num">$15k</td><td class="num">~295</td><td class="num">1.5</td><td class="num">~10</td><td>Treasury live · first payouts landed · ~10 contributors holding · the 388 worked by hand</td></tr>
+          <tr><td><strong>Day 60</strong></td><td class="num">$30k</td><td class="num">~590</td><td class="num">3</td><td class="num">~21</td><td>Rewards page live · ~30 contributors · pool deep enough that $1k isn't a 5% move</td></tr>
+          <tr><td><strong>Day 90</strong></td><td class="num">$50k</td><td class="num">~980</td><td class="num">5</td><td class="num">~35</td><td>~60 contributors · recurring traders watching the ticker · Jupiter verified</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Watch weekly</th><th>Source</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SOL per day</strong></td><td class="src">Volume × fee rate</td><td>The north star. Baseline 0.7.</td></tr>
+          <tr><td><strong>Contributors holding &amp; earning</strong></td><td class="src">Rewards page + on-chain</td><td>The real engine. Moves <em>before</em> volume does — our best leading indicator.</td></tr>
+          <tr><td><strong>Treasury balance &amp; payouts</strong></td><td class="src">Public wallet</td><td>Proof the thesis works, and our best recurring content.</td></tr>
+          <tr><td><strong>Trades/day &amp; average size</strong></td><td class="src">DexScreener</td><td>Baseline 134 at ~$51. Count grows first; ticket size grows only as liquidity deepens.</td></tr>
+          <tr><td><strong>Token accounts holding &gt; 0</strong></td><td class="src">Helius <code>getTokenAccounts</code></td><td>388 total today. The non-empty subset is the real community.</td></tr>
+          <tr><td><strong>Median hold duration</strong></td><td class="src">On-chain</td><td>The number the token gate exists to move.</td></tr>
+          <tr><td><strong>Profile visits/day, per account</strong></td><td class="src">X Analytics</td><td>The real output of replying.</td></tr>
+          <tr><td><strong>Reply → profile-visit rate</strong></td><td class="src">Analytics ÷ reply count</td><td>Low means our <em>targets</em> are wrong; good rate with no follows means our <em>profile</em> is wrong.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="body-block">
+      <h4>Kill rules</h4>
+      <ul>
+        <li><strong>Contributors under 10 by day 30</strong> → the bounties are priced or scoped wrong,
+        and no amount of replying fixes it. This fires before the volume rules do.</li>
+        <li><strong>Day 30, SOL/day still under 1.0</strong> → the rail story is not the draw we think
+        it is. Move the content effort to A-04 trader rooms and treat the rail as retention rather than
+        acquisition.</li>
+        <li><strong>Three weeks in, profile visits under ~50/day per operator</strong> → target
+        selection is wrong, not effort. Rebuild Strike from scratch, drop everything above 10× our
+        size.</li>
+        <li><strong>Payouts rising while volume is flat</strong> → we are funding a farm. Freeze
+        payouts, tighten the gate, review manually.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ WEEK ONE ============ -->
+  <section class="phase" id="weekone">
+    <div class="phase-head">
+      <span class="phase-num">Week one</span>
+      <h2>In order</h2>
+      <p>Filled markers are the three that change the trajectory. Everything else is setup that makes
+      them work.</p>
+    </div>
+
+    <ol class="checks">
+      <li class="key"><span class="t">Create the treasury wallet and publish the address.<span class="d">Publish it before there is anything in it. A treasury anyone can watch is worth far more than one we describe.</span></span></li>
+      <li class="key"><span class="t">Route the first payment to a real contributor. Post the transaction.<span class="d">The one irreversible step from claim to receipt. Nothing else this week matters as much.</span></span></li>
+      <li class="key"><span class="t">Publish the first three bounties, priced in MYCEL.<span class="d">Turn the target lists into a public work board. Bounties recruit; posts don't.</span></span></li>
+      <li><span class="t">Publish the fee structure — shape, not amounts.<span class="d">Disclosing that a creator share exists is what makes taking one openly legitimate later. It has to come before it matters.</span></span></li>
+      <li><span class="t">Publish the two-year lock, with the address.<span class="d">Free trust, sitting unused. Confirm the exact wording — total supply and founder allocation are different claims.</span></span></li>
+      <li><span class="t">Write the diligence page and pin it.<span class="d">Seven things every serious buyer screens for, each answered with a link. An afternoon.</span></span></li>
+      <li><span class="t">Pull the attribution on the earlier promotion spend.<span class="d">We know the dates; DexScreener keeps the history. Settle what it bought before spending again.</span></span></li>
+      <li><span class="t">Start the verification stack.<span class="d">Ticker collisions, LP lock, DexScreener token info, CoinGecko + CMC filed. Jupiter last — its gate is social proof.</span></span></li>
+      <li><span class="t">Build the five lists and save the eight searches.<span class="d">Bookmark the search URLs or save them as columns. Re-typing them is how the habit dies in week two.</span></span></li>
+      <li><span class="t">Work the 388 wallets by hand.<span class="d">Follow, list, message holders, interview the sellers — then post what the sellers said.</span></span></li>
+      <li><span class="t">Publish the first Ledger post, including the zero.<span class="d">Establish the format before there's good news in it. That ordering is what makes it credible.</span></span></li>
+      <li><span class="t">Put the weekly build stream on the calendar and announce the slot.<span class="d">Same day, same hour, starting this week.</span></span></li>
+      <li><span class="t">Start the daily blocks, assigned by name.<span class="d">Buy X Premium on all five accounts first — 2× out-of-network on every reply.</span></span></li>
+    </ol>
+  </section>
+
+  <!-- ============ APPENDIX ============ -->
+  <section class="phase" id="appendix">
+    <div class="phase-head">
+      <span class="phase-num">Appendix</span>
+      <h2>Three questions with hard answers</h2>
+      <p>Settled, not matters of taste. Getting any of them wrong is expensive.</p>
+    </div>
+
+    <div class="body-block">
+      <h3>"Every coin is pumping — are they all insiders?"</h3>
+      <p><strong>Partly, and less than it looks.</strong> Deployer-funded same-block sniping — where
+      the deployer funds the wallets buying in the launch block — is a normalised playbook run
+      thousands of times a week on Solana, and bundled launches where insiders take a majority of
+      supply and sell six figures within hours are routinely documented.</p>
+      <p><strong>But nobody knows the share, and the honest researchers say so.</strong> There is no
+      credible public figure for how much launch-moment buying is insider or automated: on-chain data
+      cannot separate a sniper from an insider from a well-configured retail bot, because wallets
+      rotate and funding is laundered through intermediaries. Treat any quoted percentage as
+      unfounded.</p>
+      <p><strong>The bigger distortion is survivorship.</strong> We never see the thousands of coins
+      that died quietly today. Scanners sort by gainers, the algorithm shows what is moving, and peers
+      post their wins. The feed is a minute-by-minute highlight reel of the top 0.1% of outcomes — not
+      evidence that pumping is normal. We cannot out-manufacture the manufactured coins, and the
+      position that <em>is</em> available to a doxxed team with a product is being visibly not that,
+      with the evidence trivially checkable. The traders with real size all got burned by the other
+      kind and are actively screening for it.</p>
+
+      <h3>"Can we market-make our own coin, since the fees come back?"</h3>
+      <p><strong>No — and the arithmetic kills it before the law does.</strong> The treasury receives
+      ~1% of volume. To generate that volume ourselves we pay the pool's fee on every swap. At
+      absolute best we receive back the fees we just paid, minus the LP's share, minus priority fees,
+      minus what real traders take off us. There is no version where it profits.</p>
+      <p>Projects do it anyway for perception — liquidity looks like interest and interest attracts
+      real flow. That is exactly the conduct the DOJ and SEC charged multiple "market making" firms
+      with across 2024–2026, including an FBI operation that ran its own token to identify firms
+      selling manipulation as a service; firms were fined and individuals sentenced. And on our facts
+      it is self-defeating a third way: <strong>wash patterns are what Jupiter's review and every
+      serious buyer's screening look for.</strong> We would be paying to acquire the signature that
+      disqualifies us from the standing Track A is building.</p>
+
+      <h3>"So what do market makers actually do, and what can we legitimately do?"</h3>
+      <p>Legitimate market making is quoting both sides and absorbing flow: posting orders real traders
+      fill, tightening the spread, deepening the book so size can move without wrecking price.
+      Deepening liquidity is not manipulation in any market — the illegality lives entirely in trading
+      with yourself to fake activity.</p>
+      <p>At our size no reputable market maker will engage; the firms that will are overwhelmingly the
+      manipulation-as-a-service kind. <strong>The legitimate version available to us is providing
+      liquidity in our own pool</strong> — capital in, fees from other people's real trades, and a
+      higher ceiling on how much volume the pool can host before slippage scares size away. That is the
+      liquidity reserve in C3, and its cost is real: impermanent loss and locked capital.</p>
+    </div>
+
+    <footer class="colophon">
+      <h4>Provenance</h4>
+      <p>Live token data from the DexScreener token API and Helius DAS (<code>getAsset</code>,
+      <code>getTokenAccounts</code>), fetched 2026-09-09. Treasury figures, the fee rate and the supply
+      lock are internal approximations pending the treasury wallet going live. Seed handles and account
+      liveness were <strong>not</strong> verified — x.com returns HTTP 402 to automated fetches — so
+      verify every handle before adding it to a list.</p>
+      <ul>
+        <li><a href="https://www.socialpilot.co/blog/twitter-algorithm">SocialPilot — X algorithm ranking factors</a></li>
+        <li><a href="https://sproutsocial.com/insights/twitter-algorithm/">Sprout Social — how the X algorithm works, 2026</a></li>
+        <li><a href="https://www.teract.ai/resources/twitter-algorithm-2026">Teract — X algorithm 2026</a></li>
+        <li><a href="https://www.teract.ai/resources/twitter-reply-guy-strategy-2026">Teract — reply strategy, limits &amp; deboosting</a></li>
+        <li><a href="https://postory.io/blog/x-algorithm-2026">Postory — what xAI open-sourced</a></li>
+        <li><a href="https://indieradar.app/blog/reply-guy-method-grow-x-twitter-zero-followers">IndieRadar — growing from zero with replies</a></li>
+        <li><a href="https://fedica.com/blog/x-advanced-search/">Fedica — X advanced search operators, 2026</a></li>
+        <li><a href="https://postfa.st/blog/twitter-advanced-search">PostFast — every X search operator that still works</a></li>
+        <li><a href="https://www.unfollr.com/blog/twitter-lists-guide">Unfollr — X Lists for growth</a></li>
+        <li><a href="https://www.unfollr.com/blog/twitter-inauthentic-behavior-ban-wave">Unfollr — inauthentic-behavior ban wave</a></li>
+        <li><a href="https://docs.jup.ag/user-docs/launch/vrfd/token-verification">Jupiter — token verification criteria</a></li>
+        <li><a href="https://verified.jup.ag/faq">Jupiter VRFD — FAQ</a></li>
+        <li><a href="https://marketplace.dexscreener.com/product/token-info">DEX Screener — Enhanced Token Info</a></li>
+        <li><a href="https://www.dextools.io/tutorials/best-meme-coin-screener-setup-guide">DEXTools — screener filters &amp; discovery setup</a></li>
+        <li><a href="https://www.sec.gov/newsroom/press-releases/2024-166">SEC — charges against three "market makers"</a></li>
+        <li><a href="https://www.coindesk.com/business/2026/04/02/doj-sting-exposes-crypto-wash-trading-continues-to-be-far-more-common-than-expected">CoinDesk — DOJ wash-trading sting</a></li>
+        <li><a href="https://kaironlabs.com/blog/common-misconceptions-about-crypto-market-making">Kairon Labs — what market making actually is</a></li>
+        <li><a href="https://www.coindesk.com/business/2026/01/19/a-crypto-trader-turned-usd285-into-usd627-000-in-one-day-but-some-say-the-game-was-rigged">CoinDesk — snipers, bundles, and the unknowable share</a></li>
+        <li><a href="https://arxiv.org/html/2602.13480v1">MemeTrans — detecting high-risk Solana launches</a></li>
+        <li><a href="https://surgence.io/blog/crypto-telegram-management">Surgence — crypto Telegram management, 2026</a></li>
+        <li><a href="https://www.dextools.io/tutorials/what-is-a-sybil-attack-in-crypto-guide-2026">DEXTools — sybil resistance</a></li>
+        <li><a href="https://mycelcoin.com/">mycelcoin.com — the four chapters</a></li>
+      </ul>
+    </footer>
+  </section>
+
+</div>
