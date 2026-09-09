@@ -1,5 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/lib/supabase/types";
+import { supabaseService } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/types";
 
 export type ActivityKind =
   | "reply_posted" | "post_published" | "engage_done" | "draft_created"
@@ -10,12 +10,13 @@ export type ActivityKind =
  * never break the user action it decorates.
  */
 export async function logActivity(
-  sb: SupabaseClient<Database>,
+  _sb: unknown,
   profileId: string,
   kind: ActivityKind,
   opts?: { refId?: string; meta?: Record<string, unknown> },
 ): Promise<void> {
   try {
+    const sb = supabaseService();
     const { error } = await sb.from("activity_events").insert({
       profile_id: profileId, kind, ref_id: opts?.refId ?? null, meta: (opts?.meta ?? {}) as Json,
     });

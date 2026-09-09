@@ -1,5 +1,5 @@
 "use server";
-import { supabaseService, supabaseServer } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 import { generateStructured } from "@/lib/generate";
 import { GrowthPlan } from "@/lib/schemas";
 import { buildGrowthPlanPrompt } from "@/lib/growth-plan/prompt";
@@ -43,7 +43,7 @@ export async function generateGrowthPlan(
 }
 
 export async function saveGrowthPlan(profileId: string, plan: GrowthPlan): Promise<void> {
-  const sb = supabaseService();
+  const sb = await supabaseServer();
   const { error } = await sb.from("profiles").update({ growth_plan: plan as unknown as Json }).eq("id", profileId);
   if (error) throw new Error(error.message);
 }

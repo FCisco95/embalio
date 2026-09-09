@@ -1,5 +1,5 @@
 "use server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseService } from "@/lib/supabase/server";
 import { weeklyForecast } from "@/lib/predict/forecast";
 import { projectTrajectory } from "@/lib/predict/trajectory";
 import { summarizeBreakout } from "@/lib/predict/breakout";
@@ -8,12 +8,13 @@ import { buildPredictionRecord } from "@/lib/predict/persist";
 import { scoreDraftBreakout } from "@/server/original";
 import type { Trajectory, WeeklyForecast, BreakoutPrecheck } from "@/lib/predict/schemas";
 import type { Json } from "@/lib/supabase/types";
+import { assertFixedProfileAccess } from "@/server/fixed-profile";
 
 const SNAPSHOT_WINDOW_DAYS = 45;
 const HORIZON_DAYS = 14;
 const sinceDate = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
-async function readSnapshots(sb: Awaited<ReturnType<typeof supabaseServer>>, profileId: string) {
+async function readSnapshots(sb: ReturnType<typeof supabaseService>, profileId: string) {
   const { data, error } = await sb
     .from("follower_snapshots")
     .select("snapshot_date, followers, captured_at")
@@ -25,7 +26,7 @@ async function readSnapshots(sb: Awaited<ReturnType<typeof supabaseServer>>, pro
 }
 
 // analytics_daily.new_follows feeds the sparse-data fallback rate (AC#1/#3 input).
-async function readDailyFollows(sb: Awaited<ReturnType<typeof supabaseServer>>, profileId: string) {
+async function readDailyFollows(sb: ReturnType<typeof supabaseService>, profileId: string) {
   const { data, error } = await sb
     .from("analytics_daily")
     .select("date, new_follows")
@@ -44,7 +45,8 @@ export type ForecastBundle =
 export async function getForecastBundle(profileId: string): Promise<ForecastBundle> {
   if (!profileId) return { ok: false, error: "no profile" };
   try {
-    const sb = await supabaseServer();
+    assertFixedProfileAccess(profileId);
+    const sb = supabaseService();
     const [snaps, daily] = await Promise.all([readSnapshots(sb, profileId), readDailyFollows(sb, profileId)]);
     const now = Date.now();
     const fallback = avgDailyFollowsPerDay(daily);
@@ -67,9 +69,10 @@ export type BreakoutResult = { ok: true; precheck: BreakoutPrecheck } | { ok: fa
 export async function precheckBreakout(profileId: string, draft: string): Promise<BreakoutResult> {
   if (!profileId) return { ok: false, error: "no profile" };
   try {
+    assertFixedProfileAccess(profileId);
     const raw = await scoreDraftBreakout(draft);
     const precheck = summarizeBreakout(raw);
-    const sb = await supabaseServer();
+    const sb = supabaseService();
     const rec = buildPredictionRecord("breakout", precheck, Date.now(), 30);
     await sb.from("predictions").insert({ profile_id: profileId, ...rec, value_json: rec.value_json as Json });
     return { ok: true, precheck };

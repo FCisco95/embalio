@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-vi.mock("@/lib/supabase/server", () => ({ supabaseServer: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ supabaseService: vi.fn() }));
 
 function makeSb({
   postsCount = 0 as number | null,
@@ -49,8 +49,8 @@ describe("getWeeklyActivity", () => {
   beforeEach(() => vi.resetModules());
 
   it("returns zeros when no data exists", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(makeSb());
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(makeSb());
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
     const result = await getWeeklyActivity("p1");
     expect(result).toEqual({
@@ -62,24 +62,24 @@ describe("getWeeklyActivity", () => {
   });
 
   it("returns post count from posts table", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(makeSb({ postsCount: 3 }));
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(makeSb({ postsCount: 3 }));
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
     const result = await getWeeklyActivity("p1");
     expect(result.postsThisWeek).toBe(3);
   });
 
   it("returns reply count from activity_events", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(makeSb({ repliesCount: 14 }));
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(makeSb({ repliesCount: 14 }));
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
     const result = await getWeeklyActivity("p1");
     expect(result.repliesThisWeek).toBe(14);
   });
 
   it("reflects profile optimization flags", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(
       makeSb({ profile: { bio_optimized: true, pinned_optimized: false } })
     );
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
@@ -89,8 +89,8 @@ describe("getWeeklyActivity", () => {
   });
 
   it("falls back to false when profile query fails", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(
       makeSb({ profileError: { message: "not found" } })
     );
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
@@ -100,8 +100,8 @@ describe("getWeeklyActivity", () => {
   });
 
   it("returns 0 when DB returns null count for posts (Supabase error path)", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(
       makeSb({ postsCount: null, postsError: { message: "connection reset" } })
     );
     const { getWeeklyActivity } = await import("@/server/weekly-activity");
@@ -110,8 +110,8 @@ describe("getWeeklyActivity", () => {
   });
 
   it("returns 0 when DB returns null count for replies (Supabase error path)", async () => {
-    const { supabaseServer } = await import("@/lib/supabase/server");
-    (supabaseServer as ReturnType<typeof vi.fn>).mockResolvedValue(
+    const { supabaseService } = await import("@/lib/supabase/server");
+    (supabaseService as ReturnType<typeof vi.fn>).mockReturnValue(
       makeSb({ repliesCount: null, repliesError: { message: "timeout" } })
     );
     const { getWeeklyActivity } = await import("@/server/weekly-activity");

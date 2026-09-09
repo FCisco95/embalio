@@ -10,7 +10,15 @@ export async function supabaseServer() {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (toSet) => toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
+        setAll: (toSet) => {
+          try {
+            toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+          } catch {
+            // Called from a Server Component, where Next forbids cookie writes.
+            // Safe to ignore: src/proxy.ts refreshes the session per request
+            // and is the place the rotated tokens actually get persisted.
+          }
+        },
       },
     },
   );

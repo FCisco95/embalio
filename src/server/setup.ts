@@ -1,5 +1,5 @@
 "use server";
-import { supabaseService } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 import { synthesizePersona, savePersona } from "@/server/persona";
 import { recommendTargets } from "@/server/target-queue";
 import { saveGrowthPlan } from "@/server/growth-plan";
@@ -7,12 +7,12 @@ import { answersToInterview, normHandle } from "@/lib/setup-logic";
 import type { SetupAnswers } from "@/lib/setup-steps";
 import type { PersonaSynthesis, TargetQueue, GrowthPlan } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
+import { assertOwnProfile, requireSessionUser } from "@/server/auth";
 
 export async function getSetupProfileId(): Promise<string> {
-  const fixed = process.env.FIXED_PROFILE_ID;
-  if (fixed) return fixed;
-  const sb = supabaseService();
-  const { data } = await sb.from("profiles").select("id").order("created_at").limit(1).maybeSingle();
+  const user = await requireSessionUser();
+  const sb = await supabaseServer();
+  const { data } = await sb.from("profiles").select("id").eq("user_id", user.id).order("created_at").limit(1).maybeSingle();
   if (data?.id) return data.id;
   const { data: created, error } = await sb
     .from("profiles")
@@ -48,10 +48,11 @@ export async function finalizeSetup(
   profileId: string,
   payload: { answers: SetupAnswers; voiceSpec: string; contentPillars: string[]; seedHandles: string[]; growthPlan?: GrowthPlan },
 ): Promise<void> {
+  await assertOwnProfile(profileId);
   const a = payload.answers;
   const interview = answersToInterview(a);
 
-  const sb = supabaseService();
+  const sb = await supabaseServer();
   const { error: upErr } = await sb
     .from("profiles")
     .update({

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AccountSwitcher } from "./account-switcher"
 import { PlatformTabs } from "./platform-tabs"
 import { ThemeToggle } from "./theme-toggle"
+import { signOutAction } from "@/server/auth-actions"
 
 interface TopbarProps {
   onToggleSidebar: () => void
@@ -50,6 +51,11 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="size-4" strokeWidth={1.6} />
         </Button>
+        <form action={signOutAction}>
+          <Button variant="ghost" type="submit" className="hidden sm:inline-flex">
+            Sign out
+          </Button>
+        </form>
         <ThemeToggle />
       </div>
     </header>

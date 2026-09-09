@@ -1,6 +1,8 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-09-09 (Session 24 — **two workstreams**: (1) a full X growth plan for **$MYCEL**, the Solana coin launched on Organic — researched, written, published as an artifact, and mirrored under `docs/research/`; (2) **the auth WIP that had been sitting uncommitted since ~2026-08-26 is now green** — it had never run (`server-only` was never installed). Suite **790 pass / 1 skip**, tsc + build green. **The auth work is on `feat/auth-layer`, deliberately NOT on `main`** — `main` auto-deploys to prod and merging puts a login wall up; two unverified prod risks must be settled first. Full detail: **`docs/handoffs/2026-09-09-session24-mycel-growth-plan-and-auth-wip.md`**. **GATE-2's 2026-09-04 deadline passed with no leg moved** — re-scope or close it out.)
+**Last updated:** 2026-09-10 (Session 25 — **auth merge unblocked, with two lockout bugs found and fixed first**: `feat/auth-layer` as it stood would have locked the owner out ~1h after sign-in (session refresh could not persist from a Server Component; the proxy then looped `/login`↔`/` on a dead cookie) and left sign-up open. Fixed on branch **`claude/embalio-macos-handoff-vgt239`** (= `main` + the auth branch + `558a694`), suite **845 pass / 1 skip**, tsc + build green. **Go/no-go, the prod SQL, the order of operations: `docs/runbooks/2026-09-10-auth-merge-runbook.md`.** Whether the GATE-2 profile links to an auth user is **still unknown** (no DB access from the session) — runbook step 0. **GATE-2 close-out recommendation** (close as NOT RUN, open GATE-3 on MYCEL with ring-fenced legs, 2026-09-24 tripwire) is the last entry of `docs/GOAL-LOG.md`. MYCEL week-one requirements + nine post drafts: `docs/research/2026-09-10-mycel-week-one-posts.md`. Campaign Mode slice plan for sign-off: `docs/superpowers/plans/2026-09-10-campaign-mode-slices.md`. Snapshot: `docs/handoffs/2026-09-10-session25-auth-unblock-gate2-closeout.md`.)
+
+**Previously:** 2026-09-09 (Session 24 — **two workstreams**: (1) a full X growth plan for **$MYCEL**, the Solana coin launched on Organic — researched, written, published as an artifact, and mirrored under `docs/research/`; (2) **the auth WIP that had been sitting uncommitted since ~2026-08-26 is now green** — it had never run (`server-only` was never installed). Suite **790 pass / 1 skip**, tsc + build green. **The auth work is on `feat/auth-layer`, deliberately NOT on `main`** — `main` auto-deploys to prod and merging puts a login wall up; two unverified prod risks must be settled first. Full detail: **`docs/handoffs/2026-09-09-session24-mycel-growth-plan-and-auth-wip.md`**. **GATE-2's 2026-09-04 deadline passed with no leg moved** — re-scope or close it out.)
 
 **Previously:** 2026-08-02 (Session 23 — **first `/goal` autonomous loop**: shipped O1–O5 (sniper-action tenant guard · GATE-2 evidence-expiry warning + window override · precision counts judged alerts only · `/` 20-32s → ~1s · honest manual-submit message), planned O6. Suite **759 → 791 green / 1 skip**, `origin/main` @ `21672f4`. **No GATE-2 number moved — none could:** all three DoD legs are gated on owner actions. Running ledger + owner queue: **`docs/GOAL-LOG.md`**. Resume with `/goal`.)
 
@@ -12,6 +14,45 @@
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 25 (2026-09-10) — auth merge unblocked · GATE-2 close-out recommendation · MYCEL week-one drafts · Campaign Mode plan
+
+**TL;DR:** `feat/auth-layer` @ `605ddb3` was **NO-GO as it stood** — traced through the
+installed `@supabase/ssr` / auth-js / Next 16 code: `getUser()` refreshes an expired session
+inside a Server Component, Next throws on the cookie write, the refresh token is already
+consumed, and the proxy (deciding on cookie *presence*) then loops `/login`↔`/` on the dead
+cookie. Also open sign-up, and a silent empty "new-account" profile if `user_id` is unlinked.
+**Fixed in `558a694`** on `claude/embalio-macos-handoff-vgt239`: proxy refreshes + verifies
+with `getClaims()` and carries cookies on redirects; routing decided on the verified result
+(`src/lib/auth/session-gate.ts`, structural test that every `(app)` route is gated);
+cookie-adapter guard; fail-soft `getSessionUser`; `AUTH_SIGNUP_ALLOWLIST` (fail closed);
+`/setup` shows an unlinked-account notice on a `FIXED_PROFILE_ID` deployment. +55 tests →
+**845 pass / 1 skip**, tsc + build green.
+
+**Still unknown — needs the owner in the Supabase SQL editor:** whether the GATE-2 profile's
+`user_id` points at a real `auth.users` row. `0001_init.sql` says `NOT NULL` + FK (with
+**ON DELETE CASCADE** — never delete the linked auth user), the prod-generated types say
+nullable, so prod has drifted. Q1–Q4 + the one-line link `UPDATE` are in
+**`docs/runbooks/2026-09-10-auth-merge-runbook.md`**, with the merge order (create user →
+link → merge → post-deploy checklist incl. the >1h reload → RLS migrations after a soak) and
+rollback. Recommendation on Deployment Protection: **leave OFF** once auth is live.
+
+**GATE-2:** window has emptied (null across the board); recommendation = **close as NOT RUN,
+open GATE-3 on MYCEL** with a campaign leg and a ring-fenced product leg, tripwire
+2026-09-24. Argued both ways in `docs/GOAL-LOG.md` (last entry). **Owner decision needed.**
+
+**MYCEL week one:** `docs/research/2026-09-10-mycel-week-one-posts.md` — what makes the
+treasury, the first payout and the lock verifiable (fresh keypair + memo proof-of-control tx;
+payout **from the treasury** with a memo; the lock must be program-held or it is a promise),
+plus drafts D1–D9 with `[[PLACEHOLDERS]]`. **Campaign Mode:** slice plan only,
+`docs/superpowers/plans/2026-09-10-campaign-mode-slices.md` — four sign-off items.
+
+**Side findings (unfixed):** `/api/nudge` + `/api/telegram/poll` are dead on `main`
+(`supabaseServer()` with no session under RLS → zero rows; 2-line fix each) · lint has 55
+pre-existing errors (not in the trunk gate) · this container cannot reach Vercel, Supabase,
+Solana RPC or DexScreener, so nothing live was re-verified.
 
 ---
 
