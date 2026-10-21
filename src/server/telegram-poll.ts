@@ -17,7 +17,7 @@ export async function applyCallback(profileId: string, c: ParsedCallback): Promi
   if (!cand || cand.status !== "surfaced") return;
 
   if (c.action === "skip") {
-    await dismissCandidate(c.candidateId);
+    await dismissCandidate(c.candidateId, sb);
     return;
   }
   // posted → reuse the candidate's latest reply draft as a URL-less reply log.
@@ -27,7 +27,7 @@ export async function applyCallback(profileId: string, c: ParsedCallback): Promi
     .order("created_at", { ascending: false }).limit(1);
   const draft = drafts?.[0];
   if (!draft) return;
-  await markRepliedQuick(profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string });
+  await markRepliedQuick(profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string }, sb);
 }
 
 /** Drain pending Telegram taps since the stored offset and apply them once each. */

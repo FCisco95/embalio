@@ -33,8 +33,9 @@ function makeFrom() {
   };
 }
 // Cron has no session: the drain must use the service client, not the cookie-bound one.
+const serviceClient = { from: makeFrom() };
 vi.mock("@/lib/supabase/server", () => ({
-  supabaseService: () => ({ from: makeFrom() }),
+  supabaseService: () => serviceClient,
   supabaseServer: async () => { throw new Error("supabaseServer used without a session"); },
 }));
 
@@ -54,11 +55,11 @@ beforeEach(() => {
 describe("applyCallback", () => {
   it("posted → logs the reply via markRepliedQuick", async () => {
     await applyCallback("p1", { action: "posted", candidateId: "c1" });
-    expect(markRepliedQuick).toHaveBeenCalledWith("p1", { draftId: "d1", candidateId: "c1", reply: "great reply" });
+    expect(markRepliedQuick).toHaveBeenCalledWith("p1", { draftId: "d1", candidateId: "c1", reply: "great reply" }, serviceClient);
   });
   it("skip → dismisses the candidate", async () => {
     await applyCallback("p1", { action: "skip", candidateId: "c1" });
-    expect(dismissCandidate).toHaveBeenCalledWith("c1");
+    expect(dismissCandidate).toHaveBeenCalledWith("c1", serviceClient);
   });
   it("is idempotent — already-resolved candidate is a no-op", async () => {
     candRow.data = { status: "engaged" };

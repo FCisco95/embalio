@@ -3,6 +3,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { TweetUrl, PostMetrics } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 export async function markPosted(draftId: string, tweetUrl: string) {
   const parsed = TweetUrl.safeParse(tweetUrl);
@@ -75,8 +77,12 @@ export async function saveDraftToQueue(
   return data.id as string;
 }
 
-export async function dismissCandidate(candidateId: string) {
-  const sb = await supabaseServer();
+/**
+ * `sb` is for callers with no session (the Telegram poll cron passes the service
+ * client); the default is the cookie-bound client used by the UI.
+ */
+export async function dismissCandidate(candidateId: string, sb?: SupabaseClient<Database>) {
+  sb ??= await supabaseServer();
   const { error } = await sb.from("candidates").update({ status: "dismissed" }).eq("id", candidateId);
   if (error) throw new Error(error.message);
   revalidatePath("/board");
@@ -92,11 +98,13 @@ export async function dismissCandidate(candidateId: string) {
 export async function markRepliedQuick(
   profileId: string,
   input: { draftId?: string; candidateId?: string; reply: string },
+  /** Injected client for no-session callers (Telegram poll cron); default = cookie-bound client. */
+  sb?: SupabaseClient<Database>,
 ): Promise<void> {
   const body = input.reply.trim();
   if (!profileId) throw new Error("no profile");
   if (!body) throw new Error("empty reply");
-  const sb = await supabaseServer();
+  sb ??= await supabaseServer();
 
   let draftId = input.draftId;
   if (!draftId) {
