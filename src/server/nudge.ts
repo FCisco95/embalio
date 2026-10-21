@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import { supabaseService } from "@/lib/supabase/server";
 import { sendTelegram } from "@/lib/telegram";
 import { computeStreak } from "@/lib/streak";

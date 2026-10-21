@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseService } from "@/lib/supabase/server";
-import { runWeeklyStrategy } from "@/server/strategy";
+import { runWeeklyStrategy } from "@/server/strategy-weekly";
 import { cronAuthError } from "@/lib/cron-auth"; // constant-time Bearer guard; 500 if CRON_SECRET unset
 
 export const maxDuration = 300; // recommendTargets is a multi-minute research call (runner caps at 2×120s)

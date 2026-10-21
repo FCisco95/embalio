@@ -32,8 +32,6 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
 import { markRepliedQuick, dismissCandidate } from "@/server/posts";
 
 beforeEach(() => { inserted.length = 0; draftUpdates.length = 0; candUpdates.length = 0; candEqs.length = 0; serverCalls.n = 0; });
@@ -53,33 +51,24 @@ describe("markRepliedQuick", () => {
   });
 });
 
-// Cron (Telegram taps) has no session: the caller injects the service client and
-// the cookie-bound supabaseServer() must not be touched.
-describe("injected client (no-session callers)", () => {
-  const injected = () => makeClient() as unknown as SupabaseClient<Database>;
-
-  it("markRepliedQuick uses the injected client, never supabaseServer()", async () => {
-    await markRepliedQuick("p1", { candidateId: "c1", reply: "great point" }, injected());
-    expect(serverCalls.n).toBe(0);
-    expect(inserted).toHaveLength(1);
+// The "use server" wrappers take NO client: they always run on the cookie-bound (RLS) client.
+// The injectable cores live in posts-core.ts for no-session callers (see posts-core.test.ts).
+describe("server action wrappers", () => {
+  it("markRepliedQuick runs on supabaseServer()", async () => {
+    await markRepliedQuick("p1", { candidateId: "c1", reply: "great point" });
+    expect(serverCalls.n).toBe(1);
     expect(candUpdates[0]).toMatchObject({ status: "engaged" });
   });
 
-  it("markRepliedQuick falls back to supabaseServer() when no client is given", async () => {
-    await markRepliedQuick("p1", { candidateId: "c1", reply: "great point" });
+  it("dismissCandidate runs on supabaseServer()", async () => {
+    await dismissCandidate("c1");
     expect(serverCalls.n).toBe(1);
-  });
-
-  it("dismissCandidate uses the injected client, never supabaseServer()", async () => {
-    await dismissCandidate("c1", injected());
-    expect(serverCalls.n).toBe(0);
     expect(candUpdates[0]).toMatchObject({ status: "dismissed" });
     expect(candEqs[0]).toEqual(["id", "c1"]);
   });
 
-  it("dismissCandidate falls back to supabaseServer() when no client is given", async () => {
-    await dismissCandidate("c1");
-    expect(serverCalls.n).toBe(1);
-    expect(candUpdates[0]).toMatchObject({ status: "dismissed" });
+  it("neither wrapper accepts a client (a service-role client cannot be smuggled in)", () => {
+    expect(markRepliedQuick.length).toBeLessThanOrEqual(2);
+    expect(dismissCandidate.length).toBeLessThanOrEqual(1);
   });
 });

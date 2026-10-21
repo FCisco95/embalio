@@ -1,8 +1,8 @@
-"use server";
+import "server-only";
 import { supabaseService } from "@/lib/supabase/server";
 import { getTelegramUpdates, answerCallbackQuery } from "@/lib/telegram";
 import { parseCallback, type ParsedCallback } from "@/lib/telegram-callback";
-import { markRepliedQuick, dismissCandidate } from "@/server/posts";
+import { markRepliedQuickCore, dismissCandidateCore } from "@/server/posts-core";
 import type { Json } from "@/lib/supabase/types";
 
 /** Apply one parsed tap. Idempotent: only a still-surfaced candidate is acted on. */
@@ -17,7 +17,7 @@ export async function applyCallback(profileId: string, c: ParsedCallback): Promi
   if (!cand || cand.status !== "surfaced") return;
 
   if (c.action === "skip") {
-    await dismissCandidate(c.candidateId, sb);
+    await dismissCandidateCore(sb, c.candidateId);
     return;
   }
   // posted → reuse the candidate's latest reply draft as a URL-less reply log.
@@ -27,7 +27,7 @@ export async function applyCallback(profileId: string, c: ParsedCallback): Promi
     .order("created_at", { ascending: false }).limit(1);
   const draft = drafts?.[0];
   if (!draft) return;
-  await markRepliedQuick(profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string }, sb);
+  await markRepliedQuickCore(sb, profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string });
 }
 
 /** Drain pending Telegram taps since the stored offset and apply them once each. */

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const markRepliedQuick = vi.fn();
-const dismissCandidate = vi.fn();
+const markRepliedQuickCore = vi.fn();
+const dismissCandidateCore = vi.fn();
 const getTelegramUpdates = vi.fn();
 const answerCallbackQuery = vi.fn();
-vi.mock("@/server/posts", () => ({
-  markRepliedQuick: (...a: unknown[]) => markRepliedQuick(...a),
-  dismissCandidate: (...a: unknown[]) => dismissCandidate(...a),
+vi.mock("@/server/posts-core", () => ({
+  markRepliedQuickCore: (...a: unknown[]) => markRepliedQuickCore(...a),
+  dismissCandidateCore: (...a: unknown[]) => dismissCandidateCore(...a),
 }));
 vi.mock("@/lib/telegram", () => ({
   getTelegramUpdates: (...a: unknown[]) => getTelegramUpdates(...a),
@@ -42,8 +42,8 @@ vi.mock("@/lib/supabase/server", () => ({
 import { applyCallback, drainTelegramUpdates } from "@/server/telegram-poll";
 
 beforeEach(() => {
-  markRepliedQuick.mockReset();
-  dismissCandidate.mockReset();
+  markRepliedQuickCore.mockReset();
+  dismissCandidateCore.mockReset();
   getTelegramUpdates.mockReset();
   answerCallbackQuery.mockReset();
   updateSpy.mockReset();
@@ -55,16 +55,16 @@ beforeEach(() => {
 describe("applyCallback", () => {
   it("posted → logs the reply via markRepliedQuick", async () => {
     await applyCallback("p1", { action: "posted", candidateId: "c1" });
-    expect(markRepliedQuick).toHaveBeenCalledWith("p1", { draftId: "d1", candidateId: "c1", reply: "great reply" }, serviceClient);
+    expect(markRepliedQuickCore).toHaveBeenCalledWith(serviceClient, "p1", { draftId: "d1", candidateId: "c1", reply: "great reply" });
   });
   it("skip → dismisses the candidate", async () => {
     await applyCallback("p1", { action: "skip", candidateId: "c1" });
-    expect(dismissCandidate).toHaveBeenCalledWith("c1", serviceClient);
+    expect(dismissCandidateCore).toHaveBeenCalledWith(serviceClient, "c1");
   });
   it("is idempotent — already-resolved candidate is a no-op", async () => {
     candRow.data = { status: "engaged" };
     await applyCallback("p1", { action: "posted", candidateId: "c1" });
-    expect(markRepliedQuick).not.toHaveBeenCalled();
+    expect(markRepliedQuickCore).not.toHaveBeenCalled();
   });
 });
 
@@ -76,7 +76,7 @@ describe("drainTelegramUpdates", () => {
     });
     const r = await drainTelegramUpdates("p1");
     expect(r.applied).toBe(1);
-    expect(markRepliedQuick).toHaveBeenCalled();
+    expect(markRepliedQuickCore).toHaveBeenCalled();
     expect(answerCallbackQuery).toHaveBeenCalledWith("q1", expect.any(String));
     expect(updateSpy).toHaveBeenCalledWith({ retention: { telegram: { offset: 43 } } });
   });
