@@ -36,6 +36,9 @@ describe("ConnectXButton", () => {
     const link = screen.getByRole("link", { name: "Re-autorizar" });
     expect(link.getAttribute("href")).toBe("/api/x/oauth/start?profile=p-1");
     expect(screen.queryByRole("link", { name: "Ligar conta X" })).toBeNull();
+    // the private-window hint matters as much when re-authorizing (wrong browser session = wrong account)
+    expect(screen.getByText(/janela privada/i)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /mesmo assim/i })).toBeNull();
   });
 
   it("connected: shows @handle (ok) and a disconnect button that calls the action", async () => {
@@ -43,6 +46,7 @@ describe("ConnectXButton", () => {
     expect(screen.getByText(/@cisco/)).toBeTruthy();
     expect(screen.getByText(/ok/)).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText(/janela privada/i)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Desligar" }));
     await waitFor(() => expect(disconnectXAccount).toHaveBeenCalledWith("p-1"));
   });

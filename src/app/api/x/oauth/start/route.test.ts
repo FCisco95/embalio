@@ -58,4 +58,13 @@ describe("GET /api/x/oauth/start", () => {
     expect(payload.state).toBe(loc.searchParams.get("state"));
     expect(typeof payload.verifier).toBe("string");
   });
+
+  it("carries force=1 through the cookie, and only that exact value", async () => {
+    const forced = JSON.parse((await call("?profile=p-1&force=1")).cookies.get("x_oauth")!.value);
+    expect(forced.force).toBe(true);
+    for (const qs of ["?profile=p-1", "?profile=p-1&force=0", "?profile=p-1&force=true"]) {
+      const payload = JSON.parse((await call(qs)).cookies.get("x_oauth")!.value);
+      expect(payload.force).toBeUndefined();
+    }
+  });
 });

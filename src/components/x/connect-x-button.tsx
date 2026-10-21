@@ -66,7 +66,7 @@ export function ConnectXButton({
           </Button>
         )}
       </div>
-      {!connected && (
+      {(!connected || needsReauth) && (
         <p className="text-[11px] text-muted-foreground">
           Abre isto numa janela privada com sessão na conta X <em>deste</em> perfil, depois autoriza.
         </p>

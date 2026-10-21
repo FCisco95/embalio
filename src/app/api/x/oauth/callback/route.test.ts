@@ -34,9 +34,33 @@ function req(opts: { state?: string; code?: string | null; cookie?: unknown; err
   });
 }
 
-function sbWithUpsert(upsertError: { code: string; message: string } | null = null) {
+function sbWithUpsert(
+  upsertError: { code: string; message: string } | null = null,
+  opts: { profileHandle?: string | null; existingXUserId?: string | null; profileError?: boolean } = {},
+) {
   const upsert = vi.fn().mockResolvedValue({ error: upsertError });
-  const sb = { from: vi.fn(() => ({ upsert })) };
+  const handle = opts.profileHandle === undefined ? "cisco" : opts.profileHandle;
+  const tables: Record<string, any> = {
+    profiles: {
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () =>
+            opts.profileError
+              ? { data: null, error: { message: "db down" } }
+              : { data: handle === null ? null : { handle }, error: null },
+        }),
+      }),
+    },
+    x_accounts: {
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: opts.existingXUserId ? { x_user_id: opts.existingXUserId } : null, error: null }),
+        }),
+      }),
+      upsert,
+    },
+  };
+  const sb = { from: vi.fn((t: string) => tables[t]) };
   vi.mocked(supabaseService).mockReturnValue(sb as any);
   return { sb, upsert };
 }
@@ -130,6 +154,58 @@ describe("GET /api/x/oauth/callback", () => {
     expect(cleared?.value).toBe("");
     expect(cleared?.maxAge).toBe(0);
     expect(cleared?.path).toBe("/api/x/oauth");
+  });
+
+  describe("wrong-account guard", () => {
+    it("refuses when the authorized X account is not the profile's handle (nothing is written)", async () => {
+      const { upsert } = sbWithUpsert(null, { profileHandle: "other_brand" });
+      const res = await GET(req());
+      expect(res.status).toBe(307);
+      expect(res.headers.get("location")).toBe(
+        `${ORIGIN}/profiles?x=mismatch&handle=cisco&expected=other_brand&profile=p-1`,
+      );
+      expect(upsert).not.toHaveBeenCalled();
+      expect(res.cookies.get("x_oauth")?.maxAge).toBe(0);
+    });
+
+    it("compares handles case-insensitively and ignores a leading @", async () => {
+      vi.mocked(fetchMe).mockResolvedValue({ id: "777", username: "Cisco" });
+      const { upsert } = sbWithUpsert(null, { profileHandle: "@cISCO" });
+      const res = await GET(req());
+      expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=connected`);
+      expect(upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("force=1 (carried in the cookie) links the mismatching account anyway", async () => {
+      const { upsert } = sbWithUpsert(null, { profileHandle: "other_brand" });
+      const res = await GET(req({ cookie: { ...COOKIE, force: true } }));
+      expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=connected`);
+      expect(upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses to swap an already-linked profile to a different X account, even with force", async () => {
+      const { upsert } = sbWithUpsert(null, { existingXUserId: "111" });
+      const res = await GET(req({ cookie: { ...COOKIE, force: true } }));
+      expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=account-changed&handle=cisco`);
+      expect(upsert).not.toHaveBeenCalled();
+      expect(res.cookies.get("x_oauth")?.maxAge).toBe(0);
+    });
+
+    it("re-authorizing the SAME X account is allowed", async () => {
+      const { upsert } = sbWithUpsert(null, { existingXUserId: "777" });
+      const res = await GET(req());
+      expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=connected`);
+      expect(upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("a failed profile lookup redirects with x=error and writes nothing", async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { upsert } = sbWithUpsert(null, { profileError: true });
+      const res = await GET(req());
+      expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=error`);
+      expect(upsert).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
   });
 
   it("x_user_id unique violation (23505) redirects to already-linked with the handle", async () => {

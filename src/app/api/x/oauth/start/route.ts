@@ -5,7 +5,7 @@ import { X_OAUTH_COOKIE, buildXAuthUrl, makePkce } from "@/lib/x-api/oauth";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/x/oauth/start?profile=<id>: begin the per-profile X OAuth 2.0 PKCE link. */
+/** GET /api/x/oauth/start?profile=<id>[&force=1]: begin the per-profile X OAuth 2.0 PKCE link. */
 export async function GET(req: Request) {
   // Outside any try/catch on purpose: an anonymous caller is redirected to /login.
   await requireSessionUser();
@@ -22,6 +22,10 @@ export async function GET(req: Request) {
   const clientId = process.env.X_CLIENT_ID;
   if (!clientId) return NextResponse.json({ error: "X_CLIENT_ID not set" }, { status: 500 });
 
+  // force=1 lets the callback link an X account whose @handle differs from the profile's
+  // (the operator saw the mismatch banner and chose "Ligar mesmo assim").
+  const force = url.searchParams.get("force") === "1";
+
   const redirectUri = `${url.origin}/api/x/oauth/callback`;
   const state = randomBytes(32).toString("hex");
   const { verifier, challenge } = makePkce();
@@ -29,7 +33,7 @@ export async function GET(req: Request) {
   const res = NextResponse.redirect(buildXAuthUrl({ clientId, redirectUri, state, challenge }));
   // Same shape as the YouTube flow: HttpOnly, scoped to the OAuth routes, 10 minutes.
   // The profile id rides along only to be re-verified against the live session in the callback.
-  res.cookies.set(X_OAUTH_COOKIE, JSON.stringify({ state, verifier, profileId }), {
+  res.cookies.set(X_OAUTH_COOKIE, JSON.stringify({ state, verifier, profileId, ...(force ? { force: true } : {}) }), {
     httpOnly: true,
     sameSite: "lax", // survives the top-level GET redirect back from X
     secure: url.protocol === "https:",

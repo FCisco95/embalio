@@ -11,18 +11,23 @@ interface OAuthCookie {
   state: string;
   verifier: string;
   profileId: string;
+  /** Set by /start?force=1: link even if the X @handle differs from the profile's. */
+  force?: boolean;
 }
 
 function parseCookie(raw: string | undefined): OAuthCookie | null {
   if (!raw) return null;
   try {
     const v = JSON.parse(raw);
-    if (typeof v?.state === "string" && typeof v?.verifier === "string" && typeof v?.profileId === "string") return v;
+    if (typeof v?.state === "string" && typeof v?.verifier === "string" && typeof v?.profileId === "string")
+      return { state: v.state, verifier: v.verifier, profileId: v.profileId, force: v.force === true };
   } catch {
     // fall through
   }
   return null;
 }
+
+const normalizeHandle = (h: string) => h.trim().replace(/^@/, "").toLowerCase();
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -62,6 +67,37 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = supabaseService();
+
+  // Wrong-account guard: the browser's X session decides which account authorizes, and a
+  // profile linked to the wrong account would publish under the wrong name.
+  const { data: profile, error: profileErr } = await sb
+    .from("profiles")
+    .select("handle")
+    .eq("id", cookie.profileId)
+    .maybeSingle();
+  if (profileErr || !profile) {
+    console.error("[x-oauth] profile lookup failed:", profileErr?.message ?? "not found");
+    return redirect("/profiles?x=error");
+  }
+  if (!cookie.force && normalizeHandle(me.username) !== normalizeHandle(profile.handle)) {
+    return redirect(
+      `/profiles?x=mismatch&handle=${encodeURIComponent(me.username)}&expected=${encodeURIComponent(profile.handle)}&profile=${encodeURIComponent(cookie.profileId)}`,
+    );
+  }
+  // Never silently swap a linked profile to a different X account: Disconnect first.
+  const { data: existing, error: existingErr } = await sb
+    .from("x_accounts")
+    .select("x_user_id")
+    .eq("profile_id", cookie.profileId)
+    .maybeSingle();
+  if (existingErr) {
+    console.error("[x-oauth] x_accounts lookup failed:", existingErr.message);
+    return redirect("/profiles?x=error");
+  }
+  if (existing && existing.x_user_id !== me.id) {
+    return redirect(`/profiles?x=account-changed&handle=${encodeURIComponent(me.username)}`);
+  }
+
   const { error } = await sb.from("x_accounts").upsert(
     {
       profile_id: cookie.profileId,
