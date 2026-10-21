@@ -51,3 +51,6 @@ next-env.d.ts
 __pycache__/
 *.pyc
 .env*.local
+
+# Claude Code agent worktrees (harness-managed, never commit)
+.claude/worktrees/
