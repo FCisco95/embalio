@@ -80,7 +80,9 @@ export async function GET(req: NextRequest) {
   if (error) {
     // x_user_id is UNIQUE: this X account is already linked to another profile.
     if (error.code === "23505") return redirect(`/profiles?x=already-linked&handle=${encodeURIComponent(me.username)}`);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Never echo the database message to the browser; log it server-side.
+    console.error("[x-oauth] x_accounts upsert failed:", error.code, error.message);
+    return redirect("/profiles?x=error");
   }
 
   return redirect("/profiles?x=connected");

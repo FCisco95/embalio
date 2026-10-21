@@ -11,6 +11,7 @@ import { publishDraft } from "@/server/publish";
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const OPEN_STATUSES = ["draft", "approved", "scheduled"];
+const URL_IN_BODY_ERROR = "remove the URL from the tweet body; only a trailing link is allowed (posted as reply 1)";
 const LIMIT_STANDARD = 280;
 const LIMIT_LONG_FORM = 4000;
 
@@ -38,7 +39,7 @@ function revalidateQueue() {
 export async function approveAndSchedule(
   draftId: string,
   scheduledAt: string | null,
-): Promise<{ ok: true; published: boolean } | { ok: false; error: string }> {
+): Promise<{ ok: true; published: boolean; reason?: string } | { ok: false; error: string }> {
   const sb = await supabaseServer();
   const draft = await loadDraft(sb, draftId);
   if (!draft) return { ok: false, error: "draft not found" };
@@ -60,7 +61,7 @@ export async function approveAndSchedule(
   const { text, link_url } = extractTrailingLink(draft.body);
   const body = text.trim();
   if (!body) return { ok: false, error: "draft body is empty" };
-  if (bodyHasUrl(body)) return { ok: false, error: "remove the URL from the tweet body; only a trailing link is allowed (posted as reply 1)" };
+  if (bodyHasUrl(body)) return { ok: false, error: URL_IN_BODY_ERROR };
   const limit = await charLimit(sb, draft.profile_id);
   if (body.length > limit) return { ok: false, error: `body is ${body.length} characters, the limit is ${limit}` };
 
@@ -74,28 +75,35 @@ export async function approveAndSchedule(
   if (!updated || updated.length === 0) return { ok: false, error: "draft changed state, refresh and retry" };
 
   let published = false;
+  let reason: string | undefined;
   if (scheduledAt === null) {
-    // Fast path. A transient failure leaves it 'scheduled' for the publish-due ticker.
+    // Fast path. A failure leaves it 'scheduled' for the publish-due ticker; surface why.
     const out = await publishDraft(draftId);
     published = out.ok;
+    if (!out.ok) reason = out.reason;
   }
   revalidateQueue();
-  return { ok: true, published };
+  return reason === undefined ? { ok: true, published } : { ok: true, published, reason };
 }
 
 export async function editDraftBody(draftId: string, body: string): Promise<ActionResult> {
-  const text = body.trim();
-  if (!text) return { ok: false, error: "draft body is empty" };
   const sb = await supabaseServer();
   const draft = await loadDraft(sb, draftId);
   if (!draft) return { ok: false, error: "draft not found" };
   if (!OPEN_STATUSES.includes(draft.status)) return { ok: false, error: `draft is already ${draft.status}` };
+
+  // Same link rule as approveAndSchedule, so the UI counter, the save and the publish agree
+  // (and a URL can never reach a scheduled draft, where publishDraft would refuse it).
+  const { text, link_url } = extractTrailingLink(body.trim());
+  const lifted = text.trim();
+  if (!lifted) return { ok: false, error: "draft body is empty" };
+  if (bodyHasUrl(lifted)) return { ok: false, error: URL_IN_BODY_ERROR };
   const limit = await charLimit(sb, draft.profile_id);
-  if (text.length > limit) return { ok: false, error: `body is ${text.length} characters, the limit is ${limit}` };
+  if (lifted.length > limit) return { ok: false, error: `body is ${lifted.length} characters, the limit is ${limit}` };
 
   const { data: updated, error } = await sb
     .from("drafts")
-    .update({ body: text })
+    .update({ body: lifted, link_url: link_url ?? draft.link_url })
     .eq("id", draftId)
     .in("status", OPEN_STATUSES)
     .select("id");

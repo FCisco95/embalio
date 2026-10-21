@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { bodyHasUrl } from "@/lib/posting/link-rule";
 import { decryptSecret, encryptSecret } from "./crypto";
-import { type FetchImpl, XOAuthError, refreshTokens } from "./oauth";
+import { type FetchImpl, XOAuthError, refreshTokens, xFetchSignal } from "./oauth";
 import {
   X_COST_USD,
   XRateLimited,
@@ -87,11 +87,24 @@ export async function getXClientForProfile(
     tokens = toState(stored);
   }
 
-  async function markReauth(message: string): Promise<never> {
-    await sb
+  /**
+   * Flag the account dead, but only if nobody rotated since we read `version`.
+   * A concurrent winner may have committed between our re-read and this write;
+   * an unguarded flag would then brand a working pair needs_reauth. If the guard
+   * loses, adopt the stored pair and return (the caller carries on with it).
+   */
+  async function markReauth(version: number, message: string): Promise<void> {
+    const { data, error } = await sb
       .from("x_accounts")
       .update({ needs_reauth: true, last_error: message, updated_at: new Date().toISOString() })
-      .eq("profile_id", profileId);
+      .eq("profile_id", profileId)
+      .eq("token_version", version)
+      .select("profile_id");
+    if (error) throw new Error(`x_accounts reauth write failed: ${error.message}`);
+    if (!data || data.length === 0) {
+      await adoptStored();
+      return;
+    }
     throw new XReauthRequired(profileId);
   }
 
@@ -109,7 +122,8 @@ export async function getXClientForProfile(
           await adoptStored();
           return;
         }
-        return markReauth(`${e.error}: refresh token rejected by X`);
+        await markReauth(startedAt.version, `${e.error}: refresh token rejected by X`);
+        return;
       }
       throw e;
     }
@@ -123,6 +137,7 @@ export async function getXClientForProfile(
         access_expires_at: new Date(now + fresh.expires_in * 1000).toISOString(),
         token_version: startedAt.version + 1,
         last_refresh_at: new Date(now).toISOString(),
+        needs_reauth: false,
         last_error: null,
         updated_at: new Date(now).toISOString(),
       })
@@ -150,6 +165,7 @@ export async function getXClientForProfile(
     const send = () =>
       fetchImpl(url, {
         method,
+        signal: xFetchSignal(),
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,
           ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),

@@ -8,6 +8,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  */
 
 const VERSION = "v1";
+const IV_BYTES = 12;
+const TAG_BYTES = 16;
 
 function loadKey(): Buffer {
   const raw = process.env.X_TOKEN_ENC_KEY;
@@ -19,8 +21,8 @@ function loadKey(): Buffer {
 
 export function encryptSecret(plain: string): string {
   const key = loadKey();
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const iv = randomBytes(IV_BYTES);
+  const cipher = createCipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
   const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return [VERSION, iv, tag, ct].map((p) => (typeof p === "string" ? p : p.toString("base64url"))).join(".");
@@ -33,7 +35,11 @@ export function decryptSecret(blob: string): string {
   const iv = Buffer.from(parts[1], "base64url");
   const tag = Buffer.from(parts[2], "base64url");
   const ct = Buffer.from(parts[3], "base64url");
-  const decipher = createDecipheriv("aes-256-gcm", key, iv);
+  // Pin the shapes: Node accepts truncated GCM tags unless authTagLength is set, and a
+  // short tag is a forgery risk. IV must be exactly the 12 bytes we generate.
+  if (iv.length !== IV_BYTES) throw new Error("malformed secret blob: bad iv length");
+  if (tag.length !== TAG_BYTES) throw new Error("malformed secret blob: bad auth tag length");
+  const decipher = createDecipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
 }

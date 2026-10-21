@@ -79,6 +79,7 @@ function QueueCard({
   const [whenLabel, setWhenLabel] = useState("");
   const [scheduledAt, setScheduledAt] = useState<string | null>(draft.status === "scheduled" ? draft.scheduled_at : null);
   const [deferred, setDeferred] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(draft.last_error);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const saved = useRef(draft.body);
@@ -141,8 +142,10 @@ function QueueCard({
       if (!r.ok) return setError(r.error);
       if (r.published) return onRemove();
       // Queued for the ticker: keep the card visible so the state is not a silent disappearance.
+      // With a reason the failure is real (not just "in a moment"): show it instead.
       setScheduledAt(new Date().toISOString());
-      setDeferred(true);
+      setDeferred(!r.reason);
+      if (r.reason) setLastError(r.reason);
     });
 
   const schedule = () =>
@@ -154,6 +157,7 @@ function QueueCard({
       if (!r.ok) return setError(r.error);
       setScheduledAt(at.toISOString());
       setDeferred(false);
+      setLastError(null);
     });
 
   const skip = () =>
@@ -189,6 +193,7 @@ function QueueCard({
           ) : (
             draft.scheduled_at && <span>Sugerido: {whenLabel}</span>
           )}
+          {lastError && <span className="text-destructive">Última falha: {lastError}</span>}
         </div>
         <span className={count > LIMIT ? "shrink-0 text-destructive" : "shrink-0"}>
           {count}/{LIMIT}

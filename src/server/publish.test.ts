@@ -35,6 +35,7 @@ function buildSb({
   jobInsertError = null as any,
   postInsertError = null as any,
   candUpdateError = null as any,
+  activeJobStatus = null as string | null,
   failedJobs = 0,
 } = {}) {
   const log = {
@@ -57,7 +58,7 @@ function buildSb({
           return {
             insert: (v: any) => (log.jobInserts.push(v), node({ data: jobInsertError ? null : JOB, error: jobInsertError })),
             update: (v: any) => (log.jobUpdates.push(v), node({ error: null })),
-            select: () => node({ count: failedJobs, error: null }),
+            select: () => node({ count: failedJobs, data: activeJobStatus ? { status: activeJobStatus } : null, error: null }),
           };
         case "posts":
           return {
@@ -136,6 +137,54 @@ describe("publishDraft", () => {
     expect(createTweet).not.toHaveBeenCalled();
     expect(xFor).not.toHaveBeenCalled();
     expect(log.jobUpdates).toHaveLength(0);
+  });
+
+  describe("pre-job refusal of a SCHEDULED draft bounces it out of the due query", () => {
+    it.each([
+      ["a URL in the body", { body: "read https://example.com now" }, /url/i],
+      ["an empty body", { body: "  " }, /empty/i],
+      ["a reply kind", { kind: "reply" }, /reply/i],
+    ])("%s: back to approved, reason stored as a failed job, no X call", async (_n, over, reason) => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, status: "scheduled", ...over } });
+      const { xFor } = buildX(vi.fn());
+      const out = await publishDraft("draft-1", sb, xFor);
+      expect(out).toEqual({ ok: false, reason: expect.stringMatching(reason) });
+      expect(xFor).not.toHaveBeenCalled();
+      expect(log.draftUpdates).toEqual([{ status: "approved" }]);
+      expect(log.jobInserts).toEqual([
+        expect.objectContaining({ draft_id: "draft-1", method: "xapi", status: "failed", error: expect.stringMatching(reason) }),
+      ]);
+    });
+
+    it("an APPROVED draft with the same problem is just refused (it is not in the due query)", async () => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, status: "approved", body: "read https://example.com now" } });
+      const { xFor } = buildX(vi.fn());
+      expect((await publishDraft("draft-1", sb, xFor)).ok).toBe(false);
+      expect(log.draftUpdates).toHaveLength(0);
+      expect(log.jobInserts).toHaveLength(0);
+    });
+  });
+
+  it("a 23505 against a needs_manual_confirmation job parks the stuck scheduled draft as unconfirmed", async () => {
+    const { sb, log } = buildSb({
+      draft: { ...DRAFT, status: "scheduled" },
+      jobInsertError: { code: "23505", message: "dup" },
+      activeJobStatus: "needs_manual_confirmation",
+    });
+    const { xFor } = buildX(vi.fn());
+    const out = await publishDraft("draft-1", sb, xFor);
+    expect(out).toEqual({ ok: false, reason: "already in progress or posted" });
+    expect(log.draftUpdates).toEqual([{ status: "unconfirmed" }]);
+  });
+
+  it("a 23505 against a running job (a genuine concurrent publish) leaves the draft alone", async () => {
+    const { sb, log } = buildSb({
+      draft: { ...DRAFT, status: "scheduled" },
+      jobInsertError: { code: "23505", message: "dup" },
+      activeJobStatus: "running",
+    });
+    await publishDraft("draft-1", sb, buildX(vi.fn()).xFor);
+    expect(log.draftUpdates).toHaveLength(0);
   });
 
   it("inserts a running xapi job with attempts=1", async () => {

@@ -219,6 +219,50 @@ describe("getXClientForProfile", () => {
     expect(apiCall[1].headers.Authorization).toBe("Bearer at-winner");
   });
 
+  it("invalid_grant whose re-read happens BEFORE the winner commits: the guarded needs_reauth write loses, the stored pair is adopted", async () => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      url === TOKEN_URL ? json({ error: "invalid_grant" }, 400) : json({ data: { id: "999", username: "cisco" } }),
+    );
+    const { sb, state } = makeSb(fresh({ access_expires_at: new Date(Date.now() - 1000).toISOString() }));
+    // Our re-read still sees v3; the winner commits right before our needs_reauth UPDATE lands.
+    state.beforeUpdate = () => {
+      state.beforeUpdate = undefined;
+      state.row = {
+        ...state.row!,
+        token_version: 4,
+        access_token_enc: encryptSecret("at-winner"),
+        refresh_token_enc: encryptSecret("rt-winner"),
+        access_expires_at: new Date(Date.now() + 7200_000).toISOString(),
+      };
+    };
+    const c = await getXClientForProfile("p-1", sb, { fetchImpl: fetchImpl as any });
+    await c.getMe();
+
+    expect(state.updates[0].filters).toMatchObject({ profile_id: "p-1", token_version: 3 });
+    expect(state.row!.needs_reauth).toBe(false);
+    expect(state.row!.last_error).toBeNull();
+    const apiCall = (fetchImpl.mock.calls as any[]).find((x) => x[0] !== TOKEN_URL);
+    expect(apiCall[1].headers.Authorization).toBe("Bearer at-winner");
+  });
+
+  it("a successful rotation clears a stale needs_reauth flag", async () => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      url === TOKEN_URL ? json(NEW_TOKENS) : json({ data: { id: "999", username: "cisco" } }),
+    );
+    const { sb, state } = makeSb(fresh({ access_expires_at: new Date(Date.now() - 1000).toISOString() }));
+    const c = await getXClientForProfile("p-1", sb, { fetchImpl: fetchImpl as any });
+    await c.getMe();
+    expect(state.updates[0].patch).toMatchObject({ needs_reauth: false, last_error: null });
+  });
+
+  it("every API request carries an abort signal", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json({ data: { id: "999", username: "cisco" } }));
+    const { sb } = makeSb(fresh());
+    const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+    await c.getMe();
+    expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
   it("HTTP 429 throws XRateLimited with the reset time", async () => {
     const reset = Math.floor(Date.now() / 1000) + 600;
     const fetchImpl = vi.fn().mockResolvedValue(json({ title: "Too Many Requests" }, 429, { "x-rate-limit-reset": String(reset) }));

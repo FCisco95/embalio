@@ -114,10 +114,10 @@ describe("approveAndSchedule", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/compose");
   });
 
-  it("a transient inline publish failure leaves it scheduled for the ticker", async () => {
+  it("an inline publish failure leaves it scheduled for the ticker and returns the reason", async () => {
     buildSb();
     vi.mocked(publishDraft).mockResolvedValue({ ok: false, reason: "network down" });
-    expect(await approveAndSchedule("draft-1", null)).toEqual({ ok: true, published: false });
+    expect(await approveAndSchedule("draft-1", null)).toEqual({ ok: true, published: false, reason: "network down" });
   });
 
   it("a future scheduledAt stores the time and does not publish", async () => {
@@ -175,7 +175,7 @@ describe("editDraftBody", () => {
   it("trims and saves", async () => {
     const { updates } = buildSb();
     expect(await editDraftBody("draft-1", "  new body \n")).toEqual({ ok: true });
-    expect(updates[0].patch).toEqual({ body: "new body" });
+    expect(updates[0].patch).toEqual({ body: "new body", link_url: null });
     expect(updates[0].filters).toContainEqual(["status", ["draft", "approved", "scheduled"]]);
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/compose");
@@ -184,6 +184,37 @@ describe("editDraftBody", () => {
   it("refuses empty", async () => {
     const { updates } = buildSb();
     expect(await editDraftBody("draft-1", "   ")).toEqual({ ok: false, error: expect.stringMatching(/empty/i) });
+    expect(updates).toHaveLength(0);
+  });
+
+  it("lifts a trailing URL into link_url, like approveAndSchedule", async () => {
+    const { updates } = buildSb();
+    expect(await editDraftBody("draft-1", "a thought\n\nhttps://a.co/x")).toEqual({ ok: true });
+    expect(updates[0].patch).toEqual({ body: "a thought", link_url: "https://a.co/x" });
+  });
+
+  it("keeps an existing link_url when the edited text has no trailing link", async () => {
+    const { updates } = buildSb({ draft: { ...DRAFT, link_url: "https://old.co/p" } });
+    await editDraftBody("draft-1", "new text");
+    expect(updates[0].patch).toEqual({ body: "new text", link_url: "https://old.co/p" });
+  });
+
+  it("counts only the lifted text toward the limit (matches the UI counter)", async () => {
+    buildSb();
+    const body = `${"x".repeat(270)} https://example.com/a/very/long/path/that/is/long`;
+    expect((await editDraftBody("draft-1", body)).ok).toBe(true);
+  });
+
+  it("refuses a URL left in the middle of the body (it would wedge a scheduled draft)", async () => {
+    const { updates } = buildSb({ draft: { ...DRAFT, status: "scheduled" } });
+    const out = await editDraftBody("draft-1", "see https://a.co/x for more");
+    expect(out).toEqual({ ok: false, error: expect.stringMatching(/url|link/i) });
+    expect(updates).toHaveLength(0);
+  });
+
+  it("refuses a URL-only body as empty", async () => {
+    const { updates } = buildSb();
+    expect(await editDraftBody("draft-1", "https://a.co/x")).toEqual({ ok: false, error: expect.stringMatching(/empty/i) });
     expect(updates).toHaveLength(0);
   });
 

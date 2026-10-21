@@ -59,10 +59,20 @@ function credentials(): { clientId: string; basic: string } {
   return { clientId, basic: Buffer.from(`${clientId}:${secret}`).toString("base64") };
 }
 
-async function postToken(form: Record<string, string>, fetchImpl: FetchImpl): Promise<TokenSet> {
+/** Per-request ceiling for every X call, so one hung fetch cannot eat a 60s function budget. */
+export const X_FETCH_TIMEOUT_MS = 15_000;
+export const xFetchSignal = (): AbortSignal => AbortSignal.timeout(X_FETCH_TIMEOUT_MS);
+
+async function postToken(
+  form: Record<string, string>,
+  fetchImpl: FetchImpl,
+  /** Refresh only: X may omit `refresh_token`; then the one we sent is still valid. */
+  fallbackRefreshToken?: string,
+): Promise<TokenSet> {
   const { clientId, basic } = credentials();
   const res = await fetchImpl(X_TOKEN_URL, {
     method: "POST",
+    signal: xFetchSignal(),
     headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ ...form, client_id: clientId }).toString(),
   });
@@ -72,10 +82,11 @@ async function postToken(form: Record<string, string>, fetchImpl: FetchImpl): Pr
   };
   if (!res.ok) throw new XOAuthError(res.status, json.error ?? "unknown_error", json.error_description);
   if (!json.access_token) throw new Error("X token response missing access_token");
-  if (!json.refresh_token) throw new Error("X token response missing refresh_token (is offline.access granted?)");
+  const refreshToken = json.refresh_token ?? fallbackRefreshToken;
+  if (!refreshToken) throw new Error("X token response missing refresh_token (is offline.access granted?)");
   return {
     access_token: json.access_token,
-    refresh_token: json.refresh_token,
+    refresh_token: refreshToken,
     expires_in: json.expires_in ?? 7200,
     scope: json.scope ?? "",
   };
@@ -103,6 +114,7 @@ export function exchangeCode(
 export async function fetchMe(accessToken: string, fetchImpl: FetchImpl = fetch): Promise<{ id: string; username: string }> {
   const res = await fetchImpl("https://api.x.com/2/users/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: xFetchSignal(),
   });
   if (!res.ok) throw new Error(`X users/me failed: ${res.status}`);
   const json = (await res.json()) as { data?: { id?: string; username?: string } };
@@ -111,5 +123,5 @@ export async function fetchMe(accessToken: string, fetchImpl: FetchImpl = fetch)
 }
 
 export function refreshTokens(refreshToken: string, fetchImpl: FetchImpl = fetch): Promise<TokenSet> {
-  return postToken({ grant_type: "refresh_token", refresh_token: refreshToken }, fetchImpl);
+  return postToken({ grant_type: "refresh_token", refresh_token: refreshToken }, fetchImpl, refreshToken);
 }

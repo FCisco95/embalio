@@ -63,6 +63,18 @@ describe("x-api/crypto", () => {
     expect(() => encryptSecret("x")).toThrow(/32 bytes/);
   });
 
+  it("rejects a truncated auth tag even when the prefix is genuine (no short-tag forgery)", () => {
+    const [v, iv, tag, ct] = encryptSecret("secret").split(".");
+    const short = Buffer.from(tag, "base64url").subarray(0, 4).toString("base64url");
+    expect(() => decryptSecret([v, iv, short, ct].join("."))).toThrow();
+  });
+
+  it("rejects an IV that is not 12 bytes", () => {
+    const [v, , tag, ct] = encryptSecret("secret").split(".");
+    const badIv = randomBytes(16).toString("base64url");
+    expect(() => decryptSecret([v, badIv, tag, ct].join("."))).toThrow(/iv/i);
+  });
+
   it("rejects a malformed blob", () => {
     expect(() => decryptSecret("garbage")).toThrow();
     expect(() => decryptSecret("v2.a.b.c")).toThrow();

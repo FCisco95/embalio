@@ -14,6 +14,8 @@ export type QueueDraft = {
   scheduled_at: string | null;
   status: string;
   created_at: string;
+  /** Error of the most recent posting_jobs row for this draft, if any. */
+  last_error: string | null;
 };
 
 export type XConnection = { connected: boolean; username?: string; needsReauth?: boolean };
@@ -28,7 +30,22 @@ export async function listQueueDrafts(profileId: string): Promise<QueueDraft[]> 
     .in("status", ["draft", "approved", "scheduled"])
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const drafts = data ?? [];
+  if (drafts.length === 0) return [];
+
+  // Latest posting_jobs.error per draft ("the UI shows the last job error"). A failed
+  // lookup must not hide the queue: degrade to no error line.
+  const lastError = new Map<string, string | null>();
+  const { data: jobs, error: jobsErr } = await sb
+    .from("posting_jobs")
+    .select("draft_id, error, created_at")
+    .in("draft_id", drafts.map((d) => d.id))
+    .order("created_at", { ascending: false });
+  if (jobsErr) console.error("[queue] posting_jobs lookup failed:", jobsErr.message);
+  for (const j of jobs ?? []) {
+    if (j.draft_id && !lastError.has(j.draft_id)) lastError.set(j.draft_id, j.error);
+  }
+  return drafts.map((d) => ({ ...d, last_error: lastError.get(d.id) ?? null }));
 }
 
 /** Non-secret view of the profile's X link. Token columns are never selected. */

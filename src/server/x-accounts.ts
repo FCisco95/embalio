@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseService } from "@/lib/supabase/server";
 import { assertOwnProfile } from "@/server/auth";
 import { decryptSecret } from "@/lib/x-api/crypto";
+import { xFetchSignal } from "@/lib/x-api/oauth";
 
 // `x_accounts` is service-role only (tokens at rest), so these actions prove
 // ownership with `assertOwnProfile` first, then use the service client.
@@ -48,6 +49,7 @@ export async function disconnectXAccount(profileId: string): Promise<{ ok: true 
     if (clientId && secret) {
       await fetch("https://api.x.com/2/oauth2/revoke", {
         method: "POST",
+        signal: xFetchSignal(),
         headers: {
           Authorization: `Basic ${Buffer.from(`${clientId}:${secret}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",

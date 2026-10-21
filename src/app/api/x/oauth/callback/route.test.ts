@@ -140,10 +140,16 @@ describe("GET /api/x/oauth/callback", () => {
     expect(res.cookies.get("x_oauth")?.maxAge).toBe(0);
   });
 
-  it("other write errors are a 500", async () => {
-    sbWithUpsert({ code: "XX000", message: "boom" });
+  it("other write errors redirect to x=error without echoing the database message", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    sbWithUpsert({ code: "XX000", message: "relation \"x_accounts\" secret detail" });
     const res = await GET(req());
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe(`${ORIGIN}/profiles?x=error`);
+    expect(res.headers.get("location")).not.toContain("secret");
+    expect(await res.text()).not.toContain("secret");
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it("a failed code exchange redirects with x=error instead of throwing", async () => {

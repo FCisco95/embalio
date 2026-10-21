@@ -103,9 +103,28 @@ describe("x-api/oauth", () => {
     await expect(refreshTokens("rt", vi.fn())).rejects.toThrow(/X_CLIENT_ID|X_CLIENT_SECRET/);
   });
 
-  it("rejects a token response missing the refresh token", async () => {
+  it("exchangeCode rejects a token response missing the refresh token", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ access_token: "a", expires_in: 7200, scope: "x" }));
-    await expect(refreshTokens("rt", fetchImpl)).rejects.toThrow(/refresh_token/);
+    await expect(exchangeCode({ code: "c", verifier: "v", redirectUri: "https://app.test/cb" }, fetchImpl)).rejects.toThrow(/refresh_token/);
+  });
+
+  it("refreshTokens keeps the old refresh token when the response omits one", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ access_token: "a2", expires_in: 7200, scope: "x" }));
+    const out = await refreshTokens("rt-old", fetchImpl);
+    expect(out.access_token).toBe("a2");
+    expect(out.refresh_token).toBe("rt-old");
+  });
+
+  it("every X call carries an abort signal (no hung fetch can eat the function budget)", async () => {
+    const f1 = vi.fn().mockResolvedValue(jsonResponse(TOKENS));
+    await refreshTokens("rt", f1);
+    expect(f1.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    const f2 = vi.fn().mockResolvedValue(jsonResponse(TOKENS));
+    await exchangeCode({ code: "c", verifier: "v", redirectUri: "https://app.test/cb" }, f2);
+    expect(f2.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    const f3 = vi.fn().mockResolvedValue(jsonResponse({ data: { id: "1", username: "u" } }));
+    await fetchMe("at", f3);
+    expect(f3.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 
   it("fetchMe reads /2/users/me with the bearer token", async () => {

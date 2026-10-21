@@ -76,6 +76,7 @@ describe("x-accounts actions", () => {
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("https://api.x.com/2/oauth2/revoke");
       expect(init.method).toBe("POST");
+      expect(init.signal).toBeInstanceOf(AbortSignal);
       expect(init.headers.Authorization).toBe(`Basic ${Buffer.from("cid:csecret").toString("base64")}`);
       const body = new URLSearchParams(init.body as string);
       expect(body.get("token")).toBe("rt");

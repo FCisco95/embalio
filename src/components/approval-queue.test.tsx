@@ -26,6 +26,7 @@ const D1: QueueDraft = {
   scheduled_at: "2030-05-06T07:08:00.000Z",
   status: "draft",
   created_at: "2030-05-05T00:00:00.000Z",
+  last_error: null,
 };
 const D2: QueueDraft = { ...D1, id: "d2", body: "Second draft", angle: null, rationale: null, link_url: null, scheduled_at: null };
 
@@ -110,6 +111,25 @@ describe("ApprovalQueue actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Publicar agora" }));
     await waitFor(() => expect(screen.getByText(/agendado/i)).toBeTruthy());
     expect(screen.getByDisplayValue("Second draft")).toBeTruthy();
+  });
+
+  it("shows the reason when the inline publish failed instead of promising it will publish shortly", async () => {
+    mApprove.mockResolvedValue({ ok: true, published: false, reason: "X account needs re-authorization" });
+    renderQueue([D2]);
+    fireEvent.click(screen.getByRole("button", { name: "Publicar agora" }));
+    await waitFor(() => expect(screen.getByText(/re-authorization/)).toBeTruthy());
+    expect(screen.queryByText(/publica em instantes/i)).toBeNull();
+    expect(screen.getByDisplayValue("Second draft")).toBeTruthy();
+  });
+
+  it("renders the last publish error recorded for a draft", () => {
+    renderQueue([{ ...D2, status: "approved", last_error: "X API 403 POST /tweets: duplicate content" }]);
+    expect(screen.getByText(/duplicate content/)).toBeTruthy();
+  });
+
+  it("renders no error line for a draft without one", () => {
+    renderQueue([D2]);
+    expect(screen.queryByText(/última falha/i)).toBeNull();
   });
 
   it("Agendar sends the chosen time as an ISO string", async () => {
