@@ -1,0 +1,4 @@
+{
+  "source": "Owner-supplied SQL Editor pg_get_functiondef read-back, 2026-10-21",
+  "definition": "CREATE OR REPLACE FUNCTION public.save_persona(p_profile_id uuid, p_voice_spec text, p_goals text, p_content_pillars text[], p_onboarding_answers jsonb, p_seed_handles text[])\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nbegin\n  update profiles\n     set voice_spec          = p_voice_spec,\n         goals               = p_goals,\n         content_pillars     = p_content_pillars,\n         onboarding_answers  = p_onboarding_answers\n   where id = p_profile_id;\n  if not found then\n    raise exception 'profile % not found', p_profile_id;\n  end if;\n  insert into seed_targets (profile_id, handle)\n    select p_profile_id, h from unnest(p_seed_handles) as h where h <> ''\n    on conflict (profile_id, handle) do nothing;\nend;\n$function$"
+}

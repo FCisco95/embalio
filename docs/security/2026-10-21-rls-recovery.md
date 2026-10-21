@@ -2,8 +2,10 @@
 
 Prepared 2026-10-21. **Production execution is owner-only.** The agent has no
 authenticated production connection and has not applied these scripts. The owner
-ran the reviewed bundle and supplied the passing postflight below; app login and
-refreshed Advisor acceptance remain pending.
+ran the reviewed bundle and supplied the passing postflight below. The owner's
+screenshot confirms dashboard access. Refreshed Security Advisor shows zero
+errors, two warnings and two suggestions. The owner supplied the live function
+definition; a guarded, locally tested hardening candidate is ready but unapplied.
 
 ## Confirmed Production Evidence
 
@@ -113,13 +115,87 @@ This is owner-supplied database metadata, not an independent agent production
 query or authenticated app acceptance. It confirms the intended table/grant/owner
 postflight. The owner UUID is omitted from the portable receipt and templates.
 
-## Production Acceptance Still Required
+## Production UI Acceptance and Remaining Limits
 
-Refresh Security Advisor / rerun its linter, then sign into the app as the real
-owner and verify the expected profile, queue and performance data. Do not report
-full app acceptance from the SQL receipt alone. This does not apply the five October
+After opening the production site, the owner supplied a screenshot showing a
+signed-in dashboard, `@fcisco95` selected, 20 drafts pending sign-off and existing
+home cards. This confirms owner-observed login/home/profile visibility. It does
+not exercise dedicated queue/performance routes, writes or tenant isolation.
+The screenshot shows the existing published UI; the revamp PR remains unmerged.
+
+The owner's subsequent Security Advisor screenshot shows **0 errors**, down from
+19, with **2 warnings** and **2 suggestions** still present. Combined with the
+postflight, this confirms resolution of the original table-RLS findings. The
+owner then expanded both tabs:
+
+| Finding | Assessment / next step |
+|---|---|
+| Function Search Path Mutable: `public.save_persona` | Live definition received; it differs from migration 0006 in formatting/error text. Reviewed/tested owner-run `2026-10-21-save-persona-hardening.sql` qualifies both tables and `pg_catalog.unnest`, pins an empty path and preserves the live invoker behavior. Application/receipt pending. |
+| Leaked Password Protection Disabled: Auth | Supabase documents this feature as Pro-plan and above. The owner's project screenshot shows Free. Treat as an unavailable paid feature, not evidence that the new password was leaked; no plan/account change authorized or performed. |
+| RLS Enabled No Policy: `public.algorithm_briefs` | Intentional service-role-only design in migration `0012_algorithm_briefs.sql`; server code uses `supabaseService`. Keep default denial for normal API roles. |
+| RLS Enabled No Policy: `public.youtube_credentials` | Intentional service-role-only design in migration `0011_youtube_credentials.sql`; OAuth/publish server code uses `supabaseService`. Do not add a browser-access policy to silence the Info finding. |
+
+No new production SQL or Auth setting change has been made for these findings.
+Password storage and breach-list screening are separate: Supabase Auth stores
+password hashes using bcrypt, including on Free. The paid protection additionally
+rejects passwords already present in known breach lists; its disabled warning is
+not evidence that this account's password leaked or that passwords are plaintext.
+The two Info findings alone do not prove exposure; this is an access-model
+assessment from source and the Advisor screenshot, not a fresh audit of all grants,
+views or service-role entry points.
+
+Apply the function candidate as described below. Dedicated queue and performance data checks remain
+untested. Do not report full application/security acceptance from the SQL receipt
+and dashboard/Advisor screenshots alone. This does not apply the five October
 revamp migrations, merge PR #7, connect X, or unblock slice 2 automatically.
+
+## Reviewed save_persona Candidate — Owner Application Pending
+
+The actual production code is preserved as owner-supplied read-back in
+`docs/security/2026-10-21-save-persona-definition.json`. It updates the same
+fields and seeds as migration 0006, but uses the original `profile % not found`
+message and different formatting. The patch targets that observed body, not an
+assumed migration match.
+
+Run only `docs/security/2026-10-21-save-persona-hardening.sql` in Embalio's SQL
+Editor. It changes the function definition, not application rows, roles or table
+policies. It keeps `SECURITY INVOKER`, function identity, owner and existing ACLs.
+Unknown body/overload/contract/settings or RLS-off owner tables abort the entire
+transaction. Source hashes guard against accidental version drift; they are not
+a substitute for database-owner authorization. No need to rerun the RLS bundle.
+
+Expected final JSON has `function="public.save_persona"` and all three booleans
+`security_invoker`, `search_path_pinned`, `reviewed_body` equal to **true**. Return
+that result or the exact error, then refresh Advisor. If successful, the function
+search-path warning should clear; the Pro-only password warning and two
+intentional Info findings may remain. No new production result is claimed yet.
+
+Local evidence:
+
+```text
+node scripts/check-save-persona-hardening.mjs --red
+node scripts/check-save-persona-hardening.mjs
+```
+
+RED reproduced caller-controlled search-path redirection against the exact
+owner-supplied body. GREEN uses disposable PostgreSQL 17, with no network, ports,
+host data mounts or app credentials. It verifies hostile-schema/temp-table/
+function shadowing resistance, own persona fields and seed dedup, foreign/
+missing-user/anonymous denial, atomic seed-failure rollback, service-role access,
+OID/owner/ACL preservation, idempotency, the receipt and nine atomic refusal cases.
+Every owned container was removed. A read-only reviewer found no actionable
+Critical/Important issue. This remains reduced-fixture database verification,
+not live Supabase HTTP or a production save action.
+
+Final app checks passed: 1,242 tests / 1 skipped, standalone TypeScript and
+production build. One initial suite run alongside the build timed out an existing
+`active-profile-actions` test at 5 seconds; its focused 3-test file and the full
+suite passed once the build had finished. No source/test/timeout change was made
+for that result.
 
 References: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security),
 [PostgreSQL policy composition](https://www.postgresql.org/docs/17/sql-createpolicy.html),
-[PostgreSQL privilege revocation](https://www.postgresql.org/docs/17/sql-revoke.html).
+[PostgreSQL privilege revocation](https://www.postgresql.org/docs/17/sql-revoke.html),
+[Function search path guidance](https://github.com/supabase/splinter/blob/master/docs/0011_function_search_path_mutable.md),
+[Supabase password security / plan availability](https://supabase.com/docs/guides/auth/password-security),
+[RLS with no policies](https://github.com/supabase/splinter/blob/master/docs/0008_rls_enabled_no_policy.md).

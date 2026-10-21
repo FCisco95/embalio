@@ -10,8 +10,12 @@
 ## TL;DR
 
 Owner-run RLS recovery returned a passing production receipt at 16:17:25 UTC:
-19 tables protected, zero anonymous access, primary owner verified. App login
-and refreshed Security Advisor acceptance are still pending.
+19 tables protected, zero anonymous access, primary owner verified. The owner's
+screenshot confirms dashboard access as `@fcisco95` with 20 drafts. The refreshed
+Security Advisor shows **0 errors, 2 warnings, 2 suggestions**. The original 19
+RLS errors are gone. The live `save_persona` definition was received; its guarded,
+reviewed/tested hardening SQL is ready for owner execution. Leaked-password protection requires Pro; the two Info
+tables are intentionally service-role-only in source.
 
 Session 26 next-steps tasks 1–3 are complete: feature branch pushed, PR #7 opened,
 visual component checks passed, three merged harness worktrees/branches removed.
@@ -21,10 +25,14 @@ the owner confirms BOTH the PR merge and `@fcisco95` linked on `/profiles`.
 
 ## Current Objective
 
-Finish production RLS acceptance: the owner's postflight confirms all 19 tables
+Obtain the owner-run result of `docs/security/2026-10-21-save-persona-hardening.sql`.
+The candidate is reviewed/tested against the owner's actual live definition,
+preserved in `docs/security/2026-10-21-save-persona-definition.json`.
+The owner's postflight confirms all 19 tables
 RLS-on, no anonymous access or authenticated internal/admin privileges, and the
 primary profile linked to the expected Auth owner. Six profiles remain, three
-unlinked and quarantined. App login and refreshed Advisor results are pending.
+unlinked and quarantined. Owner screenshots confirm login/home profile access
+and refreshed Advisor zero errors. Dedicated queue/performance checks are untested.
 See `docs/security/2026-10-21-rls-recovery.md`. Keep slice 2 paused.
 
 ## Current State
@@ -37,6 +45,9 @@ See `docs/security/2026-10-21-rls-recovery.md`. Keep slice 2 paused.
   the security SQL; the five revamp migrations remain unapplied per owner state.
 - `git worktree list` contains only the primary checkout; all three clean,
   integrated `worktree-agent-*` branches were deleted with non-force commands.
+- Security recovery/templates and the owner SQL receipt are committed locally
+  as `a3a172b`, not pushed. The function/acceptance checkpoint follows that commit;
+  all security commits remain local pending owner application/read-back.
 
 ## Recent Changes
 
@@ -51,8 +62,15 @@ owner ran the reviewed bundle, their 16:17:25 UTC receipt reports 19 RLS-on,
 zero anonymous access, zero authenticated internal/admin privileges, and the
 expected primary owner verified. All six profiles remain; three NULL owners
 are quarantined. Receipt: `docs/security/2026-10-21-rls-postflight.json`.
-App login and refreshed Advisor results are unverified. No agent production
-write; no profile deletion/reassignment or test-user disablement. The private
+Owner screenshot shows the signed-in dashboard as `@fcisco95`, 20 drafts and
+existing home cards. Refreshed Advisor screenshot confirms zero errors, two
+warnings and two suggestions. The warnings are `public.save_persona` mutable
+search path and Auth leaked-password protection disabled (Pro-only; project Free).
+Info tables `algorithm_briefs`/`youtube_credentials` intentionally use service-role
+access and default-deny RLS in source. Live function code differs from migration
+0006; the pending candidate preserves its original error and behavior. Dedicated
+queue/performance routes and writes remain unverified. No agent production write; no profile
+deletion/reassignment or test-user disablement. The private
 prefilled copy remains `.superpowers/security-recovery/2026-10-21/apply-reviewed-rls.sql`.
 
 Protected `/` and `/profiles` redirect a fresh browser to login. The visual checks
@@ -66,6 +84,8 @@ The five `20261021_*.sql` migrations remain NOT applied per owner state.
 - Portable SQL templates: `docs/security/2026-10-21-rls-*.sql` and
   `docs/security/2026-10-21-link-primary-owner.sql`.
 - Disposable SQL tests: `scripts/check-rls-recovery.mjs`.
+- Function candidate/tests: `docs/security/2026-10-21-save-persona-hardening.sql`,
+  `scripts/check-save-persona-hardening.mjs`.
 - Security snapshot: `docs/handoffs/2026-10-21-session27-rls-recovery.md`.
 
 - Original queue: `docs/handoffs/2026-10-21-session26-codex-next-steps.md`.
@@ -84,9 +104,10 @@ Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
 
 ## Next Actions
 
-1. Obtain owner acceptance of app login/profile/queue/performance and the
-   refreshed Security Advisor result. The SQL receipt already passed; do not
-   rerun recovery blindly. Do not execute production migrations as the agent.
+1. Obtain the owner-run result of `docs/security/2026-10-21-save-persona-hardening.sql`
+   and refresh Advisor. Expected JSON: `security_invoker`, `search_path_pinned`,
+   `reviewed_body` all true. Stop on error; don't bypass drift guards. Keep the two
+   intentionally internal Info tables and subscription/Auth settings unchanged.
 2. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
    reachable through Orca, re-check duplicates, then create exactly one child
    with `agent-proposed`. Do not create a root issue or use another team.
@@ -111,7 +132,8 @@ Draft PR #7; browser/cleanup receipt; approved Linear proposal; Session 27
 handoff snapshot. Local-only screenshots/results: `.superpowers/browser-check/slice1/`.
 No credentials, deployed resources or scheduled jobs created.
 Security additions: reviewed SQL templates/runbook, disposable Postgres runner,
-security snapshot, owner-supplied postflight JSON, and a private Git-ignored
+security snapshot, owner-supplied postflight/function-definition JSON, guarded
+function hardening and its disposable test runner, and a private Git-ignored
 operator copy. The owner created
 their own Auth user; its UUID and password are not in the tracked templates.
 
@@ -123,7 +145,14 @@ docs/handoffs/2026-10-21-session26-codex-next-steps.md.
 First read docs/security/2026-10-21-rls-recovery.md and the security snapshot at
 docs/handoffs/2026-10-21-session27-rls-recovery.md. Owner-run recovery passed
 the production SQL receipt (19 RLS-on, zero anonymous access, primary linked).
-App login and refreshed Advisor acceptance are pending. Do not rerun SQL blindly.
+Owner screenshot confirms the signed-in @fcisco95 dashboard and 20 drafts.
+Refreshed Advisor shows 0 errors, 2 warnings and 2 suggestions. The live
+save_persona definition has been received. Its reviewed/tested candidate is
+docs/security/2026-10-21-save-persona-hardening.sql; await owner application/receipt
+and refreshed Advisor. Password leak protection requires Pro;
+the two Info tables intentionally deny normal API access. Dedicated queue/
+performance checks remain untested.
+Do not rerun SQL blindly.
 Tasks 1–3 are complete; PR #7 is a draft. The single Linear follow-up is approved
 but needs its parent ID and Embalio/BAK workspace access. Use the proposal in
 docs/proposals/2026-10-21-revamp-security-follow-up.md; create no root issue.
