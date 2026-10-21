@@ -15,7 +15,9 @@ const PROFILES = [
   { id: "p-3", handle: "nodisplay", display_name: null },
 ];
 
-beforeEach(() => setActiveProfile.mockReset().mockResolvedValue(undefined));
+beforeEach(() => {
+  setActiveProfile.mockReset().mockResolvedValue(undefined);
+});
 afterEach(cleanup);
 
 function open(activeId = "p-1") {
@@ -47,6 +49,15 @@ describe("AccountSwitcher", () => {
     fireEvent.click(screen.getByRole("option", { name: /acme/i }));
     await waitFor(() => expect(setActiveProfile).toHaveBeenCalledWith("p-2"));
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  });
+
+  it("shows an inline error instead of throwing when the switch fails", async () => {
+    setActiveProfile.mockRejectedValue(new Error("Profile not found or access denied"));
+    open("p-1");
+    fireEvent.click(screen.getByRole("option", { name: /acme/i }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/não foi possível trocar/i);
+    expect(screen.getByRole("button", { name: /conta ativa/i })).toBeTruthy();
   });
 
   it("does nothing when the already-active account is chosen", () => {

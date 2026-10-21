@@ -27,6 +27,7 @@ const atHandle = (handle: string) => `@${handle.replace(/^@/, "")}`
 
 export function AccountSwitcher({ profiles, activeId, placement = "down", compact = false }: AccountSwitcherProps) {
   const [open, setOpen] = useState(false)
+  const [error, setError] = useState(false)
   const [pending, startTransition] = useTransition()
   const ref = useRef<HTMLDivElement>(null)
   const active = profiles.find((p) => p.id === activeId) ?? profiles[0]
@@ -44,9 +45,14 @@ export function AccountSwitcher({ profiles, activeId, placement = "down", compac
   const choose = (id: string) => {
     setOpen(false)
     if (id === active.id) return
+    setError(false)
     // The action sets the cookie; Next re-renders the page and layouts with it.
     startTransition(async () => {
-      await setActiveProfile(id)
+      try {
+        await setActiveProfile(id)
+      } catch {
+        setError(true)
+      }
     })
   }
 
@@ -80,6 +86,18 @@ export function AccountSwitcher({ profiles, activeId, placement = "down", compac
           </>
         )}
       </button>
+
+      {error && !open && (
+        <p
+          role="alert"
+          className={cn(
+            "absolute left-0 z-50 w-max max-w-[260px] rounded-lg border border-border bg-popover px-2.5 py-1.5 text-[12px] text-destructive shadow-elev",
+            placement === "up" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+          )}
+        >
+          Não foi possível trocar de conta. Tente de novo.
+        </p>
+      )}
 
       {open && (
         <div
