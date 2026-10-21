@@ -1,6 +1,5 @@
 "use server";
 import { supabaseService } from "@/lib/supabase/server";
-import { listProfiles } from "@/server/profiles";
 import { revalidatePath } from "next/cache";
 import {
   defaultSeedProfiles as _defaultSeedProfiles,
@@ -11,13 +10,6 @@ import {
 // NOT re-exported here — import it from ./recording-profile-seeds directly.
 // Re-exporting the type is fine (types are erased at runtime).
 export type { RecordingProfileInput } from "./recording-profile-seeds";
-
-export async function getActiveProfile() {
-  const profiles = await listProfiles();
-  const profile = profiles?.[0];
-  if (!profile) throw new Error("no profile configured");
-  return profile;
-}
 
 export async function listRecordingProfiles(profileId: string) {
   const sb = supabaseService();

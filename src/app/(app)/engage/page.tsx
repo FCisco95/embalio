@@ -1,4 +1,4 @@
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { getEngageQueue } from "@/server/engage-queue";
 import { getSniperPins } from "@/server/sniper";
 import { SniperPins } from "@/components/sniper-pins";
@@ -15,17 +15,19 @@ export default async function EngagePage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const profiles = (await listProfiles()) ?? [];
-  // Pre-load the first profile's surfaced candidates so the queue is populated on
+  const profile = await requireActiveProfile();
+  // Panels take a profile list; hand them only the active account.
+  const profiles = [profile];
+  // Pre-load the active account's surfaced candidates so the queue is populated on
   // open (the cron fills `candidates`; no scan-click needed for the dead-time loop).
-  const initialItems = profiles[0] ? await getEngageQueue(profiles[0].id).catch(() => []) : [];
-  const sniperPins = profiles[0] ? await getSniperPins(profiles[0].id).catch(() => []) : [];
+  const initialItems = await getEngageQueue(profile.id).catch(() => []);
+  const sniperPins = await getSniperPins(profile.id).catch(() => []);
   const { tab } = await searchParams;
   const activeTab =
     tab === "deepscan" ? "deepscan" : tab === "trends" ? "trends" : "engage";
 
   return (
-    <PageShell title="Engage">
+    <PageShell title="Replies">
       <div className="flex gap-1 border-b border-border mb-6">
         <a href="/engage" className={tabClass("engage", activeTab)}>
           Engage
@@ -40,13 +42,11 @@ export default async function EngagePage({
 
       {activeTab === "engage" && (
         <>
-          {profiles[0] && (
-            <div className="mb-3">
-              <PushOptIn profileId={profiles[0].id} />
-            </div>
-          )}
-          {profiles[0] && <ManualSniperForm profileId={profiles[0].id} />}
-          {profiles[0] && <SniperPins profileId={profiles[0].id} pins={sniperPins} />}
+          <div className="mb-3">
+            <PushOptIn profileId={profile.id} />
+          </div>
+          <ManualSniperForm profileId={profile.id} />
+          <SniperPins profileId={profile.id} pins={sniperPins} />
           <p className="text-[13px] text-muted-foreground mb-4">
             Scan seed accounts and draft replies in one step.
           </p>

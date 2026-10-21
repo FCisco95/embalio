@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { exchangeCodeForRefreshToken, YT_OAUTH_STATE_COOKIE } from "@/lib/youtube";
 import { supabaseService } from "@/lib/supabase/server";
-import { getActiveProfile } from "@/server/studio/recording-profiles";
+import { getActiveProfile } from "@/server/active-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${url.origin}/api/youtube/oauth/callback`;
   const { refreshToken, scope } = await exchangeCodeForRefreshToken(code, redirectUri);
   const profile = await getActiveProfile();
+  if (!profile) return NextResponse.json({ error: "no profile configured" }, { status: 400 });
   const sb = supabaseService();
   const { error } = await sb.from("youtube_credentials").upsert(
     {

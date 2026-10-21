@@ -7,7 +7,7 @@ export default async function ProfilesPage() {
   const profiles = await listProfiles();
   return (
     <PageShell
-      title="Brand Voice"
+      title="Contas"
       subtitle="Your voice spec, guardrails, and seed accounts."
     >
       <div className="space-y-10 max-w-2xl">

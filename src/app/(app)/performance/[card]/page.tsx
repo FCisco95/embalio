@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { getKpis } from "@/server/kpis";
 import { PageShell } from "@/components/shell/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,10 +56,9 @@ export default async function KpiDrilldownPage({ params }: { params: Promise<{ c
   const { card } = await params;
   if (!Object.hasOwn(CARDS, card)) return notFound();
   const def = CARDS[card];
-  const profiles = (await listProfiles()) ?? [];
-  const profileId = profiles[0]?.id;
-  const kpis = profileId ? await getKpis(profileId) : null;
-  const series = kpis ? def.series(kpis) : [];
+  const { id: profileId } = await requireActiveProfile();
+  const kpis = await getKpis(profileId);
+  const series = def.series(kpis);
   const chartData = series.map((p) => ({ x: p.date.slice(5), y: def.chartY(p.value) }));
 
   return (
@@ -70,7 +69,7 @@ export default async function KpiDrilldownPage({ params }: { params: Promise<{ c
           className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" strokeWidth={1.6} />
-          Back to Stats
+          Back to Performance
         </Link>
 
         <Card>
@@ -82,7 +81,7 @@ export default async function KpiDrilldownPage({ params }: { params: Promise<{ c
               <AreaChart data={chartData} height={180} />
             ) : (
               <div className="py-8 text-center text-[13px] text-muted-foreground">
-                Not enough data yet — import an analytics CSV on the Stats page.
+                Not enough data yet — import an analytics CSV on the Performance page.
               </div>
             )}
           </CardContent>
