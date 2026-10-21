@@ -8,6 +8,7 @@ import {
   isEligibleProfile,
   isNearDuplicate,
   jaccard,
+  sanitizeLinkUrl,
   parseNightlyArgs,
   validateDraftItems,
   type NightlyDraftItem,
@@ -165,6 +166,31 @@ describe("buildDraftInsert", () => {
     expect(row.angle).toBe("a");
     expect(row.rationale).toBe("r");
     expect(row.link_url).toBeNull();
+  });
+});
+
+describe("sanitizeLinkUrl / link_url on insert", () => {
+  it.each([
+    ["https://example.com/p", "https://example.com/p"],
+    ["http://example.com", "http://example.com"],
+    ["  https://example.com/p?a=1  ", "https://example.com/p?a=1"],
+  ])("keeps a real http(s) URL: %s", (input, out) => {
+    expect(sanitizeLinkUrl(input)).toBe(out);
+  });
+
+  it.each([[""], ["   "], ["[link]"], ["{link}"], ["TBD"], ["example.com/p"], ["ftp://x.com/a"], ["https://"], ["https://a.com/ b"], ["see https://a.com"], [null], [undefined]])(
+    "nullifies %j",
+    (input) => {
+      expect(sanitizeLinkUrl(input as string | null)).toBeNull();
+    },
+  );
+
+  it("buildDraftInsert never writes a placeholder into link_url", () => {
+    const now = new Date("2026-10-21T10:00:00Z");
+    for (const bad of ["", "[link]", "n/a"]) {
+      expect(buildDraftInsert(item({ link_url: bad }), { id: "p1" }, now).link_url).toBeNull();
+    }
+    expect(buildDraftInsert(item({ link_url: " https://example.com/p " }), { id: "p1" }, now).link_url).toBe("https://example.com/p");
   });
 });
 

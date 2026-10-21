@@ -7,15 +7,17 @@ vi.mock("@/server/queue-actions", () => ({
   editDraftBody: vi.fn(),
   skipDraft: vi.fn(),
   unscheduleDraft: vi.fn(),
+  clearDraftLink: vi.fn(),
 }));
 
 import { ApprovalQueue } from "@/components/approval-queue";
-import { approveAndSchedule, editDraftBody, skipDraft } from "@/server/queue-actions";
+import { approveAndSchedule, clearDraftLink, editDraftBody, skipDraft } from "@/server/queue-actions";
 import type { QueueDraft, XConnection } from "@/server/queue";
 
 const mApprove = vi.mocked(approveAndSchedule);
 const mEdit = vi.mocked(editDraftBody);
 const mSkip = vi.mocked(skipDraft);
+const mClearLink = vi.mocked(clearDraftLink);
 
 const D1: QueueDraft = {
   id: "d1",
@@ -42,6 +44,7 @@ beforeEach(() => {
   mApprove.mockReset().mockResolvedValue({ ok: true, published: true });
   mEdit.mockReset().mockResolvedValue({ ok: true });
   mSkip.mockReset().mockResolvedValue({ ok: true });
+  mClearLink.mockReset().mockResolvedValue({ ok: true });
 });
 
 describe("ApprovalQueue rendering", () => {
@@ -73,8 +76,33 @@ describe("ApprovalQueue rendering", () => {
   it("shows an empty state", () => {
     renderQueue([]);
     expect(screen.getByText(/sem drafts para hoje/i)).toBeTruthy();
-    expect(screen.getByText(/02:00/)).toBeTruthy();
+    expect(screen.getByText(/07:30/)).toBeTruthy();
     expect(screen.getByText("/embalio-nightly")).toBeTruthy();
+  });
+});
+
+describe("ApprovalQueue link removal", () => {
+  it("offers Remover link only on cards that have a stored link_url", () => {
+    renderQueue();
+    expect(within(cardOf("Retention is a product problem.")).getByRole("button", { name: "Remover link" })).toBeTruthy();
+    expect(within(cardOf("Second draft")).queryByRole("button", { name: "Remover link" })).toBeNull();
+  });
+
+  it("Remover link calls clearDraftLink(id) and hides the link note", async () => {
+    renderQueue();
+    const card = within(cardOf("Retention is a product problem."));
+    fireEvent.click(card.getByRole("button", { name: "Remover link" }));
+    await waitFor(() => expect(mClearLink).toHaveBeenCalledWith("d1"));
+    await waitFor(() => expect(card.queryByText(/link → reply 1/)).toBeNull());
+    expect(card.queryByRole("button", { name: "Remover link" })).toBeNull();
+  });
+
+  it("keeps the link and shows the error when clearing fails", async () => {
+    mClearLink.mockResolvedValue({ ok: false, error: "draft changed state, refresh and retry" });
+    renderQueue([D1]);
+    fireEvent.click(screen.getByRole("button", { name: "Remover link" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/changed state/));
+    expect(screen.getByText(/link → reply 1/)).toBeTruthy();
   });
 });
 

@@ -113,6 +113,25 @@ export async function editDraftBody(draftId: string, body: string): Promise<Acti
   return { ok: true };
 }
 
+/** Drop the stored link (reply 1) from a draft the caller owns. The nightly job can leave a wrong one. */
+export async function clearDraftLink(draftId: string): Promise<ActionResult> {
+  const sb = await supabaseServer();
+  const draft = await loadDraft(sb, draftId);
+  if (!draft) return { ok: false, error: "draft not found" };
+  if (!OPEN_STATUSES.includes(draft.status)) return { ok: false, error: `draft is already ${draft.status}` };
+
+  const { data: updated, error } = await sb
+    .from("drafts")
+    .update({ link_url: null })
+    .eq("id", draftId)
+    .in("status", OPEN_STATUSES)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!updated || updated.length === 0) return { ok: false, error: "draft changed state, refresh and retry" };
+  revalidateQueue();
+  return { ok: true };
+}
+
 export async function skipDraft(draftId: string): Promise<ActionResult> {
   const sb = await supabaseServer();
   const { data: updated, error } = await sb

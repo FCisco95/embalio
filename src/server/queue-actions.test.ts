@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ supabaseServer: vi.fn() }));
 vi.mock("@/server/publish", () => ({ publishDraft: vi.fn() }));
 
-import { approveAndSchedule, editDraftBody, skipDraft, unscheduleDraft } from "@/server/queue-actions";
+import { approveAndSchedule, clearDraftLink, editDraftBody, skipDraft, unscheduleDraft } from "@/server/queue-actions";
 import { supabaseServer } from "@/lib/supabase/server";
 import { publishDraft } from "@/server/publish";
 import { revalidatePath } from "next/cache";
@@ -236,6 +236,44 @@ describe("editDraftBody", () => {
   it("not found", async () => {
     buildSb({ draft: null });
     expect(await editDraftBody("nope", "x")).toEqual({ ok: false, error: "draft not found" });
+  });
+});
+
+describe("clearDraftLink", () => {
+  beforeEach(() => {
+    vi.mocked(revalidatePath).mockClear();
+  });
+
+  it.each([["draft"], ["approved"], ["scheduled"]])("nulls link_url on a %s draft the caller can see", async (status) => {
+    const { updates } = buildSb({ draft: { ...DRAFT, status, link_url: "https://old.co/p" } });
+    expect(await clearDraftLink("draft-1")).toEqual({ ok: true });
+    expect(updates).toHaveLength(1);
+    expect(updates[0].patch).toEqual({ link_url: null });
+    expect(updates[0].filters).toContainEqual(["status", ["draft", "approved", "scheduled"]]);
+    expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith("/compose");
+  });
+
+  it("not found / not visible under RLS", async () => {
+    const { updates } = buildSb({ draft: null });
+    expect(await clearDraftLink("nope")).toEqual({ ok: false, error: "draft not found" });
+    expect(updates).toHaveLength(0);
+  });
+
+  it.each([["posted"], ["skipped"], ["unconfirmed"]])("refuses a %s draft", async (status) => {
+    const { updates } = buildSb({ draft: { ...DRAFT, status, link_url: "https://old.co/p" } });
+    expect((await clearDraftLink("draft-1")).ok).toBe(false);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("reports a lost status race", async () => {
+    buildSb({ draft: { ...DRAFT, link_url: "https://old.co/p" }, updateRows: [] });
+    expect(await clearDraftLink("draft-1")).toEqual({ ok: false, error: expect.stringMatching(/changed state/) });
+  });
+
+  it("surfaces a database error", async () => {
+    buildSb({ draft: { ...DRAFT, link_url: "https://old.co/p" }, updateError: { message: "db down" } });
+    expect(await clearDraftLink("draft-1")).toEqual({ ok: false, error: "db down" });
   });
 });
 

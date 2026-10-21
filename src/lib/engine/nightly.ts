@@ -125,6 +125,15 @@ export function computeScheduledAt(hour: number, now: Date): string {
 
 export type DraftInsert = Database["public"]["Tables"]["drafts"]["Insert"];
 
+/**
+ * The model sometimes returns "", "[link]" or another placeholder for link_url. That value would
+ * be published as reply 1, so anything that is not a single http(s) URL becomes null.
+ */
+export function sanitizeLinkUrl(raw: string | null | undefined): string | null {
+  const t = raw?.trim();
+  return t && /^https?:\/\/\S+$/.test(t) ? t : null;
+}
+
 export function buildDraftInsert(item: NightlyDraftItem, profile: { id: string }, now: Date): DraftInsert {
   return {
     profile_id: profile.id,
@@ -133,7 +142,7 @@ export function buildDraftInsert(item: NightlyDraftItem, profile: { id: string }
     body: item.body.trim(),
     angle: item.angle.trim(),
     rationale: item.rationale.trim(),
-    link_url: item.link_url,
+    link_url: sanitizeLinkUrl(item.link_url),
     scheduled_at: computeScheduledAt(item.suggested_hour_lisbon, now),
     model_used: "claude-subscription",
   };

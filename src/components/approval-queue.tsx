@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { extractTrailingLink } from "@/lib/posting/link-rule";
-import { approveAndSchedule, editDraftBody, skipDraft } from "@/server/queue-actions";
+import { approveAndSchedule, clearDraftLink, editDraftBody, skipDraft } from "@/server/queue-actions";
 import type { QueueDraft, XConnection } from "@/server/queue";
 
 const LIMIT = 280;
@@ -54,7 +54,7 @@ export function ApprovalQueue({
       )}
       {visible.length === 0 && (
         <p className="text-[13px] text-muted-foreground">
-          Sem drafts para hoje. O job nocturno corre às 02:00; podes gerar agora com{" "}
+          Sem drafts para hoje. O job corre todas as manhãs (~07:30); podes gerar agora com{" "}
           <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">/embalio-nightly</code>.
         </p>
       )}
@@ -84,6 +84,7 @@ function QueueCard({
   const [whenLabel, setWhenLabel] = useState("");
   const [scheduledAt, setScheduledAt] = useState<string | null>(draft.status === "scheduled" ? draft.scheduled_at : null);
   const [deferred, setDeferred] = useState(false);
+  const [linkCleared, setLinkCleared] = useState(false);
   const [lastError, setLastError] = useState<string | null>(draft.last_error);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -101,7 +102,8 @@ function QueueCard({
   }, [shownAt]);
 
   const { text: tweetText, link_url: typedLink } = extractTrailingLink(body);
-  const linkUrl = typedLink ?? draft.link_url;
+  const storedLink = linkCleared ? null : draft.link_url;
+  const linkUrl = typedLink ?? storedLink;
   const count = tweetText.trim().length;
 
   /** Save an unsaved edit; concurrent callers (blur + click) share one request. */
@@ -165,6 +167,13 @@ function QueueCard({
       setLastError(null);
     });
 
+  const removeLink = () =>
+    run(async () => {
+      const r = await clearDraftLink(draft.id);
+      if (!r.ok) return setError(r.error);
+      setLinkCleared(true);
+    });
+
   const skip = () =>
     run(async () => {
       const r = await skipDraft(draft.id);
@@ -192,6 +201,16 @@ function QueueCard({
             <span className="truncate">
               link → reply 1: {linkUrl}
             </span>
+          )}
+          {storedLink && (
+            <button
+              type="button"
+              onClick={removeLink}
+              disabled={pending}
+              className="self-start text-[12px] text-primary underline underline-offset-4 disabled:opacity-50"
+            >
+              Remover link
+            </button>
           )}
           {scheduledAt ? (
             <span>{deferred ? "Agendado: publica em instantes" : `Agendado para ${whenLabel}`}</span>
