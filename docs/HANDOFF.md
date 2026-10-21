@@ -9,6 +9,10 @@
 
 ## TL;DR
 
+Owner-run RLS recovery returned a passing production receipt at 16:17:25 UTC:
+19 tables protected, zero anonymous access, primary owner verified. App login
+and refreshed Security Advisor acceptance are still pending.
+
 Session 26 next-steps tasks 1–3 are complete: feature branch pushed, PR #7 opened,
 visual component checks passed, three merged harness worktrees/branches removed.
 Task 4's single Linear follow-up is approved; creation awaits a parent issue ID
@@ -17,26 +21,39 @@ the owner confirms BOTH the PR merge and `@fcisco95` linked on `/profiles`.
 
 ## Current Objective
 
-Finish the approved Linear follow-up when its parent and workspace are available.
-Keep slice 2 paused. The owner performs migration/env setup, merge and live X
-acceptance using Session 26's rollout queue below.
+Finish production RLS acceptance: the owner's postflight confirms all 19 tables
+RLS-on, no anonymous access or authenticated internal/admin privileges, and the
+primary profile linked to the expected Auth owner. Six profiles remain, three
+unlinked and quarantined. App login and refreshed Advisor results are pending.
+See `docs/security/2026-10-21-rls-recovery.md`. Keep slice 2 paused.
 
 ## Current State
 
 - PR #7 is a draft to `main`, titled as requested; its body contains Session 26's
   summary and owner rollout steps 1–8. Source before this documentation receipt:
   `bfbc56f`; feature branch tracks `origin/feat/revamp-slice0-contract`.
-- Local and remote `main` remain at `f544ac4`. No merge, migration, env edit,
-  workflow dispatch or live X publish was performed in this continuation.
+- Local and remote `main` remain at `f544ac4`. No merge, env edit, workflow
+  dispatch or live X publish was performed in this continuation. The owner ran
+  the security SQL; the five revamp migrations remain unapplied per owner state.
 - `git worktree list` contains only the primary checkout; all three clean,
   integrated `worktree-agent-*` branches were deleted with non-force commands.
 
 ## Recent Changes
 
-No product code changed. Added a browser/cleanup receipt and the concrete Linear
-proposal. Temporary local UI fixtures were removed before the final build.
+No product code changed. Added a browser/cleanup receipt, the concrete Linear
+proposal, guarded security SQL, a disposable Postgres test runner and the
+owner-supplied production receipt. Temporary UI fixtures were removed.
 
 ## Known Issues / Watch List
+
+**2026-10-21 security checkpoint:** preflight found 19 exposed tables. After the
+owner ran the reviewed bundle, their 16:17:25 UTC receipt reports 19 RLS-on,
+zero anonymous access, zero authenticated internal/admin privileges, and the
+expected primary owner verified. All six profiles remain; three NULL owners
+are quarantined. Receipt: `docs/security/2026-10-21-rls-postflight.json`.
+App login and refreshed Advisor results are unverified. No agent production
+write; no profile deletion/reassignment or test-user disablement. The private
+prefilled copy remains `.superpowers/security-recovery/2026-10-21/apply-reviewed-rls.sql`.
 
 Protected `/` and `/profiles` redirect a fresh browser to login. The visual checks
 used real components/global CSS with disposable props, not an authenticated
@@ -44,6 +61,12 @@ end-to-end account flow. The follow-up's security findings are not fixed here.
 The five `20261021_*.sql` migrations remain NOT applied per owner state.
 
 ## Quick Reference
+
+- Security runbook: `docs/security/2026-10-21-rls-recovery.md`.
+- Portable SQL templates: `docs/security/2026-10-21-rls-*.sql` and
+  `docs/security/2026-10-21-link-primary-owner.sql`.
+- Disposable SQL tests: `scripts/check-rls-recovery.mjs`.
+- Security snapshot: `docs/handoffs/2026-10-21-session27-rls-recovery.md`.
 
 - Original queue: `docs/handoffs/2026-10-21-session26-codex-next-steps.md`.
 - Browser/cleanup receipt: `docs/reviews/2026-10-21-slice1-browser-check.md`.
@@ -61,10 +84,13 @@ Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
 
 ## Next Actions
 
-1. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
+1. Obtain owner acceptance of app login/profile/queue/performance and the
+   refreshed Security Advisor result. The SQL receipt already passed; do not
+   rerun recovery blindly. Do not execute production migrations as the agent.
+2. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
    reachable through Orca, re-check duplicates, then create exactly one child
    with `agent-proposed`. Do not create a root issue or use another team.
-2. Await the owner's explicit confirmation of PR merge AND primary X link before
+3. Await the owner's explicit confirmation of PR merge AND primary X link before
    starting Session 26 task 5. Owner-only rollout actions remain owner-only.
 
 ## Resume Checklist
@@ -76,7 +102,7 @@ Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
 
 ## Suggested Skills
 
-`task-observer`, `embalio`, `handoff-memory`, `orca-linear`;
+`task-observer`, `embalio`, `handoff-memory`, `supabase-security`, `orca-linear`;
 `verification-before-completion` before a commit, `handoff` at checkpoint.
 
 ## Generated Artifacts This Session
@@ -84,12 +110,20 @@ Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
 Draft PR #7; browser/cleanup receipt; approved Linear proposal; Session 27
 handoff snapshot. Local-only screenshots/results: `.superpowers/browser-check/slice1/`.
 No credentials, deployed resources or scheduled jobs created.
+Security additions: reviewed SQL templates/runbook, disposable Postgres runner,
+security snapshot, owner-supplied postflight JSON, and a private Git-ignored
+operator copy. The owner created
+their own Auth user; its UUID and password are not in the tracked templates.
 
 ## Resume Prompt
 
 ```text
 Continue Embalio from docs/HANDOFF.md (Session 27) and
 docs/handoffs/2026-10-21-session26-codex-next-steps.md.
+First read docs/security/2026-10-21-rls-recovery.md and the security snapshot at
+docs/handoffs/2026-10-21-session27-rls-recovery.md. Owner-run recovery passed
+the production SQL receipt (19 RLS-on, zero anonymous access, primary linked).
+App login and refreshed Advisor acceptance are pending. Do not rerun SQL blindly.
 Tasks 1–3 are complete; PR #7 is a draft. The single Linear follow-up is approved
 but needs its parent ID and Embalio/BAK workspace access. Use the proposal in
 docs/proposals/2026-10-21-revamp-security-follow-up.md; create no root issue.
