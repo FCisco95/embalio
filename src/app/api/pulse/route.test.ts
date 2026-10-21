@@ -4,11 +4,14 @@ import { NextRequest } from "next/server";
 vi.mock("@/server/pulse", () => ({
   runPulse: vi.fn(async () => ({ surfaced: 1, drafted: 1, sent: 1 })),
 }));
-// Cron has no session: the route must list profiles with the service client.
-vi.mock("@/lib/supabase/server", () => ({
-  supabaseService: () => ({
-    from: () => ({ select: () => ({ order: async () => ({ data: [{ id: "p1" }, { id: "p2" }], error: null }) }) }),
-  }),
+vi.mock("@/lib/supabase/server", () => ({ supabaseService: () => ({}) }));
+// The shared helper has its own tests; here it stands in for "?profile= narrows, else all, oldest first".
+vi.mock("@/server/cron-profiles", () => ({
+  resolveCronProfiles: vi.fn(async (req: Request) =>
+    new URL(req.url).searchParams.get("profile")
+      ? [{ id: "p2", handle: "two" }]
+      : [{ id: "p1", handle: "one" }, { id: "p2", handle: "two" }],
+  ),
 }));
 
 import { GET } from "./route";

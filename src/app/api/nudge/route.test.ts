@@ -2,10 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/server/nudge", () => ({ runNudge: vi.fn(async () => ({ sent: true })) }));
-vi.mock("@/lib/supabase/server", () => ({
-  supabaseService: () => ({
-    from: () => ({ select: () => ({ order: async () => ({ data: [{ id: "p1" }, { id: "p2" }], error: null }) }) }),
-  }),
+vi.mock("@/lib/supabase/server", () => ({ supabaseService: () => ({}) }));
+// The shared helper has its own tests; here it stands in for "?profile= narrows, else all, oldest first".
+vi.mock("@/server/cron-profiles", () => ({
+  resolveCronProfiles: vi.fn(async (req: Request) =>
+    new URL(req.url).searchParams.get("profile")
+      ? [{ id: "p2", handle: "two" }]
+      : [{ id: "p1", handle: "one" }, { id: "p2", handle: "two" }],
+  ),
 }));
 
 import { GET } from "./route";

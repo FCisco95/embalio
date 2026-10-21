@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronAuthError } from "@/lib/cron-auth";
 import { supabaseService } from "@/lib/supabase/server";
+import { resolveCronProfiles } from "@/server/cron-profiles";
 import { runNudge } from "@/server/nudge";
 
 // Cloud-safe (no claude). Self-guards on sendHour, so an hourly local trigger
@@ -9,21 +10,16 @@ export async function GET(req: NextRequest) {
   const authError = cronAuthError(req);
   if (authError) return authError;
 
-  // No session here, so profiles come from the service client: ?profile=<id>
-  // for one account, otherwise every account.
-  const only = req.nextUrl.searchParams.get("profile");
-  let ids: string[];
-  if (only) {
-    ids = [only];
-  } else {
-    const { data, error } = await supabaseService().from("profiles").select("id").order("created_at");
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    ids = (data ?? []).map((p) => p.id);
+  let profiles;
+  try {
+    profiles = await resolveCronProfiles(req, supabaseService());
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
 
   const results: Array<{ profile: string; sent: boolean; error?: string }> = [];
-  for (const id of ids) {
-    results.push({ profile: id, ...(await runNudge(id)) });
+  for (const p of profiles) {
+    results.push({ profile: p.id, ...(await runNudge(p.id)) });
   }
   const ok = results.every((r) => !r.error);
   return NextResponse.json({ ok, results }, { status: ok ? 200 : 500 });

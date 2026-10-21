@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const sendTelegram = vi.fn();
-const getStreak = vi.fn();
 vi.mock("@/lib/telegram", () => ({ sendTelegram: (...a: unknown[]) => sendTelegram(...a) }));
-vi.mock("@/server/streak", () => ({ getStreak: (...a: unknown[]) => getStreak(...a) }));
 
 const profileRow = { data: { retention: {} } as Record<string, unknown> | null };
 const postsRows = { data: [] as Array<{ posted_at: string | null }> };
@@ -20,13 +18,16 @@ function makeFrom() {
     return { select: () => ({ eq: () => Promise.resolve(postsRows) }) };
   };
 }
-vi.mock("@/lib/supabase/server", () => ({ supabaseServer: async () => ({ from: makeFrom() }) }));
+// Cron has no session: the nudge must use the service client, not the cookie-bound one.
+vi.mock("@/lib/supabase/server", () => ({
+  supabaseService: () => ({ from: makeFrom() }),
+  supabaseServer: async () => { throw new Error("supabaseServer used without a session"); },
+}));
 
 import { runNudge } from "@/server/nudge";
 
 beforeEach(() => {
   sendTelegram.mockReset();
-  getStreak.mockReset().mockResolvedValue(0);
   updateSpy.mockReset();
   profileRow.data = { retention: { nudge: { lastSentDate: null, consecutiveIgnored: 0, optedOut: false, sendHour: 0 } } };
   postsRows.data = [];

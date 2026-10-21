@@ -4,10 +4,14 @@ import { NextRequest } from "next/server";
 vi.mock("@/server/telegram-poll", () => ({
   drainTelegramUpdates: vi.fn(async () => ({ applied: 0 })),
 }));
-vi.mock("@/lib/supabase/server", () => ({
-  supabaseService: () => ({
-    from: () => ({ select: () => ({ order: async () => ({ data: [{ id: "p1" }, { id: "p2" }], error: null }) }) }),
-  }),
+vi.mock("@/lib/supabase/server", () => ({ supabaseService: () => ({}) }));
+// The shared helper has its own tests; here it stands in for "?profile= narrows, else all, oldest first".
+vi.mock("@/server/cron-profiles", () => ({
+  resolveCronProfiles: vi.fn(async (req: Request) =>
+    new URL(req.url).searchParams.get("profile")
+      ? [{ id: "p2", handle: "two" }]
+      : [{ id: "p1", handle: "one" }, { id: "p2", handle: "two" }],
+  ),
 }));
 
 import { GET } from "./route";
@@ -31,11 +35,11 @@ describe("GET /api/telegram/poll", () => {
     expect(drainTelegramUpdates).not.toHaveBeenCalled();
   });
 
-  it("drains updates for every profile when no ?profile= is given", async () => {
+  it("is single-profile: drains only the FIRST profile (one global bot, per-profile offset)", async () => {
     const res = await call();
     expect(res.status).toBe(200);
+    expect(drainTelegramUpdates).toHaveBeenCalledTimes(1);
     expect(drainTelegramUpdates).toHaveBeenCalledWith("p1");
-    expect(drainTelegramUpdates).toHaveBeenCalledWith("p2");
   });
 
   it("drains only the profile named by ?profile=", async () => {
@@ -44,10 +48,17 @@ describe("GET /api/telegram/poll", () => {
     expect(drainTelegramUpdates).toHaveBeenCalledWith("p2");
   });
 
-  it("reports a 500 when any profile's drain errors, without skipping the rest", async () => {
+  it("reports a 500 when the drain errors", async () => {
     vi.mocked(drainTelegramUpdates).mockResolvedValueOnce({ applied: 0, error: "bad token" });
     const res = await call();
-    expect(drainTelegramUpdates).toHaveBeenCalledTimes(2);
     expect(res.status).toBe(500);
+  });
+
+  it("is a no-op 200 when there are no profiles", async () => {
+    const { resolveCronProfiles } = await import("@/server/cron-profiles");
+    vi.mocked(resolveCronProfiles).mockResolvedValueOnce([]);
+    const res = await call();
+    expect(res.status).toBe(200);
+    expect(drainTelegramUpdates).not.toHaveBeenCalled();
   });
 });

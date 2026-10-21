@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronAuthError } from "@/lib/cron-auth";
 import { supabaseService } from "@/lib/supabase/server";
+import { resolveCronProfiles } from "@/server/cron-profiles";
 import { runPulse } from "@/server/pulse";
 
 // LOCAL-only: runPulse drafts via `claude`, which can't spawn on Vercel. This
@@ -14,20 +15,15 @@ export async function GET(req: NextRequest) {
   // ?refresh=0 → deliver-only (skip the Apify/claude scan; just push what's in the DB).
   const refresh = req.nextUrl.searchParams.get("refresh") !== "0";
 
-  // No session here, so profiles come from the service client: ?profile=<id>
-  // for one account, otherwise every account.
-  const only = req.nextUrl.searchParams.get("profile");
-  let ids: string[];
-  if (only) {
-    ids = [only];
-  } else {
-    const { data, error } = await supabaseService().from("profiles").select("id").order("created_at");
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    ids = (data ?? []).map((p) => p.id);
+  let profiles;
+  try {
+    profiles = await resolveCronProfiles(req, supabaseService());
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
 
   const results: Array<{ profile: string; ok: boolean; error?: string; surfaced?: number; drafted?: number; sent?: number }> = [];
-  for (const id of ids) {
+  for (const { id } of profiles) {
     try {
       results.push({ profile: id, ok: true, ...(await runPulse(id, { refresh })) });
     } catch (e) {

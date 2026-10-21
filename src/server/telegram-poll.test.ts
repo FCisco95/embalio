@@ -32,7 +32,11 @@ function makeFrom() {
     };
   };
 }
-vi.mock("@/lib/supabase/server", () => ({ supabaseServer: async () => ({ from: makeFrom() }) }));
+// Cron has no session: the drain must use the service client, not the cookie-bound one.
+vi.mock("@/lib/supabase/server", () => ({
+  supabaseService: () => ({ from: makeFrom() }),
+  supabaseServer: async () => { throw new Error("supabaseServer used without a session"); },
+}));
 
 import { applyCallback, drainTelegramUpdates } from "@/server/telegram-poll";
 
