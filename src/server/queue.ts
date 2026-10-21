@@ -27,7 +27,8 @@ export async function listQueueDrafts(profileId: string): Promise<QueueDraft[]> 
     .select("id, body, angle, rationale, link_url, scheduled_at, status, created_at")
     .eq("profile_id", profileId)
     .eq("kind", "original")
-    .in("status", ["draft", "approved", "scheduled"])
+    // 'unconfirmed' = maybe-sent: it must stay visible so the operator can resolve it.
+    .in("status", ["draft", "approved", "scheduled", "unconfirmed"])
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const drafts = data ?? [];

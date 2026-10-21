@@ -19,7 +19,7 @@ function chain(result: any, calls: Array<[string, ...unknown[]]>) {
 }
 
 describe("listQueueDrafts", () => {
-  it("reads original drafts in open statuses, newest first, via the RLS client", async () => {
+  it("reads original drafts in open statuses (incl. unconfirmed maybe-sent ones), newest first, via the RLS client", async () => {
     const calls: Array<[string, ...unknown[]]> = [];
     const rows = [{ id: "d1" }, { id: "d2" }];
     const sb = {
@@ -34,7 +34,7 @@ describe("listQueueDrafts", () => {
     expect(sb.from).toHaveBeenCalledWith("drafts");
     expect(calls).toContainEqual(["eq", "profile_id", "p-1"]);
     expect(calls).toContainEqual(["eq", "kind", "original"]);
-    expect(calls).toContainEqual(["in", "status", ["draft", "approved", "scheduled"]]);
+    expect(calls).toContainEqual(["in", "status", ["draft", "approved", "scheduled", "unconfirmed"]]);
     expect(calls).toContainEqual(["order", "created_at", { ascending: false }]);
     const select = calls.find((c) => c[0] === "select")![1] as string;
     for (const col of ["id", "body", "angle", "rationale", "link_url", "scheduled_at", "status", "created_at"]) {

@@ -2,6 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { bodyHasUrl, extractTrailingLink } from "@/lib/posting/link-rule";
+import { TweetUrl } from "@/lib/schemas";
+import { logActivity } from "@/lib/activity";
 import { publishDraft } from "@/server/publish";
 
 // Approval-queue Server Actions. All reads/writes go through `supabaseServer()`
@@ -156,6 +158,89 @@ export async function unscheduleDraft(draftId: string): Promise<ActionResult> {
     .select("id");
   if (error) return { ok: false, error: error.message };
   if (!updated || updated.length === 0) return { ok: false, error: "draft is not scheduled" };
+  revalidateQueue();
+  return { ok: true };
+}
+
+/** Latest job parked as maybe-sent for this draft (it blocks re-publishing through the partial unique index). */
+async function latestStuckJobId(sb: Sb, draftId: string): Promise<string | null> {
+  const { data } = await sb
+    .from("posting_jobs")
+    .select("id")
+    .eq("draft_id", draftId)
+    .eq("status", "needs_manual_confirmation")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/**
+ * The operator checked X: the maybe-sent tweet IS live. Record it like a normal publish
+ * (post row, draft posted, job succeeded with the URL).
+ */
+export async function confirmPublished(draftId: string, tweetUrl: string): Promise<ActionResult> {
+  const parsed = TweetUrl.safeParse(tweetUrl.trim());
+  const tweetId = parsed.success ? /\/status\/(\d+)/.exec(parsed.data)?.[1] : undefined;
+  if (!parsed.success || !tweetId) return { ok: false, error: "not a tweet URL (expected https://x.com/<handle>/status/<id>)" };
+
+  const sb = await supabaseServer();
+  const draft = await loadDraft(sb, draftId);
+  if (!draft) return { ok: false, error: "draft not found" };
+  if (draft.status !== "unconfirmed") return { ok: false, error: `draft is ${draft.status}, not awaiting confirmation` };
+
+  const { error: postErr } = await sb.from("posts").insert({
+    profile_id: draft.profile_id,
+    draft_id: draft.id,
+    tweet_url: parsed.data,
+    tweet_id: tweetId,
+    posted_at: new Date().toISOString(),
+  });
+  if (postErr && postErr.code !== "23505") return { ok: false, error: postErr.message };
+
+  const jobId = await latestStuckJobId(sb, draftId);
+  if (jobId) {
+    const { error: jobErr } = await sb
+      .from("posting_jobs")
+      .update({ status: "succeeded", result_url: parsed.data, error: null, updated_at: new Date().toISOString() })
+      .eq("id", jobId);
+    if (jobErr) return { ok: false, error: jobErr.message };
+  }
+
+  const { error: draftErr } = await sb.from("drafts").update({ status: "posted" }).eq("id", draftId).eq("status", "unconfirmed");
+  if (draftErr) return { ok: false, error: draftErr.message };
+
+  await logActivity(sb, draft.profile_id, "post_published", {
+    refId: draft.id,
+    meta: { tweet_url: parsed.data, via: "manual_confirm" },
+  });
+  revalidateQueue();
+  return { ok: true };
+}
+
+/**
+ * The operator checked X: nothing went out. Fail the stuck job (which releases the partial
+ * unique index) and put the draft back to 'approved' so it can be published again.
+ */
+export async function confirmNotPublished(draftId: string): Promise<ActionResult> {
+  const sb = await supabaseServer();
+  const draft = await loadDraft(sb, draftId);
+  if (!draft) return { ok: false, error: "draft not found" };
+  if (draft.status !== "unconfirmed") return { ok: false, error: `draft is ${draft.status}, not awaiting confirmation` };
+
+  // Job first: if the draft write then fails, the retry still works (the job lookup is optional)
+  // and the draft is never 'approved' behind a still-blocking job.
+  const jobId = await latestStuckJobId(sb, draftId);
+  if (jobId) {
+    const { error: jobErr } = await sb
+      .from("posting_jobs")
+      .update({ status: "failed", error: "operator confirmed not published", updated_at: new Date().toISOString() })
+      .eq("id", jobId);
+    if (jobErr) return { ok: false, error: jobErr.message };
+  }
+
+  const { error: draftErr } = await sb.from("drafts").update({ status: "approved" }).eq("id", draftId).eq("status", "unconfirmed");
+  if (draftErr) return { ok: false, error: draftErr.message };
   revalidateQueue();
   return { ok: true };
 }

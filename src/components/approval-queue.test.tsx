@@ -8,16 +8,27 @@ vi.mock("@/server/queue-actions", () => ({
   skipDraft: vi.fn(),
   unscheduleDraft: vi.fn(),
   clearDraftLink: vi.fn(),
+  confirmPublished: vi.fn(),
+  confirmNotPublished: vi.fn(),
 }));
 
 import { ApprovalQueue } from "@/components/approval-queue";
-import { approveAndSchedule, clearDraftLink, editDraftBody, skipDraft } from "@/server/queue-actions";
+import {
+  approveAndSchedule,
+  clearDraftLink,
+  confirmNotPublished,
+  confirmPublished,
+  editDraftBody,
+  skipDraft,
+} from "@/server/queue-actions";
 import type { QueueDraft, XConnection } from "@/server/queue";
 
 const mApprove = vi.mocked(approveAndSchedule);
 const mEdit = vi.mocked(editDraftBody);
 const mSkip = vi.mocked(skipDraft);
 const mClearLink = vi.mocked(clearDraftLink);
+const mConfirmPub = vi.mocked(confirmPublished);
+const mConfirmNot = vi.mocked(confirmNotPublished);
 
 const D1: QueueDraft = {
   id: "d1",
@@ -45,6 +56,8 @@ beforeEach(() => {
   mEdit.mockReset().mockResolvedValue({ ok: true });
   mSkip.mockReset().mockResolvedValue({ ok: true });
   mClearLink.mockReset().mockResolvedValue({ ok: true });
+  mConfirmPub.mockReset().mockResolvedValue({ ok: true });
+  mConfirmNot.mockReset().mockResolvedValue({ ok: true });
 });
 
 describe("ApprovalQueue rendering", () => {
@@ -103,6 +116,78 @@ describe("ApprovalQueue link removal", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remover link" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/changed state/));
     expect(screen.getByText(/link → reply 1/)).toBeTruthy();
+  });
+});
+
+describe("ApprovalQueue unconfirmed (maybe-sent) cards", () => {
+  const U: QueueDraft = {
+    ...D2,
+    id: "u1",
+    body: "Maybe live post",
+    status: "unconfirmed",
+    last_error: "The operation timed out.",
+    link_url: "https://example.com/p",
+  };
+
+  it("explains the state, shows the last error and offers only Publicado / Não publicado", () => {
+    renderQueue([U]);
+    const card = within(cardOf("Maybe live post"));
+    expect(card.getByText(/pode já estar publicado: confirma no x/i)).toBeTruthy();
+    expect(card.getByText(/timed out/)).toBeTruthy();
+    expect(card.getByRole("button", { name: "Publicado" })).toBeTruthy();
+    expect(card.getByRole("button", { name: "Não publicado" })).toBeTruthy();
+    expect(card.getByLabelText(/url do tweet/i)).toBeTruthy();
+    for (const name of ["Publicar agora", "Agendar", "Saltar", "Remover link"]) {
+      expect(card.queryByRole("button", { name })).toBeNull();
+    }
+    expect(card.queryByLabelText(/data e hora/i)).toBeNull();
+  });
+
+  it("the body is read-only on an unconfirmed card", () => {
+    renderQueue([U]);
+    expect((screen.getByDisplayValue("Maybe live post") as HTMLTextAreaElement).readOnly).toBe(true);
+  });
+
+  it("Publicado sends the typed URL to confirmPublished and removes the card", async () => {
+    renderQueue([U, D2]);
+    const card = within(cardOf("Maybe live post"));
+    fireEvent.change(card.getByLabelText(/url do tweet/i), { target: { value: "https://x.com/cisco/status/42" } });
+    fireEvent.click(card.getByRole("button", { name: "Publicado" }));
+    await waitFor(() => expect(mConfirmPub).toHaveBeenCalledWith("u1", "https://x.com/cisco/status/42"));
+    await waitFor(() => expect(screen.queryByDisplayValue("Maybe live post")).toBeNull());
+    expect(screen.getByDisplayValue("Second draft")).toBeTruthy();
+  });
+
+  it("Publicado without a URL asks for one and does not call the action", async () => {
+    renderQueue([U]);
+    fireEvent.click(screen.getByRole("button", { name: "Publicado" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/url/i));
+    expect(mConfirmPub).not.toHaveBeenCalled();
+  });
+
+  it("shows the server error and keeps the card when confirmPublished fails", async () => {
+    mConfirmPub.mockResolvedValue({ ok: false, error: "not a tweet URL" });
+    renderQueue([U]);
+    fireEvent.change(screen.getByLabelText(/url do tweet/i), { target: { value: "nope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Publicado" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/not a tweet url/i));
+    expect(screen.getByDisplayValue("Maybe live post")).toBeTruthy();
+  });
+
+  it("Não publicado calls confirmNotPublished and turns the card into a normal approved draft", async () => {
+    renderQueue([U]);
+    fireEvent.click(screen.getByRole("button", { name: "Não publicado" }));
+    await waitFor(() => expect(mConfirmNot).toHaveBeenCalledWith("u1"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publicar agora" })).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Publicado" })).toBeNull();
+    expect(screen.queryByText(/pode já estar publicado/i)).toBeNull();
+    expect(screen.getByDisplayValue("Maybe live post")).toBeTruthy();
+  });
+
+  it("works even while X is disconnected (confirming does not need the X link)", () => {
+    renderQueue([U], { connected: false });
+    expect((screen.getByRole("button", { name: "Publicado" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Não publicado" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
 

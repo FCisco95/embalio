@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { extractTrailingLink } from "@/lib/posting/link-rule";
-import { approveAndSchedule, clearDraftLink, editDraftBody, skipDraft } from "@/server/queue-actions";
+import {
+  approveAndSchedule,
+  clearDraftLink,
+  confirmNotPublished,
+  confirmPublished,
+  editDraftBody,
+  skipDraft,
+} from "@/server/queue-actions";
 import type { QueueDraft, XConnection } from "@/server/queue";
 
 const LIMIT = 280;
@@ -84,6 +91,8 @@ function QueueCard({
   const [whenLabel, setWhenLabel] = useState("");
   const [scheduledAt, setScheduledAt] = useState<string | null>(draft.status === "scheduled" ? draft.scheduled_at : null);
   const [deferred, setDeferred] = useState(false);
+  const [status, setStatus] = useState(draft.status);
+  const [tweetUrl, setTweetUrl] = useState("");
   const [linkCleared, setLinkCleared] = useState(false);
   const [lastError, setLastError] = useState<string | null>(draft.last_error);
   const [error, setError] = useState<string | null>(null);
@@ -174,12 +183,64 @@ function QueueCard({
       setLinkCleared(true);
     });
 
+  // Maybe-sent drafts: the operator checks X and tells us what happened.
+  const confirmLive = () =>
+    run(async () => {
+      if (!tweetUrl.trim()) return setError("Cola o URL do tweet publicado.");
+      const r = await confirmPublished(draft.id, tweetUrl);
+      if (!r.ok) return setError(r.error);
+      onRemove();
+    });
+
+  const confirmNotLive = () =>
+    run(async () => {
+      const r = await confirmNotPublished(draft.id);
+      if (!r.ok) return setError(r.error);
+      setStatus("approved");
+      setLastError(null);
+    });
+
   const skip = () =>
     run(async () => {
       const r = await skipDraft(draft.id);
       if (!r.ok) return setError(r.error);
       onRemove();
     });
+
+  if (status === "unconfirmed") {
+    return (
+      <Card size="sm" className="px-3" data-draft-id={draft.id}>
+        <Textarea value={draft.body} readOnly aria-label="Texto do post" rows={4} />
+        <div className="flex flex-col gap-0.5 text-[12px]">
+          <span className="font-medium text-foreground">Pode já estar publicado: confirma no X</span>
+          {lastError && <span className="text-destructive">Última falha: {lastError}</span>}
+        </div>
+        <input
+          type="url"
+          inputMode="url"
+          aria-label="URL do tweet"
+          placeholder="https://x.com/…/status/…"
+          value={tweetUrl}
+          onChange={(e) => setTweetUrl(e.target.value)}
+          disabled={pending}
+          className="h-10 w-full rounded-lg border border-input bg-background px-2 text-sm"
+        />
+        <div className="flex items-center gap-2">
+          <Button disabled={pending} onClick={confirmLive} className="h-10 flex-1">
+            Publicado
+          </Button>
+          <Button variant="outline" disabled={pending} onClick={confirmNotLive} className="h-10 flex-1">
+            Não publicado
+          </Button>
+        </div>
+        {error && (
+          <p role="alert" className="text-[12px] text-destructive">
+            {error}
+          </p>
+        )}
+      </Card>
+    );
+  }
 
   return (
     <Card size="sm" className="px-3" data-draft-id={draft.id}>
