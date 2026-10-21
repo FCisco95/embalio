@@ -2,7 +2,9 @@ name: nightly-drafts
 
 on:
   schedule:
-    - cron: "0 2 * * *"   # 02:00 UTC, queue is ready before the Lisbon morning
+    # 06:30 UTC = 07:30 Lisbon in summer (WEST), 06:30 in winter (WET). The "queue ready"
+    # notification fires at the end of the run, so this keeps it out of the middle of the night.
+    - cron: "30 6 * * *"
   workflow_dispatch:
     inputs:
       profile:

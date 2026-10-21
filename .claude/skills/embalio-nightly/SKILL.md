@@ -5,11 +5,14 @@ description: Run or inspect the Embalio nightly drafts job; use when asked to "g
 
 # embalio-nightly
 
-Every night (02:00 UTC, GitHub Actions) the job writes 1-3 ORIGINAL post drafts per managed
+Every morning (06:30 UTC = 07:30 Lisbon in summer, 06:30 in winter; GitHub Actions) the job writes 1-3 ORIGINAL post drafts per managed
 account into `drafts`, each with an `angle`, a `rationale` and a suggested Lisbon posting time
-(`scheduled_at`). The operator approves them from a phone in the morning. It never posts.
+(`scheduled_at`). The operator approves them from a phone. It never posts. It sends ONE combined "queue ready"
+notification per run (e.g. "A tua fila está pronta: @a (3), @b (2)"), only when at least one draft
+was written and never on `--dry-run`.
 
-Code: `scripts/nightly-drafts.ts` (orchestration), `src/lib/engine/nightly.ts` (pure helpers),
+Code: `scripts/nightly-drafts.ts` (thin entry, real deps), `src/lib/engine/nightly-run.ts` (orchestration,
+deps injected, tested), `src/lib/engine/nightly.ts` (pure helpers),
 `src/lib/engine/xsearch.ts` (xAI lane scan), `buildNightlyDraftsPrompt` in `src/lib/voice-prompt.ts`.
 
 ## Run locally
