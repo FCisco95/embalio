@@ -168,7 +168,9 @@ describe("approveAndSchedule", () => {
 });
 
 describe("editDraftBody", () => {
-  beforeEach(() => vi.mocked(revalidatePath).mockClear());
+  beforeEach(() => {
+    vi.mocked(revalidatePath).mockClear();
+  });
 
   it("trims and saves", async () => {
     const { updates } = buildSb();
@@ -207,7 +209,9 @@ describe("editDraftBody", () => {
 });
 
 describe("skipDraft / unscheduleDraft", () => {
-  beforeEach(() => vi.mocked(revalidatePath).mockClear());
+  beforeEach(() => {
+    vi.mocked(revalidatePath).mockClear();
+  });
 
   it("skipDraft marks skipped, only from an open status", async () => {
     const { updates } = buildSb();
