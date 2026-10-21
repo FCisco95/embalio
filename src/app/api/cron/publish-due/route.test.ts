@@ -167,6 +167,8 @@ describe("GET /api/cron/publish-due", () => {
 
       expect(log.jobUpdates[0][1]).toMatchObject({ status: "needs_manual_confirmation", error: expect.stringMatching(/timed out|verify/i) });
       expect(log.jobUpdates).toContainEqual(["in", "id", ["j1", "j2"]]);
+      // a job that finished between the select and the update must never be overwritten
+      expect(log.jobUpdates).toContainEqual(["eq", "status", "running"]);
       expect(log.draftUpdates[0][1]).toEqual({ status: "unconfirmed" });
       expect(log.draftUpdates).toContainEqual(["in", "id", ["d1", "d2"]]);
       expect(log.draftUpdates).toContainEqual(["in", "status", ["scheduled", "approved"]]);

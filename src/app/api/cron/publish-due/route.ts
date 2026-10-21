@@ -36,7 +36,8 @@ async function reapStuckJobs(sb: ReturnType<typeof supabaseService>): Promise<nu
     const { error: jobErr } = await sb
       .from("posting_jobs")
       .update({ status: "needs_manual_confirmation", error: "timed out while running; verify on X before retrying", updated_at: now })
-      .in("id", stuck.map((j) => j.id));
+      .in("id", stuck.map((j) => j.id))
+      .eq("status", "running"); // a job that finished since the select must not be overwritten
     if (jobErr) throw new Error(jobErr.message);
 
     const draftIds = stuck.map((j) => j.draft_id).filter((id): id is string => !!id);

@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 import { logActivity } from "@/lib/activity";
 import { bodyHasUrl } from "@/lib/posting/link-rule";
 import { getXClientForProfile } from "@/lib/x-api/client";
-import type { XClient } from "@/lib/x-api/types";
+import { XTransportError, type XClient } from "@/lib/x-api/types";
 
 // Plain module (no "use server"): called by the queue Server Action (inline fast
 // path), by the publish-due cron route and importable from scripts. Service role
@@ -97,7 +97,16 @@ export async function publishDraft(
   let draftPosted = false;
   try {
     const x = await xFor(draft.profile_id, sb);
-    const main = await x.createTweet({ text: draft.body });
+    let main;
+    try {
+      main = await x.createTweet({ text: draft.body });
+    } catch (e) {
+      // No HTTP answer (timeout/abort/network/cut-off body) after dispatch: X may have created the
+      // tweet. Treat as maybe-sent so the job parks as needs_manual_confirmation and the draft as
+      // unconfirmed; retrying blindly would double-post. A definite rejection (HTTP status) stays failed.
+      if (e instanceof XTransportError) tweetSent = true;
+      throw e;
+    }
     tweetSent = true;
     const url = `https://x.com/${x.username}/status/${main.id}`;
 
@@ -126,6 +135,7 @@ export async function publishDraft(
     // Reply 1 carries the link ($0.200). Its failure must never undo or fail the live main post.
     let linkUrl: string | undefined;
     let linkFailed = false;
+    let linkUnknown = false; // transport failure: the reply may exist; never retried either way
     if (draft.link_url) {
       try {
         const reply = await x.createTweet({
@@ -136,6 +146,7 @@ export async function publishDraft(
         await sb.from("posts").update({ link_tweet_url: linkUrl }).eq("profile_id", draft.profile_id).eq("tweet_id", main.id);
       } catch (e) {
         linkFailed = true;
+        linkUnknown = e instanceof XTransportError;
         console.error("[publish] link reply failed:", e instanceof Error ? e.message : e);
       }
     }
@@ -144,7 +155,7 @@ export async function publishDraft(
       status: "succeeded",
       result_url: url,
       reply_result_url: linkUrl ?? null,
-      error: linkFailed ? "link reply failed" : null,
+      error: linkFailed ? (linkUnknown ? "link reply outcome unknown (timed out); check X" : "link reply failed") : null,
     });
     if (jobSuccErr) throw new Error(jobSuccErr.message);
 

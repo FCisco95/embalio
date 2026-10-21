@@ -122,6 +122,20 @@ export class XRateLimited extends Error {
   }
 }
 
+/**
+ * The request was dispatched but we got no complete HTTP answer from X (timeout/abort,
+ * network error, or a response body cut off mid-read). For a write the outcome is UNKNOWN:
+ * X may have acted. Contrast with an HTTP error status (a definite rejection, `XApiError`
+ * in client.ts). Publishers must treat a transport failure of `createTweet` as maybe-sent
+ * and never retry it blindly.
+ */
+export class XTransportError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "XTransportError";
+  }
+}
+
 /** X pay-per-use unit prices, USD (docs.x.com/x-api/getting-started/pricing, 2026-10-21). */
 export const X_COST_USD = {
   postRead: 0.005,

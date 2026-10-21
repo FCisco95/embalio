@@ -7,6 +7,7 @@ import {
   X_COST_USD,
   XRateLimited,
   XReauthRequired,
+  XTransportError,
   type XClient,
   type XCreateTweetInput,
   type XCreateTweetResult,
@@ -162,16 +163,23 @@ export async function getXClientForProfile(
     if (tokens.expiresAt < Date.now() + REFRESH_SKEW_MS) await rotate();
 
     const url = `${API_BASE}${path}${init.query && [...init.query].length ? `?${init.query}` : ""}`;
-    const send = () =>
-      fetchImpl(url, {
-        method,
-        signal: xFetchSignal(),
-        headers: {
-          Authorization: `Bearer ${tokens.accessToken}`,
-          ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
-        },
-        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
-      });
+    // No HTTP answer (timeout/abort/network) after dispatch means X may still have acted:
+    // surface that as XTransportError so callers can tell it from a definite rejection.
+    const send = async () => {
+      try {
+        return await fetchImpl(url, {
+          method,
+          signal: xFetchSignal(),
+          headers: {
+            Authorization: `Bearer ${tokens.accessToken}`,
+            ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          },
+          body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+        });
+      } catch (e) {
+        throw new XTransportError(`X API ${method} ${path}: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+      }
+    };
 
     let res = await send();
     if (res.status === 401) {
@@ -186,7 +194,12 @@ export async function getXClientForProfile(
       const text = await res.text().catch(() => "");
       throw new XApiError(res.status, `X API ${res.status} ${method} ${path}: ${text.slice(0, 300)}`);
     }
-    return (await res.json()) as T;
+    try {
+      return (await res.json()) as T;
+    } catch (e) {
+      // 2xx but the body never arrived intact: the action happened, we just cannot read the result.
+      throw new XTransportError(`X API ${method} ${path}: response body unreadable (${e instanceof Error ? e.message : String(e)})`, { cause: e });
+    }
   }
 
   const csv = (v?: string[]) => (v && v.length ? v.join(",") : undefined);

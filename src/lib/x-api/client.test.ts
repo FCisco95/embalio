@@ -2,7 +2,8 @@ import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getXClientForProfile } from "@/lib/x-api/client";
 import { decryptSecret, encryptSecret } from "@/lib/x-api/crypto";
-import { XRateLimited, XReauthRequired } from "@/lib/x-api/types";
+import { XRateLimited, XReauthRequired, XTransportError } from "@/lib/x-api/types";
+import { XApiError } from "@/lib/x-api/client";
 
 const API = "https://api.x.com/2";
 const TOKEN_URL = "https://api.x.com/2/oauth2/token";
@@ -261,6 +262,65 @@ describe("getXClientForProfile", () => {
     const c = await getXClientForProfile("p-1", sb, { fetchImpl });
     await c.getMe();
     expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  describe("transport failures are distinguishable from X rejections", () => {
+    it("a fetch that times out/aborts after dispatch throws XTransportError (the request may have landed)", async () => {
+      const fetchImpl = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+      const err = await c.createTweet({ text: "hi" }).catch((e) => e);
+      expect(err).toBeInstanceOf(XTransportError);
+      expect(err.message).toMatch(/timed out/i);
+      expect(c.estimatedCostUsd).toBe(0);
+    });
+
+    it("a network error is a transport error", async () => {
+      const fetchImpl = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+      await expect(c.createTweet({ text: "hi" })).rejects.toBeInstanceOf(XTransportError);
+    });
+
+    it("a response whose body is cut off (2xx, then the read fails) is a transport error", async () => {
+      const cut = { ok: true, status: 201, headers: new Headers(), json: () => Promise.reject(new TypeError("terminated")) };
+      const fetchImpl = vi.fn().mockResolvedValue(cut);
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl: fetchImpl as any });
+      await expect(c.createTweet({ text: "hi" })).rejects.toBeInstanceOf(XTransportError);
+    });
+
+    it("a retry after a 401 that then times out is still a transport error", async () => {
+      let api = 0;
+      const fetchImpl = vi.fn(async (url: string) => {
+        if (url === TOKEN_URL) return json(NEW_TOKENS);
+        api += 1;
+        if (api === 1) return json({ title: "Unauthorized" }, 401);
+        throw new DOMException("timed out", "TimeoutError");
+      });
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl: fetchImpl as any });
+      await expect(c.createTweet({ text: "hi" })).rejects.toBeInstanceOf(XTransportError);
+    });
+
+    it("an HTTP error status is an XApiError carrying the status, NOT a transport error", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(json({ title: "Forbidden" }, 403));
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+      const err = await c.createTweet({ text: "hi" }).catch((e) => e);
+      expect(err).toBeInstanceOf(XApiError);
+      expect(err).not.toBeInstanceOf(XTransportError);
+      expect(err.status).toBe(403);
+    });
+
+    it("a 500 is also a definite rejection", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(json({}, 500));
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+      const err = await c.createTweet({ text: "hi" }).catch((e) => e);
+      expect(err).toBeInstanceOf(XApiError);
+      expect(err.status).toBe(500);
+    });
   });
 
   it("HTTP 429 throws XRateLimited with the reset time", async () => {

@@ -6,6 +6,7 @@ vi.mock("@/lib/x-api/client", () => ({ getXClientForProfile: vi.fn() }));
 
 import { publishDraft } from "@/server/publish";
 import { logActivity } from "@/lib/activity";
+import { XTransportError } from "@/lib/x-api/types";
 
 const DRAFT = {
   id: "draft-1",
@@ -273,6 +274,57 @@ describe("publishDraft", () => {
     expect(log.draftUpdates).toEqual([{ status: "posted" }]);
     expect(lastJobUpdate(log)).toMatchObject({ status: "succeeded", error: "link reply failed", reply_result_url: null });
     expect(log.jobUpdates.some((u) => u.status === "failed" || u.status === "needs_manual_confirmation")).toBe(false);
+  });
+
+  describe("maybe-sent main tweet (transport failure after dispatch)", () => {
+    it("a timeout on the main createTweet is needs_manual_confirmation + unconfirmed, never retryable", async () => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, status: "scheduled" } });
+      const createTweet = vi.fn().mockRejectedValue(new XTransportError("The operation timed out."));
+      const { xFor } = buildX(createTweet);
+
+      const out = await publishDraft("draft-1", sb, xFor);
+
+      expect(out.ok).toBe(false);
+      expect(createTweet).toHaveBeenCalledTimes(1);
+      expect(lastJobUpdate(log)).toMatchObject({ status: "needs_manual_confirmation", error: expect.stringMatching(/timed out/i) });
+      expect(log.draftUpdates).toEqual([{ status: "unconfirmed" }]);
+      expect(log.postInserts).toHaveLength(0);
+    });
+
+    it("the next tick cannot post it again: an unconfirmed draft is refused before any X call", async () => {
+      const { sb } = buildSb({ draft: { ...DRAFT, status: "unconfirmed" } });
+      const createTweet = vi.fn();
+      const { xFor } = buildX(createTweet);
+      const out = await publishDraft("draft-1", sb, xFor);
+      expect(out.ok).toBe(false);
+      expect(createTweet).not.toHaveBeenCalled();
+      expect(xFor).not.toHaveBeenCalled();
+    });
+
+    it("a definite X rejection (403 with a status) stays failed and retryable", async () => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, status: "scheduled" } });
+      const createTweet = vi.fn().mockRejectedValue(Object.assign(new Error("X API 403 POST /tweets"), { status: 403 }));
+      const { xFor } = buildX(createTweet);
+      await publishDraft("draft-1", sb, xFor);
+      expect(lastJobUpdate(log)).toMatchObject({ status: "failed" });
+      expect(log.draftUpdates).toHaveLength(0);
+    });
+
+    it("a transport failure of the LINK reply leaves the job succeeded, flags the outcome as unknown, and never retries it", async () => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, link_url: "https://example.com/post" } });
+      const createTweet = vi
+        .fn()
+        .mockResolvedValueOnce({ id: "190", text: "a plain post" })
+        .mockRejectedValueOnce(new XTransportError("The operation timed out."));
+      const { xFor } = buildX(createTweet);
+
+      const out = await publishDraft("draft-1", sb, xFor);
+
+      expect(out).toEqual({ ok: true, url: "https://x.com/cisco/status/190" });
+      expect(createTweet).toHaveBeenCalledTimes(2);
+      expect(log.draftUpdates).toEqual([{ status: "posted" }]);
+      expect(lastJobUpdate(log)).toMatchObject({ status: "succeeded", error: expect.stringMatching(/link reply.*(unknown|unconfirmed|uncertain)/i), reply_result_url: null });
+    });
   });
 
   it("an error before the tweet is sent marks the job failed (safe to retry)", async () => {
