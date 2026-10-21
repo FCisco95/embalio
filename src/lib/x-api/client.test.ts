@@ -290,6 +290,16 @@ describe("getXClientForProfile", () => {
       await expect(c.createTweet({ text: "hi" })).rejects.toBeInstanceOf(XTransportError);
     });
 
+    it("a 2xx without data.id is a transport error (the tweet may exist; never a bare error)", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(json({}, 201));
+      const { sb } = makeSb(fresh());
+      const c = await getXClientForProfile("p-1", sb, { fetchImpl });
+      const err = await c.createTweet({ text: "hi" }).catch((e) => e);
+      expect(err).toBeInstanceOf(XTransportError);
+      expect(err.message).toMatch(/2xx without data\.id/);
+      expect(c.estimatedCostUsd).toBe(0);
+    });
+
     it("a retry after a 401 that then times out is still a transport error", async () => {
       let api = 0;
       const fetchImpl = vi.fn(async (url: string) => {

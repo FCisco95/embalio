@@ -221,7 +221,10 @@ export async function getXClientForProfile(
     },
 
     async createTweet(input: XCreateTweetInput): Promise<XCreateTweetResult> {
-      const json = await request<{ data: XCreateTweetResult }>("POST", "/tweets", { body: input });
+      const json = await request<{ data?: XCreateTweetResult }>("POST", "/tweets", { body: input });
+      // 2xx but no tweet id: the action may well have happened. Never surface this as a bare
+      // TypeError (publish would read it as a definite failure and allow a double post).
+      if (!json?.data?.id) throw new XTransportError("createTweet: 2xx without data.id");
       cost += bodyHasUrl(input.text) ? X_COST_USD.postCreateWithUrl : X_COST_USD.postCreate;
       return { id: json.data.id, text: json.data.text };
     },

@@ -291,6 +291,19 @@ describe("publishDraft", () => {
       expect(log.postInserts).toHaveLength(0);
     });
 
+    it("a 2xx without data.id (client throws XTransportError) ends needs_manual_confirmation + unconfirmed, never failed", async () => {
+      const { sb, log } = buildSb({ draft: { ...DRAFT, status: "scheduled" } });
+      const createTweet = vi.fn().mockRejectedValue(new XTransportError("createTweet: 2xx without data.id"));
+      const { xFor } = buildX(createTweet);
+
+      const out = await publishDraft("draft-1", sb, xFor);
+
+      expect(out.ok).toBe(false);
+      expect(lastJobUpdate(log)).toMatchObject({ status: "needs_manual_confirmation", error: expect.stringMatching(/data\.id/) });
+      expect(log.jobUpdates.some((u) => u.status === "failed")).toBe(false);
+      expect(log.draftUpdates).toEqual([{ status: "unconfirmed" }]);
+    });
+
     it("the next tick cannot post it again: an unconfirmed draft is refused before any X call", async () => {
       const { sb } = buildSb({ draft: { ...DRAFT, status: "unconfirmed" } });
       const createTweet = vi.fn();
