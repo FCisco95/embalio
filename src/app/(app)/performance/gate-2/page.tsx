@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { getGateScorecard, listRecentActedAlerts } from "@/server/gate";
 import { PageShell } from "@/components/shell/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,20 +42,11 @@ const WINDOW_CHOICES = [45, 90, 365];
 export default async function Gate2Page({
   searchParams,
 }: {
-  searchParams: Promise<{ profile?: string; window?: string }>;
+  searchParams: Promise<{ window?: string }>;
 }) {
-  const { profile, window: windowParam } = await searchParams;
+  const { window: windowParam } = await searchParams;
   const windowDays = clampWindowDays(windowParam);
-  const profiles = (await listProfiles()) ?? [];
-  const active = profile ?? profiles[0]?.id;
-
-  if (!active) {
-    return (
-      <PageShell title="GATE-2 scorecard" subtitle="Is the sniper measurably moving reach?">
-        <div className="text-[13px] text-muted-foreground">No profile configured yet.</div>
-      </PageShell>
-    );
-  }
+  const { id: active } = await requireActiveProfile();
 
   const gate = await getGateScorecard(active, { windowDays });
   const acted = await listRecentActedAlerts(active, { windowDays });
@@ -80,7 +71,7 @@ export default async function Gate2Page({
           href="/performance"
           className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="size-4" strokeWidth={1.6} /> Back to Stats
+          <ArrowLeft className="size-4" strokeWidth={1.6} /> Back to Performance
         </Link>
 
         {soonest ? (

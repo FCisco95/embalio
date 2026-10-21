@@ -17,6 +17,9 @@ describe("isProtectedPath", () => {
     "protects %s",
     (p) => expect(isProtectedPath(p)).toBe(true),
   );
+  it.each(["/api/x/oauth/start", "/api/x/oauth/callback"])("protects %s (defense in depth)", (p) =>
+    expect(isProtectedPath(p)).toBe(true),
+  );
   it.each(["/login", "/privacy", "/api/pulse", "/api/nudge", "/api/telegram/poll", "/api/cron/sniper", "/manifest.webmanifest"])(
     "passes %s through",
     (p) => expect(isProtectedPath(p)).toBe(false),

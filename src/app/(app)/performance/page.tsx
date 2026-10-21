@@ -1,10 +1,12 @@
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { listPerformance } from "@/server/posts";
 import { getKpis } from "@/server/kpis";
 import { getForecastBundle } from "@/server/predict";
 import { getGateScorecard } from "@/server/gate";
+import { getConsistencyGate } from "@/server/consistency";
 import { ForecastCard } from "@/components/predict/forecast-card";
 import { GateScorecardCard } from "@/components/gate/gate-scorecard-card";
+import { ConsistencyGateCard } from "@/components/performance/consistency-gate-card";
 import { KpiGrid } from "@/components/kpis/kpi-grid";
 import { CsvImportCard } from "@/components/kpis/csv-import-card";
 import {
@@ -22,21 +24,14 @@ import { MetricsRow } from "@/components/metrics-row";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default async function PerformancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const { profile } = await searchParams;
-  const profiles = (await listProfiles()) ?? [];
-  const active = profile ?? profiles[0]?.id;
+export default async function PerformancePage() {
+  const { id: active } = await requireActiveProfile();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const posts: Array<Record<string, any>> = active
-    ? ((await listPerformance(active)) ?? [])
-    : [];
-  const kpis = active ? await getKpis(active) : null;
-  const bundle = active ? await getForecastBundle(active) : null;
-  const gate = active ? await getGateScorecard(active) : null;
+  const posts: Array<Record<string, any>> = (await listPerformance(active)) ?? [];
+  const kpis = await getKpis(active);
+  const bundle = await getForecastBundle(active);
+  const gate = await getGateScorecard(active);
+  const consistency = await getConsistencyGate(active);
 
   // Stat calculations
   const totalLikes = posts.reduce((s, p) => s + (p.metrics?.likes ?? 0), 0);
@@ -61,39 +56,22 @@ export default async function PerformancePage({
 
   return (
     <PageShell
-      title="Stats"
+      title="Performance"
       subtitle="What actually moves the account — import your weekly X analytics CSV to feed the KPI cards."
     >
       <div className="space-y-6">
-        {/* Profile filter */}
-        <div className="flex gap-1 p-1 bg-surface-2 rounded-full w-fit">
-          {profiles.map((p) => (
-            <a
-              key={p.id}
-              href={`/performance?profile=${p.id}`}
-              className={[
-                "px-3 py-1 rounded-full text-[13px] font-medium transition-colors",
-                p.id === active
-                  ? "bg-card border border-border text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              ].join(" ")}
-            >
-              {p.handle}
-            </a>
-          ))}
-        </div>
+        {/* 30-day consistency gate (judged day 30) */}
+        <ConsistencyGateCard gate={consistency} />
 
         {/* KPI cards — follow conversion north star (P3) */}
-        {kpis && <KpiGrid kpis={kpis} />}
-        {gate && <GateScorecardCard gate={gate} />}
-        {bundle?.ok && <ForecastCard trajectory={bundle.trajectory} forecast={bundle.forecast} />}
-        {active && (
-          <CsvImportCard
-            profileId={active}
-            dataThrough={kpis?.dataThrough ?? null}
-            staleDays={kpis?.staleDays ?? null}
-          />
-        )}
+        <KpiGrid kpis={kpis} />
+        <GateScorecardCard gate={gate} />
+        {bundle.ok && <ForecastCard trajectory={bundle.trajectory} forecast={bundle.forecast} />}
+        <CsvImportCard
+          profileId={active}
+          dataThrough={kpis.dataThrough ?? null}
+          staleDays={kpis.staleDays ?? null}
+        />
 
         {/* Stat chips */}
         <div className="grid grid-cols-2 gap-[18px] sm:grid-cols-4">

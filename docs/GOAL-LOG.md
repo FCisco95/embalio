@@ -325,3 +325,20 @@ separate, pick (b) alone and run MYCEL outside Embalio.
 
 **Owner decision needed:** (a), (b), (c), or the hybrid. Nothing below in this file
 should be started until it is taken.
+
+
+---
+
+# 2026-10-21 - GATE-2 CLOSED: NOT RUN
+
+Decision taken by the owner in the 2026-10-21 revamp interview. GATE-2 ("do
+assisted replies move OON reach?") is closed as **NOT RUN**, not failed: between
+2026-06-26 and 2026-10-21 the loop was iterated zero times (0 `source='manual'`
+rows, 0 outcomes recorded, no analytics CSV after 2026-06-11). The scorecard,
+expiry logic and outcome capture stay in the codebase.
+
+It is replaced by the **30-day consistency gate** of the revamp plan
+(`docs/superpowers/plans/2026-10-21-revamp-plan.md`): >=21 of 30 days with >=1
+published post per managed account, counted from `posts.posted_at`; reach is an
+automatic weekly read-out, not a gate; day-14 tripwire if the owner's own account
+has <10 publish days. The `/goal` command that worked this ledger is retired.

@@ -1,6 +1,109 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-09-10 (Session 25 — **auth merge unblocked, with two lockout bugs found and fixed first**: `feat/auth-layer` as it stood would have locked the owner out ~1h after sign-in (session refresh could not persist from a Server Component; the proxy then looped `/login`↔`/` on a dead cookie) and left sign-up open. Fixed on branch **`claude/embalio-macos-handoff-vgt239`** (= `main` + the auth branch + `558a694`), suite **845 pass / 1 skip**, tsc + build green. **Go/no-go, the prod SQL, the order of operations: `docs/runbooks/2026-09-10-auth-merge-runbook.md`.** Whether the GATE-2 profile links to an auth user is **still unknown** (no DB access from the session) — runbook step 0. **GATE-2 close-out recommendation** (close as NOT RUN, open GATE-3 on MYCEL with ring-fenced legs, 2026-09-24 tripwire) is the last entry of `docs/GOAL-LOG.md`. MYCEL week-one requirements + nine post drafts: `docs/research/2026-09-10-mycel-week-one-posts.md`. Campaign Mode slice plan for sign-off: `docs/superpowers/plans/2026-09-10-campaign-mode-slices.md`. Snapshot: `docs/handoffs/2026-09-10-session25-auth-unblock-gate2-closeout.md`.)
+## Metadata
+
+- Project: Embalio
+- Branch: `feat/revamp-slice0-contract`
+- Last Updated: 2026-10-21 (Session 27, Codex continuation of Session 26)
+- Current PR: https://github.com/FCisco95/embalio/pull/7 — draft, not merged
+
+## TL;DR
+
+Session 26 next-steps tasks 1–3 are complete: feature branch pushed, PR #7 opened,
+visual component checks passed, three merged harness worktrees/branches removed.
+Task 4's single Linear follow-up is approved; creation awaits a parent issue ID
+and a connected workspace exposing Embalio/BAK. Task 5 is not authorized until
+the owner confirms BOTH the PR merge and `@fcisco95` linked on `/profiles`.
+
+## Current Objective
+
+Finish the approved Linear follow-up when its parent and workspace are available.
+Keep slice 2 paused. The owner performs migration/env setup, merge and live X
+acceptance using Session 26's rollout queue below.
+
+## Current State
+
+- PR #7 is a draft to `main`, titled as requested; its body contains Session 26's
+  summary and owner rollout steps 1–8. Source before this documentation receipt:
+  `bfbc56f`; feature branch tracks `origin/feat/revamp-slice0-contract`.
+- Local and remote `main` remain at `f544ac4`. No merge, migration, env edit,
+  workflow dispatch or live X publish was performed in this continuation.
+- `git worktree list` contains only the primary checkout; all three clean,
+  integrated `worktree-agent-*` branches were deleted with non-force commands.
+
+## Recent Changes
+
+No product code changed. Added a browser/cleanup receipt and the concrete Linear
+proposal. Temporary local UI fixtures were removed before the final build.
+
+## Known Issues / Watch List
+
+Protected `/` and `/profiles` redirect a fresh browser to login. The visual checks
+used real components/global CSS with disposable props, not an authenticated
+end-to-end account flow. The follow-up's security findings are not fixed here.
+The five `20261021_*.sql` migrations remain NOT applied per owner state.
+
+## Quick Reference
+
+- Original queue: `docs/handoffs/2026-10-21-session26-codex-next-steps.md`.
+- Browser/cleanup receipt: `docs/reviews/2026-10-21-slice1-browser-check.md`.
+- Approved issue proposal: `docs/proposals/2026-10-21-revamp-security-follow-up.md`.
+- Current snapshot: `docs/handoffs/2026-10-21-session27-pr-browser-cleanup.md`.
+- Plan: `docs/superpowers/plans/2026-10-21-revamp-plan.md`.
+
+## Validation
+
+Full local suite: 1,242 passed / 1 skipped (184 files passed / 1 skipped).
+TypeScript and production build passed in this continuation; no lint or live X
+acceptance is claimed. Final verification excludes the temporary fixture route.
+Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
+390 px, mismatch banner; no browser page errors and no CSS defect found.
+
+## Next Actions
+
+1. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
+   reachable through Orca, re-check duplicates, then create exactly one child
+   with `agent-proposed`. Do not create a root issue or use another team.
+2. Await the owner's explicit confirmation of PR merge AND primary X link before
+   starting Session 26 task 5. Owner-only rollout actions remain owner-only.
+
+## Resume Checklist
+
+1. Verify the feature branch, PR head/status and working diff before acting.
+2. Read the Session 27 snapshot and Session 26 task file; do not repeat completed
+   pushes/cleanup or start the proposed security work without a separate scope.
+3. Preserve the ban on merging/pushing `main`, `.env*` edits and migrations.
+
+## Suggested Skills
+
+`task-observer`, `embalio`, `handoff-memory`, `orca-linear`;
+`verification-before-completion` before a commit, `handoff` at checkpoint.
+
+## Generated Artifacts This Session
+
+Draft PR #7; browser/cleanup receipt; approved Linear proposal; Session 27
+handoff snapshot. Local-only screenshots/results: `.superpowers/browser-check/slice1/`.
+No credentials, deployed resources or scheduled jobs created.
+
+## Resume Prompt
+
+```text
+Continue Embalio from docs/HANDOFF.md (Session 27) and
+docs/handoffs/2026-10-21-session26-codex-next-steps.md.
+Tasks 1–3 are complete; PR #7 is a draft. The single Linear follow-up is approved
+but needs its parent ID and Embalio/BAK workspace access. Use the proposal in
+docs/proposals/2026-10-21-revamp-security-follow-up.md; create no root issue.
+Model: GPT-6.1 Sol (high) — bounded continuation and verification.
+Skills: task-observer, embalio, handoff-memory, orca-linear.
+Never merge or push main, edit .env*, or apply migrations. Do not begin slice 2
+until the owner explicitly confirms BOTH PR merge and @fcisco95 linked.
+```
+
+## Session 26 and Earlier — Historical Checkpoints
+
+**Session 26 checkpoint (historical):** 2026-10-21 (Session 26 — **REVAMP: GATE-2 closed NOT RUN; new plan built through slice 1 on branch `feat/revamp-slice0-contract` @ `7a66b73` (31 commits over `main`, 1242 pass / 1 skip, tsc + build green), NOT pushed, migrations NOT applied.** Plan: `docs/superpowers/plans/2026-10-21-revamp-plan.md`. Phone-first approval queue (Hoje) + nightly Claude skills + X API pay-per-use publish via per-account OAuth; 30-day consistency gate (published originals), day-14 tripwire. Owner rollout queue + slice-2 scope in the Session 26 entry. Snapshot: `docs/handoffs/2026-10-21-session26-revamp-slice0-1.md`.)
+
+**Previously:** 2026-09-10 (Session 25 — **auth merge unblocked, with two lockout bugs found and fixed first**: `feat/auth-layer` as it stood would have locked the owner out ~1h after sign-in (session refresh could not persist from a Server Component; the proxy then looped `/login`↔`/` on a dead cookie) and left sign-up open. Fixed on branch **`claude/embalio-macos-handoff-vgt239`** (= `main` + the auth branch + `558a694`), suite **845 pass / 1 skip**, tsc + build green. **Go/no-go, the prod SQL, the order of operations: `docs/runbooks/2026-09-10-auth-merge-runbook.md`.** Whether the GATE-2 profile links to an auth user is **still unknown** (no DB access from the session) — runbook step 0. **GATE-2 close-out recommendation** (close as NOT RUN, open GATE-3 on MYCEL with ring-fenced legs, 2026-09-24 tripwire) is the last entry of `docs/GOAL-LOG.md`. MYCEL week-one requirements + nine post drafts: `docs/research/2026-09-10-mycel-week-one-posts.md`. Campaign Mode slice plan for sign-off: `docs/superpowers/plans/2026-09-10-campaign-mode-slices.md`. Snapshot: `docs/handoffs/2026-09-10-session25-auth-unblock-gate2-closeout.md`.)
 
 **Previously:** 2026-09-09 (Session 24 — **two workstreams**: (1) a full X growth plan for **$MYCEL**, the Solana coin launched on Organic — researched, written, published as an artifact, and mirrored under `docs/research/`; (2) **the auth WIP that had been sitting uncommitted since ~2026-08-26 is now green** — it had never run (`server-only` was never installed). Suite **790 pass / 1 skip**, tsc + build green. **The auth work is on `feat/auth-layer`, deliberately NOT on `main`** — `main` auto-deploys to prod and merging puts a login wall up; two unverified prod risks must be settled first. Full detail: **`docs/handoffs/2026-09-09-session24-mycel-growth-plan-and-auth-wip.md`**. **GATE-2's 2026-09-04 deadline passed with no leg moved** — re-scope or close it out.)
 
@@ -14,6 +117,73 @@
 This is the canonical, living handoff for this repo. It is auto-loaded at the
 start of each session by the `handoff-memory` plugin's SessionStart hook.
 Point-in-time session snapshots live in `docs/handoffs/`.
+
+---
+
+## 🗒️ SESSION 26 (2026-10-21) — REVAMP: interview → new plan → slice 0 + slice 1 built, reviewed, on a branch (NOT on main)
+
+**TL;DR:** The owner asked for a from-scratch rethink ("don't assume the old plan; think with what exists
+now"). A 3-round interview produced a new plan — **`docs/superpowers/plans/2026-10-21-revamp-plan.md`** —
+and the session then built slices 0 and 1 of it. Embalio becomes a **phone-first approval queue (Hoje)**
+over Supabase that **Claude Code skills fill every night** (1–3 original drafts per account, each with an
+angle + rationale) using the **official X API (pay-per-use: $0.015/post, $0.005/read, no monthly fee)** and
+xAI `x_search`; **approved originals publish through each account's own X OAuth**; replies stay intent-URL.
+One operator, 3–5 accounts. **GATE-2 is closed NOT RUN** (one line in `docs/GOAL-LOG.md`; `/goal` retired).
+**New gate = 30-day consistency**: ≥21 of 30 days with ≥1 published ORIGINAL per account (reply logs do
+not count); reach is a weekly automatic read-out, not a gate; **day-14 tripwire**: <10 publish days on the
+owner's own account → stop building UI.
+
+**What exists now on branch `feat/revamp-slice0-contract` @ `7a66b73` (31 commits over `main`; suite
+1242 pass / 1 skip, tsc clean, `npm run build` green — all three re-run by the controller at the end):**
+- **Slice 0 — Day-0 contract:** `src/lib/x-api/types.ts` (`XClient`), five migrations `supabase/migrations/20261021_*.sql`
+  (`x_accounts`; drafts `scheduled_at/angle/rationale/link_url` + status `scheduled` + `posting_jobs.method='xapi'` +
+  `posts.tweet_id`; `target_allocations` with a one-target-one-profile trigger; `signal_cursors`; readout columns +
+  `profiles.reach_insights`), `types.ts` reflected; nav → **Hoje · Replies · Performance · Contas** with Studio/Topics/
+  Composer/Targeting under a sidebar **Labs** group; Apify crons removed from `vercel.json`.
+- **Lane A (X backbone):** per-profile OAuth 2.0 PKCE (`/api/x/oauth/{start,callback}`; AES-GCM token storage,
+  CAS-guarded refresh rotation, handle-mismatch guard, `x=…` outcome banner on `/profiles`), `src/server/publish.ts`
+  (idempotent via the `posting_jobs` partial index; transport error = maybe-sent → `needs_manual_confirmation` + draft
+  `unconfirmed`; reaper for stale `running` jobs; 15 s fetch timeouts; link posted as reply 1), queue Server Actions
+  (`approveAndSchedule`, `editDraftBody`, `skipDraft`, `unscheduleDraft`, `clearDraftLink`, `confirmPublished`,
+  `confirmNotPublished`), `ApprovalQueue` UI, `/api/cron/publish-due` (45 s budget).
+- **Lane B (app surface):** `embalio_profile` cookie resolver + real `AccountSwitcher`; every page on
+  `requireActiveProfile()`; `FIXED_PROFILE_ID` retired in favour of `assertOwnProfile` (only hit left:
+  `api/cron/follower-snapshot`, deleted in slice 2); 30-day **consistency gate card** on `/performance`; shared
+  `resolveCronProfiles`; nudge/telegram/strategy-weekly service-role code moved OUT of `"use server"` modules.
+- **Lane E (engine):** `scripts/nightly-drafts.ts` (+ `src/lib/engine/*`, xAI `x_search` lane scan, `buildNightlyDraftsPrompt`),
+  `.github/workflows/nightly-drafts.yml` (**06:30 UTC**, one combined notification per run), skill
+  `.claude/skills/embalio-nightly/SKILL.md` (`/embalio-nightly`). A `--dry-run` against the real Supabase produced
+  3 on-voice drafts for @fcisco95.
+- **Process:** three lanes ran in parallel in isolated worktrees (Sonnet implementers, Opus reviewers, 1–2 fix rounds
+  each), merged B → E → A, integration task, final whole-branch review (0 Critical, 6 Important) → one fix wave →
+  clean re-review. Ledger with every ruling and deferred minor: `.superpowers/sdd/2026-10-21-revamp-plan/progress.md`
+  (git-ignored, this machine only; the rulings are also in the session's final message).
+
+**NOT done:** nothing is pushed (`main` auto-deploys to prod). Migrations NOT applied. No code run against real X or a
+browser (switcher popover and Hoje on a phone viewport unchecked). `.env.example` could not be edited by any agent
+(harness treats `.env*` as sensitive) → owner adds `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_TOKEN_ENC_KEY`. xAI request
+shape for `x_search` is implemented from docs but unverified live (fails safe to "no lane scan").
+
+**Owner queue — rollout order (from the final review):**
+1. Pre-flight for the new unique index (must return 0 rows): `select profile_id, substring(tweet_url from '/status/(\d+)') t, count(*) from posts group by 1,2 having count(*)>1;`
+2. Apply the five `supabase/migrations/20261021_*.sql` in the SQL editor (old code runs fine on the new schema; the reverse degrades, so migrate first).
+3. X Developer portal: OAuth 2.0 app (confidential), callback `https://embalio.vercel.app/api/x/oauth/callback` (+ localhost), card + starter credits → `X_CLIENT_ID`/`X_CLIENT_SECRET`; `X_TOKEN_ENC_KEY` = base64 of 32 random bytes. Set all three in Vercel env + GitHub Actions secrets. Optional `XAI_API_KEY` (console.x.ai).
+4. Push the branch, open the PR, merge to `main`.
+5. Link @fcisco95 on `/profiles` (private window logged into that account).
+6. `gh workflow run nightly-drafts.yml -f dry_run=true`, then a real run → drafts appear on Hoje.
+7. One "Publicar agora" with a harmless post; one "Agendar" +10 min (the ticker is manual until step 8: `gh workflow run publish-due.yml`).
+8. Only then schedule pg_cron: enable `pg_cron` + `pg_net`, `vault.create_secret('<CRON_SECRET>','cron_secret')`, `cron.schedule('publish-due','*/5 * * * *', …)` — SQL in the plan §2.
+9. Day 1 of the 30 starts at the first real publish. Day-14 check: `/performance` gate card.
+
+**Slice 2 (next build; before ANY second account is linked):** `embalio-onboard` wizard (E1), installable PWA + morning
+push (B3), read-out writer + Performance reach (Lane D), weekly note (E4). Follow-ups logged for a Linear
+`agent-proposed` issue (ask first): audit the remaining `"use server"` modules that call `supabaseService`
+(`recommendTargets` in `target-queue.ts` is an unauthenticated LLM-cost action); anchor the `TweetUrl` regex
+(`src/lib/schemas.ts`); the `unconfirmed` card should say a lost link reply is not recreated.
+
+**Suggested skills next session:** handoff-memory (resume), superpowers:subagent-driven-development (slice 2 lanes
+E1 ‖ B3 ‖ D, same ledger), `run` (browser check: switcher popover collapsed/expanded, Hoje at 390 px), promptfoo
+(before changing `buildNightlyDraftsPrompt`), orca-linear (create the follow-up issue after asking).
 
 ---
 

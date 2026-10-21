@@ -4,10 +4,11 @@ import type { CandidateInput } from "@/lib/apify";
  *  existing scan/rank pipeline consumes it unchanged; `raw` feeds the warehouse. */
 export type SignalTweet = CandidateInput & { raw?: Record<string, unknown> };
 
-export type SignalSourceId = "apify" | "twitterapi" | "grok";
+export type SignalSourceId = "apify" | "twitterapi" | "grok" | "xapi";
 
 export interface SignalSource {
   readonly id: SignalSourceId;
-  pullAuthorTweets(handles: string[], opts: { maxPerHandle?: number }): Promise<SignalTweet[]>;
+  /** `profileId` lets per-profile sources (xapi) pick the right OAuth account + cursor. */
+  pullAuthorTweets(handles: string[], opts: { maxPerHandle?: number; profileId?: string }): Promise<SignalTweet[]>;
   pullTweetMetrics(tweetUrl: string): Promise<{ likes: number; views: number; replies: number }>;
 }

@@ -11,9 +11,6 @@ import {
   Heart,
   Repeat2,
   Reply,
-  Check,
-  CheckCircle2,
-  SquarePen,
   Target,
 } from "lucide-react"
 
@@ -29,8 +26,8 @@ import { BRAND } from "@/lib/brand"
 import { formatCount } from "@/lib/format"
 import { redirect } from "next/navigation"
 import { needsSetup } from "@/lib/setup-logic"
-import { listProfiles } from "@/server/profiles"
-import { listPendingDrafts } from "@/server/posts"
+import { requireActiveProfile } from "@/server/active-profile"
+import { listQueueDrafts, getXConnection, type QueueDraft, type XConnection } from "@/server/queue"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
 import { getDailyPlan } from "@/server/daily-plan"
@@ -39,6 +36,7 @@ import { getFollowerStat } from "@/server/kpis"
 import { getWeeklyActivity } from "@/server/weekly-activity"
 import { GrowthPlanCard } from "@/components/growth-plan-card"
 import { DailyPlanCard } from "@/components/daily-plan-card"
+import { ApprovalQueue } from "@/components/approval-queue"
 import { FollowerCard } from "@/components/follower-card"
 import { StreakBadge } from "@/components/streak-badge"
 import { WeeklySystemCard } from "@/components/weekly-system-card"
@@ -54,7 +52,8 @@ const EMPTY_DASHBOARD: DashboardData = {
 
 export default async function DashboardPage() {
   let handle = BRAND.handle
-  let pending: Awaited<ReturnType<typeof listPendingDrafts>> = []
+  let queue: QueueDraft[] = []
+  let xConn: XConnection = { connected: false }
   let data: DashboardData = EMPTY_DASHBOARD
   let growthPlan: Awaited<ReturnType<typeof getGrowthPlan>> = null
   let dailyPlan: Awaited<ReturnType<typeof getDailyPlan>> | null = null
@@ -63,20 +62,20 @@ export default async function DashboardPage() {
   let weeklyActivity: Awaited<ReturnType<typeof getWeeklyActivity>> | null = null
   let profileId: string | null = null
   try {
-    const profiles = await listProfiles()
-    const profile = profiles?.[0]
+    const profile = await requireActiveProfile()
     if (needsSetup(profile)) redirect("/setup")
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
     if (profile?.id) {
       profileId = profile.id
       const id = profile.id
-      // These seven reads are independent — they only need the profile id. Run
+      // These eight reads are independent — they only need the profile id. Run
       // them concurrently: serially they made `/` a 20-30s page while sibling
       // routes answered in ~1s. allSettled (not all) so one failing read
       // degrades its own card instead of blanking the whole dashboard, which is
       // what the surrounding try/catch used to do.
-      const [pendingR, dataR, growthR, planR, streakR, followerR, weeklyR] = await Promise.allSettled([
-        listPendingDrafts(id),
+      const [queueR, xR, dataR, growthR, planR, streakR, followerR, weeklyR] = await Promise.allSettled([
+        listQueueDrafts(id),
+        getXConnection(id),
         getDashboardData(id),
         getGrowthPlan(id),
         getDailyPlan(id),
@@ -84,7 +83,8 @@ export default async function DashboardPage() {
         getFollowerStat(id),
         getWeeklyActivity(id),
       ])
-      if (pendingR.status === "fulfilled") pending = pendingR.value
+      if (queueR.status === "fulfilled") queue = queueR.value
+      if (xR.status === "fulfilled") xConn = xR.value
       if (dataR.status === "fulfilled") data = dataR.value
       if (growthR.status === "fulfilled") growthPlan = growthR.value
       if (planR.status === "fulfilled") dailyPlan = planR.value
@@ -103,6 +103,9 @@ export default async function DashboardPage() {
   const { reach, topPost, strategy, targets } = data
   const hasReach = reach.series.some((d) => d.y > 0)
 
+  // Drafts still waiting on a human (scheduled ones are already signed off).
+  const needSignOff = queue.filter((d) => d.status !== "scheduled").length
+
   const hour = new Date().getHours()
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
 
@@ -114,8 +117,8 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-[-0.02em]">{greet}, {BRAND.name}</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Running <strong className="font-semibold text-secondary-foreground">{handle}</strong>
-            {pending.length
-              ? ` · ${pending.length} draft${pending.length > 1 ? "s" : ""} need your sign-off`
+            {needSignOff
+              ? ` · ${needSignOff} draft${needSignOff > 1 ? "s" : ""} need your sign-off`
               : " · queue is clear"}
           </p>
         </div>
@@ -127,6 +130,13 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Approval queue — the point of Hoje: today's drafts, approve/edit/schedule */}
+      {profileId && (
+        <div className="mb-[18px]">
+          <ApprovalQueue profileId={profileId} drafts={queue} x={xConn} />
+        </div>
+      )}
 
       {/* Balanced dashboard grid */}
       <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-2">
@@ -229,59 +239,6 @@ export default async function DashboardPage() {
               See analytics
             </Link>
           </div>
-        </div>
-
-        {/* Pending approval — real drafts */}
-        <div className={cn(CARD, "p-5")}>
-          <div className="mb-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[13px] font-semibold">
-              <Check className="size-4" strokeWidth={1.6} />
-              Pending approval
-              {pending.length ? (
-                <span className="inline-flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-primary px-[5px] text-[11px] font-bold text-primary-foreground">
-                  {pending.length}
-                </span>
-              ) : null}
-            </div>
-            <Link href="/compose" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              Composer
-            </Link>
-          </div>
-
-          {pending.length === 0 ? (
-            <div className="px-2 py-6 text-center text-[13px] text-muted-foreground">
-              <div className="mb-2 flex justify-center text-success">
-                <CheckCircle2 className="size-6" strokeWidth={1.6} />
-              </div>
-              All caught up — queue is clear.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {pending.slice(0, 3).map((d) => (
-                <div key={d.id} className="rounded-xl border border-border bg-surface-2 px-3.5 py-3.5">
-                  <div className="mb-2 flex items-center gap-2 text-[11.5px] text-muted-foreground">
-                    <PlatformGlyph id="x" size={15} />
-                    <span className="font-medium capitalize">{d.kind}</span>
-                    <span>·</span>
-                    <span>{new Date(d.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                  </div>
-                  <p className="mb-2.5 text-[13px] leading-[1.5]">
-                    {d.body.length > 130 ? d.body.slice(0, 130) + "…" : d.body}
-                  </p>
-                  <div className="flex gap-2">
-                    <Link href="/compose" className={cn(buttonVariants({ size: "sm" }))}>
-                      <Check strokeWidth={2} />
-                      Approve &amp; post
-                    </Link>
-                    <Link href="/compose" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-                      <SquarePen strokeWidth={1.8} />
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Top post */}

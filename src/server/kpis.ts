@@ -5,7 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { parseAnalyticsCsv, CsvHeaderError, type RejectedRow } from "@/lib/kpis/csv";
 import { computeKpis, computeFollowerStat, type FollowerStat } from "@/lib/kpis/aggregate";
 import type { KpiSummary } from "@/lib/kpis/schemas";
-import { assertFixedProfileAccess } from "@/server/fixed-profile";
+import { assertOwnProfile } from "@/server/auth";
 
 export type ImportResult =
   | { ok: true; imported: number; rejected: RejectedRow[] }
@@ -24,7 +24,7 @@ const sinceDate = (days: number) => new Date(Date.now() - days * 86_400_000).toI
  */
 export async function importAnalyticsCsv(profileId: string, csvText: string): Promise<ImportResult> {
   if (!profileId) return { ok: false, error: "no profile" };
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   // Client-callable with attacker-influenced input — bound the work before
   // parsing. X's real export is a few hundred KB at worst.
   const MAX_CSV_BYTES = 2 * 1024 * 1024;
@@ -67,7 +67,7 @@ export async function importAnalyticsCsv(profileId: string, csvText: string): Pr
 
 /** KPI aggregate for the card grid + drill-downs. Pure math lives in @/lib/kpis. */
 export async function getKpis(profileId: string): Promise<KpiSummary> {
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   const sb = supabaseService();
   const { data: analytics, error: analyticsError } = await sb
     .from("analytics_daily")
@@ -88,7 +88,7 @@ export async function getKpis(profileId: string): Promise<KpiSummary> {
 
 /** Light fetch for the home follower star card. */
 export async function getFollowerStat(profileId: string): Promise<FollowerStat | null> {
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   const sb = supabaseService();
   const { data, error } = await sb
     .from("follower_snapshots")

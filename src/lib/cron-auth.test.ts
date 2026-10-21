@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { cronAuthError } from "@/lib/cron-auth";
+import { cronAuthError, safeEqual } from "@/lib/cron-auth";
+
+describe("safeEqual", () => {
+  it("is true only for identical strings", () => {
+    expect(safeEqual("abc", "abc")).toBe(true);
+    expect(safeEqual("abc", "abd")).toBe(false);
+    expect(safeEqual("abc", "abcd")).toBe(false);
+    expect(safeEqual("", "")).toBe(true);
+  });
+});
 
 function reqWith(auth?: string): Request {
   return new Request("https://x/api/cron", auth ? { headers: { authorization: auth } } : {});

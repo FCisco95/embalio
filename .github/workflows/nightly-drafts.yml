@@ -1,0 +1,60 @@
+name: nightly-drafts
+
+on:
+  schedule:
+    # 06:30 UTC = 07:30 Lisbon in summer (WEST), 06:30 in winter (WET). The "queue ready"
+    # notification fires at the end of the run, so this keeps it out of the middle of the night.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Only this profile id (empty = all profiles)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Compute and print the drafts, write and notify nothing"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: nightly-drafts
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Generate nightly drafts
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          # Optional: lane scan is skipped when XAI_API_KEY is unset.
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_MODEL: ${{ vars.XAI_MODEL }}
+          # Optional: "queue ready" notification channels.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          # Inputs go through env, never interpolated into the script body.
+          INPUT_PROFILE: ${{ inputs.profile }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [ -n "$INPUT_PROFILE" ]; then args+=(--profile "$INPUT_PROFILE"); fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          npx tsx scripts/nightly-drafts.ts "${args[@]}"

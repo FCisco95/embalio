@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@/server/strategy", () => ({ runWeeklyStrategy: vi.fn(async () => ({ ok: true, weekOf: "2026-06-15", pushed: true })) }));
+vi.mock("@/server/strategy-weekly", () => ({ runWeeklyStrategy: vi.fn(async () => ({ ok: true, weekOf: "2026-06-15", pushed: true })) }));
 vi.mock("@/lib/supabase/server", () => ({
   supabaseService: () => ({ from: () => ({ select: () => ({ eq: async () => ({ data: [{ profile_id: "p1" }] }) }) }) }),
 }));
 
 import { GET } from "./route";
-import { runWeeklyStrategy } from "@/server/strategy";
+import { runWeeklyStrategy } from "@/server/strategy-weekly";
 
 describe("GET /api/cron/strategy", () => {
   beforeEach(() => { process.env.CRON_SECRET = "secret"; vi.clearAllMocks(); });

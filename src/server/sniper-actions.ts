@@ -9,17 +9,11 @@ import {
   type ManualAlertResult,
 } from "@/server/sniper";
 import type { SkipReason } from "@/lib/gate/scorecard";
-import { fixedProfileMismatch } from "@/server/fixed-profile";
+import { assertOwnProfile } from "@/server/auth";
 
-// Tenant guard for the sniper actions. These are public, unauthenticated POST
-// endpoints (there is no auth layer: src/proxy.ts is a no-op), and they write to
-// the dataset GATE-2 is judged on, so they get the same FIXED_PROFILE_ID check
-// the rest of the repo uses (see profiles.ts:63).
-//
-// This is DEFENSE-IN-DEPTH, NOT a fix for audit finding F2. It stops writes
-// aimed at another tenant, but it cannot stop an anonymous caller who passes the
-// *correct* profile id — which is public. Closing F2 needs Vercel Deployment
-// Protection or a real auth layer (F1).
+// Tenant guard for the sniper actions. These are public POST endpoints that
+// write to the dataset GATE-2 is judged on, so each one first proves the caller
+// owns the profile (session user + RLS-scoped lookup) via assertOwnProfile.
 // Decision record: docs/superpowers/plans/2026-08-02-f2-sniper-action-guards.md
 export async function actOnSniperAlert(
   profileId: string,
@@ -27,7 +21,7 @@ export async function actOnSniperAlert(
   action: "acted" | "dismissed",
   skipReason?: SkipReason | null,
 ): Promise<void> {
-  if (fixedProfileMismatch(profileId)) throw new Error("profile_id mismatch");
+  await assertOwnProfile(profileId);
   await markSniperAlert(profileId, alertId, action, skipReason);
 }
 
@@ -36,7 +30,7 @@ export async function confirmSentReply(
   alertId: string,
   sentText: string,
 ): Promise<void> {
-  if (fixedProfileMismatch(profileId)) throw new Error("profile_id mismatch");
+  await assertOwnProfile(profileId);
   await markSniperReplySent(profileId, alertId, sentText);
 }
 
@@ -45,7 +39,7 @@ export async function recordReplyOutcome(
   alertId: string,
   outcome: ReplyOutcomeInput,
 ): Promise<void> {
-  if (fixedProfileMismatch(profileId)) throw new Error("profile_id mismatch");
+  await assertOwnProfile(profileId);
   await setReplyOutcome(profileId, alertId, outcome);
 }
 
@@ -56,6 +50,10 @@ export async function createManualSniperAlert(
   // Result-union rather than a throw: this action's contract is never-throws
   // (the /engage form renders `reason`). The guard runs first so a rejected
   // caller never reaches the two embedding calls in createManualAlert.
-  if (fixedProfileMismatch(profileId)) return { ok: false, reason: "profile_id mismatch" };
+  try {
+    await assertOwnProfile(profileId);
+  } catch {
+    return { ok: false, reason: "profile not found or access denied" };
+  }
   return createManualAlert(profileId, input);
 }

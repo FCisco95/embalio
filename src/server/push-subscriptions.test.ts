@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const assertOwnProfile = vi.fn<(id: string) => Promise<void>>();
+vi.mock("@/server/auth", () => ({ assertOwnProfile: (id: string) => assertOwnProfile(id) }));
+
 const upsert = vi.fn().mockResolvedValue({ error: null });
 const deleteEqEndpoint = vi.fn().mockResolvedValue({ error: null });
 const deleteEqProfile = vi.fn().mockReturnValue({ eq: deleteEqEndpoint });
@@ -16,6 +19,7 @@ vi.mock("@/lib/supabase/server", () => ({
 import { savePushSubscription, removePushSubscription } from "@/server/push-subscriptions";
 
 beforeEach(() => {
+  assertOwnProfile.mockReset().mockResolvedValue(undefined);
   upsert.mockClear();
   del.mockClear();
   deleteEqProfile.mockClear();
@@ -23,6 +27,16 @@ beforeEach(() => {
 });
 
 describe("push subscription persistence", () => {
+  it("rejects a profile the caller does not own before writing or deleting", async () => {
+    assertOwnProfile.mockRejectedValue(new Error("Profile not found or access denied"));
+    await expect(
+      savePushSubscription("foreign", { endpoint: "https://p/1", p256dh: "a", auth: "b" }),
+    ).rejects.toThrow("access denied");
+    await expect(removePushSubscription("foreign", "https://p/1")).rejects.toThrow("access denied");
+    expect(upsert).not.toHaveBeenCalled();
+    expect(del).not.toHaveBeenCalled();
+  });
+
   it("upserts on endpoint so re-subscribing the same browser is idempotent", async () => {
     await savePushSubscription("profile-1", {
       endpoint: "https://p/1",

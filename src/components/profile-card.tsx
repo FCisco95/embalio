@@ -7,9 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { BrandAvatar } from "@/components/ui/brand-avatar";
 import { PostingConfig } from "@/components/posting-config";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
+import { ConnectXButton } from "@/components/x/connect-x-button";
+import { getXConnection, type XConnection } from "@/server/queue";
 
 export async function ProfileCard({ profile }: { profile: { id: string; handle: string; niche_description: string | null } }) {
   const targets = await listSeedTargets(profile.id);
+  // x_accounts may not exist yet (migration is an owner step): never let the X row break /profiles.
+  const x: XConnection = await getXConnection(profile.id).catch(() => ({ connected: false }));
   const postingEnabled = process.env.NEXT_PUBLIC_POSTING_ENABLED === "true";
   const account = postingEnabled ? await getPostingAccount(profile.id) : null;
 
@@ -37,6 +41,7 @@ export async function ProfileCard({ profile }: { profile: { id: string; handle: 
           <p className="text-[12px] text-muted-foreground">Seed targets</p>
           <Badge variant="secondary">{targets?.length ?? 0}</Badge>
         </div>
+        <ConnectXButton profileId={profile.id} connected={x.connected} username={x.username} needsReauth={x.needsReauth} />
         {postingEnabled && <PostingConfig profileId={profile.id} current={account?.adspower_user_id} />}
         <OnboardingWizard profileId={profile.id} />
       </CardContent>

@@ -1,22 +1,23 @@
-"use server";
-import { supabaseServer } from "@/lib/supabase/server";
+import "server-only";
+import { supabaseService } from "@/lib/supabase/server";
 import { getTelegramUpdates, answerCallbackQuery } from "@/lib/telegram";
 import { parseCallback, type ParsedCallback } from "@/lib/telegram-callback";
-import { markRepliedQuick, dismissCandidate } from "@/server/posts";
+import { markRepliedQuickCore, dismissCandidateCore } from "@/server/posts-core";
 import type { Json } from "@/lib/supabase/types";
 
 /** Apply one parsed tap. Idempotent: only a still-surfaced candidate is acted on. */
 export async function applyCallback(profileId: string, c: ParsedCallback): Promise<void> {
-  const sb = await supabaseServer();
+  // Only reached from the cron-bearer /api/telegram/poll (no session) -> service client.
+  const sb = supabaseService();
   // Scope the lookup to the profile so a callback can never resolve another
-  // profile's candidate once this grows past the single FIXED_PROFILE_ID tenant.
+  // profile's candidate.
   const { data: cand } = await sb
     .from("candidates").select("status")
     .eq("id", c.candidateId).eq("profile_id", profileId).single();
   if (!cand || cand.status !== "surfaced") return;
 
   if (c.action === "skip") {
-    await dismissCandidate(c.candidateId);
+    await dismissCandidateCore(sb, c.candidateId);
     return;
   }
   // posted → reuse the candidate's latest reply draft as a URL-less reply log.
@@ -26,13 +27,13 @@ export async function applyCallback(profileId: string, c: ParsedCallback): Promi
     .order("created_at", { ascending: false }).limit(1);
   const draft = drafts?.[0];
   if (!draft) return;
-  await markRepliedQuick(profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string });
+  await markRepliedQuickCore(sb, profileId, { draftId: draft.id as string, candidateId: c.candidateId, reply: draft.body as string });
 }
 
 /** Drain pending Telegram taps since the stored offset and apply them once each. */
 export async function drainTelegramUpdates(profileId: string): Promise<{ applied: number; error?: string }> {
   try {
-    const sb = await supabaseServer();
+    const sb = supabaseService();
     const { data: profile } = await sb.from("profiles").select("retention").eq("id", profileId).single();
     const retention = (profile?.retention ?? {}) as { telegram?: { offset: number } };
     const offset = retention.telegram?.offset ?? 0;

@@ -1,6 +1,6 @@
 "use server";
 import { supabaseService } from "@/lib/supabase/server";
-import { assertFixedProfileAccess } from "@/server/fixed-profile";
+import { assertOwnProfile } from "@/server/auth";
 
 export interface PushSubscriptionInput {
   endpoint: string;
@@ -13,7 +13,7 @@ export async function savePushSubscription(
   profileId: string,
   sub: PushSubscriptionInput,
 ): Promise<void> {
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   const sb = supabaseService();
   const { error } = await sb.from("push_subscriptions").upsert(
     {
@@ -29,7 +29,7 @@ export async function savePushSubscription(
 }
 
 export async function removePushSubscription(profileId: string, endpoint: string): Promise<void> {
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   const sb = supabaseService();
   const { error } = await sb.from("push_subscriptions").delete().eq("profile_id", profileId).eq("endpoint", endpoint);
   if (error) throw new Error(`removing push subscription failed: ${error.message}`);

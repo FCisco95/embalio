@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { TweetUrl, PostMetrics } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/activity";
+import { dismissCandidateCore, markRepliedQuickCore } from "@/server/posts-core";
 
 export async function markPosted(draftId: string, tweetUrl: string) {
   const parsed = TweetUrl.safeParse(tweetUrl);
@@ -34,9 +35,9 @@ export async function listPerformance(profileId: string) {
 export async function listPendingDrafts(profileId: string) {
   const sb = await supabaseServer();
   const { data, error } = await sb.from("drafts")
-    .select("id, body, kind, suggested_visual, status, created_at")
+    .select("id, body, kind, suggested_visual, status, created_at, scheduled_at, angle, rationale, link_url")
     .eq("profile_id", profileId)
-    .in("status", ["draft", "approved"])
+    .in("status", ["draft", "approved", "scheduled"])
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -75,46 +76,21 @@ export async function saveDraftToQueue(
   return data.id as string;
 }
 
+/**
+ * Thin wrappers: always the cookie-bound (RLS) client. The service-role callers
+ * (Telegram poll cron) use the cores in posts-core.ts directly.
+ */
 export async function dismissCandidate(candidateId: string) {
-  const sb = await supabaseServer();
-  const { error } = await sb.from("candidates").update({ status: "dismissed" }).eq("id", candidateId);
-  if (error) throw new Error(error.message);
-  revalidatePath("/board");
-  revalidatePath("/engage");
+  await dismissCandidateCore(await supabaseServer(), candidateId);
 }
 
 /**
  * One-tap "Done" for the dead-time engage loop: log that a reply was sent WITHOUT
- * requiring its URL. Inserts a reply draft (if not already one) + a URL-less post
- * so the coach's repliesDoneToday count ticks. URL can be backfilled via markPosted
- * later for the metrics loop. See spec §12 (one-tap Done, URL optional).
+ * requiring its URL. See markRepliedQuickCore.
  */
 export async function markRepliedQuick(
   profileId: string,
   input: { draftId?: string; candidateId?: string; reply: string },
 ): Promise<void> {
-  const body = input.reply.trim();
-  if (!profileId) throw new Error("no profile");
-  if (!body) throw new Error("empty reply");
-  const sb = await supabaseServer();
-
-  let draftId = input.draftId;
-  if (!draftId) {
-    const { data, error } = await sb.from("drafts").insert({
-      profile_id: profileId, kind: "reply", body, candidate_id: input.candidateId ?? null,
-    }).select("id").single();
-    if (error || !data) throw new Error(error?.message ?? "draft insert failed");
-    draftId = data.id as string;
-  }
-
-  const { error: postErr } = await sb.from("posts").insert({
-    profile_id: profileId, draft_id: draftId, tweet_url: null,
-  });
-  if (postErr && postErr.code !== "23505") throw new Error(postErr.message);
-
-  await sb.from("drafts").update({ status: "posted" }).eq("id", draftId);
-  if (input.candidateId) await sb.from("candidates").update({ status: "engaged" }).eq("id", input.candidateId);
-  await logActivity(sb, profileId, "reply_posted", { refId: draftId, meta: { via: "quick" } });
-  revalidatePath("/engage");
-  revalidatePath("/");
+  await markRepliedQuickCore(await supabaseServer(), profileId, input);
 }

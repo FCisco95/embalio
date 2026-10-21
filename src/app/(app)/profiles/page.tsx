@@ -2,15 +2,21 @@ import { listProfiles } from "@/server/profiles";
 import { ProfileForm } from "@/components/profile-form";
 import { ProfileCard } from "@/components/profile-card";
 import { PageShell } from "@/components/shell/page-shell";
+import { XOAuthBanner } from "@/components/x/oauth-banner";
 
-export default async function ProfilesPage() {
-  const profiles = await listProfiles();
+export default async function ProfilesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ x?: string; handle?: string; expected?: string; profile?: string }>;
+}) {
+  const [{ x, handle, expected, profile }, profiles] = await Promise.all([searchParams, listProfiles()]);
   return (
     <PageShell
-      title="Brand Voice"
+      title="Contas"
       subtitle="Your voice spec, guardrails, and seed accounts."
     >
       <div className="space-y-10 max-w-2xl">
+        <XOAuthBanner x={x} handle={handle} expected={expected} profile={profile} />
         <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground mb-3">
             New profile

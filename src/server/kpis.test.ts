@@ -8,6 +8,8 @@ let snapshotRows: unknown[] = [];
 const activityInserts: Record<string, unknown>[] = [];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const assertOwnProfile = vi.fn<(id: string) => Promise<void>>();
+vi.mock("@/server/auth", () => ({ assertOwnProfile: (id: string) => assertOwnProfile(id) }));
 vi.mock("@/lib/supabase/server", () => ({
   supabaseService: () => ({
     from: (table: string) => {
@@ -37,12 +39,24 @@ const CSV = [
 ].join("\n");
 
 beforeEach(() => {
+  assertOwnProfile.mockReset().mockResolvedValue(undefined);
   upserted = null;
   upsertError = null;
   analyticsRows = [];
   analyticsError = null;
   snapshotRows = [];
   activityInserts.length = 0;
+});
+
+describe("ownership guard", () => {
+  it("every kpis action checks the caller owns the profile before reading or writing", async () => {
+    assertOwnProfile.mockRejectedValue(new Error("Profile not found or access denied"));
+    await expect(importAnalyticsCsv("foreign", CSV)).rejects.toThrow("access denied");
+    await expect(getKpis("foreign")).rejects.toThrow("access denied");
+    await expect(getFollowerStat("foreign")).rejects.toThrow("access denied");
+    expect(assertOwnProfile).toHaveBeenCalledTimes(3);
+    expect(upserted).toBeNull();
+  });
 });
 
 describe("importAnalyticsCsv", () => {

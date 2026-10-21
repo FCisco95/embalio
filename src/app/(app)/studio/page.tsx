@@ -1,4 +1,5 @@
-import { getActiveProfile, seedRecordingProfilesIfEmpty } from "@/server/studio/recording-profiles";
+import { getActiveProfile } from "@/server/active-profile";
+import { seedRecordingProfilesIfEmpty } from "@/server/studio/recording-profiles";
 import { listVideoProjects } from "@/server/studio/projects";
 import { isYouTubeConnected } from "@/server/studio/publish";
 import { getChannelPlaybook } from "@/server/studio/playbook";
@@ -15,6 +16,7 @@ export default async function StudioPage() {
   let briefMeta: BriefMeta | null = null;
   try {
     const profile = await getActiveProfile();
+    if (!profile) throw new Error("no profile configured");
     profileId = profile.id;
     recordingProfiles = await seedRecordingProfilesIfEmpty(profile.id);
     projects = await listVideoProjects(profile.id);

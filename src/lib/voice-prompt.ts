@@ -347,3 +347,71 @@ export function buildReplyDraftPrompt(
     `Return exactly this JSON: {"reply": "...", "skip": false} or {"skip": true}`,
   ].filter(Boolean).join("\n\n");
 }
+
+import type { LaneScan } from "@/lib/engine/xsearch";
+
+const oneLineSafe = (s: string, max: number) => sanitizeForPrompt(s, max).replace(/\s+/g, " ");
+
+/**
+ * Nightly drafts job: 1..max ORIGINAL posts with an angle + rationale each. The
+ * do-not-rephrase list is the owner's own recent posts and voice corpus; the
+ * post-generation validator also rejects near-duplicates, this just steers.
+ */
+export function buildNightlyDraftsPrompt(a: {
+  voiceSystem: string;
+  pillars: string[];
+  topics: Array<{ topic: string; angle: string | null }>;
+  laneScan: LaneScan | null;
+  doNotRephrase: string[];
+  max: number;
+  premium: boolean;
+}): string {
+  const limit = a.premium ? 4000 : 280;
+  const parts = [
+    a.voiceSystem,
+    UNTRUSTED_DATA_NOTICE,
+    `Write 1 to ${a.max} ORIGINAL X posts for tomorrow's queue. Content pillars: ${a.pillars.map((p) => oneLineSafe(p, 200)).join(", ") || "(none set)"}.`,
+  ];
+  if (a.topics.length > 0) {
+    parts.push(
+      `Fresh topics scored for this account (starting points, not assignments):\n${frameUntrusted(
+        a.topics.map((t) => `- ${oneLineSafe(t.topic, 200)}${t.angle ? ` | angle: ${oneLineSafe(t.angle, 200)}` : ""}`).join("\n"),
+        2000,
+      )}`,
+    );
+  }
+  if (a.laneScan) {
+    parts.push(
+      `Most engaging posts in this lane over the last 24h (xAI scan; use it for what is moving, never copy):\n${frameUntrusted(
+        a.laneScan.items
+          .map((i) => `- ${oneLineSafe(i.handle, 40)}: ${oneLineSafe(i.excerpt, 200)} [${oneLineSafe(i.approx_engagement, 60)}] why: ${oneLineSafe(i.why_it_matters, 200)}`)
+          .join("\n"),
+        3000,
+      )}`,
+    );
+  }
+  if (a.doNotRephrase.length > 0) {
+    parts.push(
+      `DO NOT REPHRASE. These are this account's own recent posts and voice examples. Net-new angles only: a draft that says the same thing in other words is rejected.\n${frameUntrusted(
+        a.doNotRephrase.map((t, i) => `${i + 1}. ${oneLineSafe(t, 300)}`).join("\n"),
+        12000,
+      )}`,
+    );
+  }
+  parts.push(
+    [
+      `Rules:`,
+      `- Net-new angles only. Each draft takes a different angle from the others and from everything listed above.`,
+      `- One idea per post. Hook in the first line: it must pass the 3-second scroll test.`,
+      `- No URLs in the body, ever (no http://, https:// or www.). If a source link matters, put it in link_url; it is posted as the first reply. Otherwise link_url is null.`,
+      `- No hashtags unless the voice examples or spec use them.`,
+      `- Each body is at most ${limit} characters. Never fabricate facts, numbers or quotes.`,
+      `- angle: 3-8 words naming the angle. rationale: one sentence on why this post should perform for this account.`,
+      `- suggested_hour_lisbon: the best posting hour in Europe/Lisbon, an integer from 6 to 22. Spread drafts across different hours.`,
+    ].join("\n"),
+    buildAlgorithmRulesBlock(""),
+    `Return a JSON array of 1 to ${a.max} objects, exactly this shape and nothing else:`,
+    `[{"body": "...", "angle": "...", "rationale": "...", "link_url": null, "suggested_hour_lisbon": 9}]`,
+  );
+  return parts.join("\n\n");
+}
