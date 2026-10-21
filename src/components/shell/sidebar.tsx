@@ -5,15 +5,16 @@ import { usePathname } from "next/navigation"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV, type NavItem } from "./nav-items"
-import { BrandAvatar, BRAND_GRADIENT } from "@/components/ui/brand-avatar"
-import { BRAND } from "@/lib/brand"
+import { AccountSwitcher, type SwitcherProfile } from "./account-switcher"
 
 interface SidebarProps {
   collapsed?: boolean
   badges?: Partial<Record<string, number>>
+  profiles: SwitcherProfile[]
+  activeId: string
 }
 
-export function Sidebar({ collapsed = false, badges }: SidebarProps) {
+export function Sidebar({ collapsed = false, badges, profiles, activeId }: SidebarProps) {
   const pathname = usePathname()
   const main = NAV.filter((n) => !n.labs)
   const labs = NAV.filter((n) => n.labs)
@@ -89,16 +90,10 @@ export function Sidebar({ collapsed = false, badges }: SidebarProps) {
         )}
       </nav>
 
-      {/* Brand chip footer */}
+      {/* Account switcher footer */}
       <div className={cn("border-t border-border", collapsed ? "px-2.5 py-3" : "p-4")}>
-        <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
-          <BrandAvatar name={BRAND.name} size={30} gradient={BRAND_GRADIENT} initials="C" />
-          {!collapsed && (
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-[12.5px] font-semibold">{BRAND.handle}</span>
-              <span className="text-[11px] text-muted-foreground">{BRAND.plan}</span>
-            </div>
-          )}
+        <div className={cn(collapsed && "flex justify-center")}>
+          <AccountSwitcher profiles={profiles} activeId={activeId} placement="up" compact={collapsed} />
         </div>
       </div>
     </aside>
