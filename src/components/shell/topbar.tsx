@@ -2,16 +2,18 @@
 
 import { Search, Bell, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { AccountSwitcher } from "./account-switcher"
+import { AccountSwitcher, type SwitcherProfile } from "./account-switcher"
 import { PlatformTabs } from "./platform-tabs"
 import { ThemeToggle } from "./theme-toggle"
 import { signOutAction } from "@/server/auth-actions"
 
 interface TopbarProps {
   onToggleSidebar: () => void
+  profiles: SwitcherProfile[]
+  activeId: string
 }
 
-export function Topbar({ onToggleSidebar }: TopbarProps) {
+export function Topbar({ onToggleSidebar, profiles, activeId }: TopbarProps) {
   return (
     <header
       className="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between gap-3.5 border-b border-border px-[18px]"
@@ -29,8 +31,10 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
         >
           <PanelLeft className="size-[17px]" strokeWidth={1.6} />
         </Button>
-        <AccountSwitcher />
-        <div className="hidden h-[26px] w-px bg-border md:block" />
+        {/* Desktop switches accounts from the sidebar footer. */}
+        <div className="md:hidden">
+          <AccountSwitcher profiles={profiles} activeId={activeId} />
+        </div>
         <div className="hidden md:block">
           <PlatformTabs />
         </div>

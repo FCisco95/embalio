@@ -1,4 +1,4 @@
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { WeeklyComposer } from "@/components/weekly-composer";
 import { ThreadComposer } from "@/components/thread-composer";
 import { CreatePostPanel } from "@/components/create-post-panel";
@@ -10,7 +10,8 @@ export default async function ComposePage({
 }: {
   searchParams: Promise<{ tab?: string; mode?: string }>;
 }) {
-  const profiles = (await listProfiles()) ?? [];
+  // Composer panels take a profile list; hand them only the active account.
+  const profiles = [await requireActiveProfile()];
   const { tab, mode } = await searchParams;
 
   const activeTab = tab === "create" ? "create" : "compose";

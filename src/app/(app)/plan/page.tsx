@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
-import { listProfiles } from "@/server/profiles";
+import { requireActiveProfile } from "@/server/active-profile";
 import { getGrowthPlan } from "@/server/growth-plan";
 import { GrowthPlanReveal } from "@/components/growth-plan-reveal";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlanPage() {
-  const profiles = await listProfiles();
-  const profile = profiles?.[0];
-  if (!profile?.id) redirect("/setup");
+  const profile = await requireActiveProfile();
   const plan = await getGrowthPlan(profile.id);
   if (!plan) redirect("/");
   return (

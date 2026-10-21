@@ -29,7 +29,7 @@ import { BRAND } from "@/lib/brand"
 import { formatCount } from "@/lib/format"
 import { redirect } from "next/navigation"
 import { needsSetup } from "@/lib/setup-logic"
-import { listProfiles } from "@/server/profiles"
+import { requireActiveProfile } from "@/server/active-profile"
 import { listPendingDrafts } from "@/server/posts"
 import { getDashboardData, type DashboardData } from "@/server/dashboard"
 import { getGrowthPlan } from "@/server/growth-plan"
@@ -63,8 +63,7 @@ export default async function DashboardPage() {
   let weeklyActivity: Awaited<ReturnType<typeof getWeeklyActivity>> | null = null
   let profileId: string | null = null
   try {
-    const profiles = await listProfiles()
-    const profile = profiles?.[0]
+    const profile = await requireActiveProfile()
     if (needsSetup(profile)) redirect("/setup")
     if (profile?.handle) handle = profile.handle.startsWith("@") ? profile.handle : `@${profile.handle}`
     if (profile?.id) {

@@ -1,8 +1,7 @@
 import { getSetupProfileId } from "@/server/setup";
-import { getCurrentProfile, requireSessionUser } from "@/server/auth";
-import { setupBlockedByPinnedProfile } from "@/lib/auth/pinned-profile";
+import { getActiveProfile } from "@/server/active-profile";
+import { requireSessionUser } from "@/server/auth";
 import { SetupQuiz } from "@/components/setup-quiz";
-import { UnlinkedAccountNotice } from "@/components/unlinked-account-notice";
 
 export const metadata = { title: "Set up your account" };
 
@@ -12,18 +11,11 @@ export const metadata = { title: "Set up your account" };
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
-  const user = await requireSessionUser();
-  // Pinned deployment + a user who owns no profile: do NOT auto-create an
-  // empty one (that is the "dashboard looks wiped" failure). Say what to link.
-  const existing = await getCurrentProfile();
-  if (setupBlockedByPinnedProfile({ hasProfile: Boolean(existing), fixedProfileId: process.env.FIXED_PROFILE_ID })) {
-    return (
-      <main className="min-h-screen bg-background text-foreground">
-        <UnlinkedAccountNotice userId={user.id} email={user.email ?? null} />
-      </main>
-    );
-  }
-  const profileId = await getSetupProfileId();
+  await requireSessionUser();
+  // The quiz must target the account the user is looking at (cookie-active), not
+  // the oldest one: finalizeSetup overwrites handle/niche/voice on that profile.
+  // Only a user with no profile at all falls through to getSetupProfileId (creates one).
+  const profileId = (await getActiveProfile())?.id ?? (await getSetupProfileId());
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SetupQuiz profileId={profileId} />

@@ -1,8 +1,6 @@
 import { supabaseService } from "@/lib/supabase/server"
 import type { Json } from "@/lib/supabase/types"
 
-const DEFAULT_PROFILE_ID = process.env.FIXED_PROFILE_ID!
-
 /** Raw research payload cached per day and consumed by the weekly synthesis step. */
 export interface ResearchData {
   xTopics: string
@@ -23,7 +21,7 @@ export interface Briefing {
 /** Return today's cached briefing, or null if it hasn't been run yet. */
 export async function getWeeklyBriefing(
   date: string,
-  profileId: string = DEFAULT_PROFILE_ID,
+  profileId: string,
 ): Promise<Briefing | null> {
   const sb = supabaseService()
   const { data } = await sb
@@ -46,7 +44,7 @@ export async function getWeeklyBriefing(
 export async function runWeeklyBriefing(
   date: string,
   research: () => Promise<ResearchData>,
-  profileId: string = DEFAULT_PROFILE_ID,
+  profileId: string,
 ): Promise<Briefing> {
   const cached = await getWeeklyBriefing(date, profileId)
   if (cached) return cached
