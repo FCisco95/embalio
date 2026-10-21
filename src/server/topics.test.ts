@@ -6,6 +6,9 @@ vi.mock("@/lib/topics/dispatch", () => ({ dispatchTopicRefresh: () => dispatchTo
 const draftFromTrend = vi.fn(async (..._a: unknown[]) => ({}));
 vi.mock("@/server/trends", () => ({ draftFromTrend: (...a: unknown[]) => draftFromTrend(...a) }));
 
+const assertOwnProfile = vi.fn<(id: string) => Promise<void>>();
+vi.mock("@/server/auth", () => ({ assertOwnProfile: (id: string) => assertOwnProfile(id) }));
+
 let topicRows: unknown[] = [];
 let staleRows: unknown[] = [];
 let briefing: unknown = null;
@@ -50,7 +53,17 @@ const row = (minAgo: number) => ({
   generated_at: iso(minAgo), expires_at: iso(minAgo - 120), status: "fresh",
 });
 
-beforeEach(() => { topicRows = []; staleRows = []; briefing = null; draftRow = null; dispatchTopicRefresh.mockClear(); draftFromTrend.mockClear(); });
+beforeEach(() => { assertOwnProfile.mockReset().mockResolvedValue(undefined); topicRows = []; staleRows = []; briefing = null; draftRow = null; dispatchTopicRefresh.mockClear(); draftFromTrend.mockClear(); });
+
+describe("ownership guard", () => {
+  it("getTopicBoard and draftFromTopicRow reject a foreign profile before any read or draft", async () => {
+    assertOwnProfile.mockRejectedValue(new Error("Profile not found or access denied"));
+    await expect(getTopicBoard("foreign")).rejects.toThrow("access denied");
+    await expect(draftFromTopicRow("foreign", "t1")).rejects.toThrow("access denied");
+    expect(dispatchTopicRefresh).not.toHaveBeenCalled();
+    expect(draftFromTrend).not.toHaveBeenCalled();
+  });
+});
 
 describe("getTopicBoard", () => {
   it("fresh board (<60min): state fresh, no background dispatch", async () => {

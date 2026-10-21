@@ -8,7 +8,7 @@ import { buildPredictionRecord } from "@/lib/predict/persist";
 import { scoreDraftBreakout } from "@/server/original";
 import type { Trajectory, WeeklyForecast, BreakoutPrecheck } from "@/lib/predict/schemas";
 import type { Json } from "@/lib/supabase/types";
-import { assertFixedProfileAccess } from "@/server/fixed-profile";
+import { assertOwnProfile } from "@/server/auth";
 
 const SNAPSHOT_WINDOW_DAYS = 45;
 const HORIZON_DAYS = 14;
@@ -45,7 +45,7 @@ export type ForecastBundle =
 export async function getForecastBundle(profileId: string): Promise<ForecastBundle> {
   if (!profileId) return { ok: false, error: "no profile" };
   try {
-    assertFixedProfileAccess(profileId);
+    await assertOwnProfile(profileId);
     const sb = supabaseService();
     const [snaps, daily] = await Promise.all([readSnapshots(sb, profileId), readDailyFollows(sb, profileId)]);
     const now = Date.now();
@@ -69,7 +69,7 @@ export type BreakoutResult = { ok: true; precheck: BreakoutPrecheck } | { ok: fa
 export async function precheckBreakout(profileId: string, draft: string): Promise<BreakoutResult> {
   if (!profileId) return { ok: false, error: "no profile" };
   try {
-    assertFixedProfileAccess(profileId);
+    await assertOwnProfile(profileId);
     const raw = await scoreDraftBreakout(draft);
     const precheck = summarizeBreakout(raw);
     const sb = supabaseService();

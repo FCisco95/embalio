@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ supabaseService: vi.fn() }));
+const assertOwnProfile = vi.fn<(id: string) => Promise<void>>();
+vi.mock("@/server/auth", () => ({ assertOwnProfile: (id: string) => assertOwnProfile(id) }));
 
 function makeSb({
   postsCount = 0 as number | null,
@@ -46,7 +48,18 @@ function makeSb({
 }
 
 describe("getWeeklyActivity", () => {
-  beforeEach(() => vi.resetModules());
+  beforeEach(() => {
+    vi.resetModules();
+    assertOwnProfile.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("rejects a profile the caller does not own before reading", async () => {
+    assertOwnProfile.mockRejectedValue(new Error("Profile not found or access denied"));
+    const { supabaseService } = await import("@/lib/supabase/server");
+    const { getWeeklyActivity } = await import("@/server/weekly-activity");
+    await expect(getWeeklyActivity("foreign")).rejects.toThrow("access denied");
+    expect(supabaseService).not.toHaveBeenCalled();
+  });
 
   it("returns zeros when no data exists", async () => {
     const { supabaseService } = await import("@/lib/supabase/server");

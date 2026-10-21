@@ -21,8 +21,6 @@ vi.mock("@/lib/supabase/server", () => ({
   supabaseService: vi.fn(),
 }))
 
-vi.stubEnv("FIXED_PROFILE_ID", "test-profile-id")
-
 describe("getWeeklyBriefing", () => {
   beforeEach(() => {
     vi.resetModules()
@@ -42,8 +40,23 @@ describe("getWeeklyBriefing", () => {
     vi.mocked(supabaseService).mockReturnValue({ from: mockFrom } as never)
 
     const { getWeeklyBriefing } = await import("./briefing")
-    const result = await getWeeklyBriefing("2026-05-29")
+    const result = await getWeeklyBriefing("2026-05-29", "test-profile-id")
     expect(result).toBeNull()
+  })
+
+  it("scopes the lookup to the profile it is given", async () => {
+    const { supabaseService } = await import("@/lib/supabase/server")
+    const eq = vi.fn()
+    const chain = { eq, single: vi.fn().mockResolvedValue({ data: null, error: null }) }
+    eq.mockReturnValue(chain)
+    vi.mocked(supabaseService).mockReturnValue({
+      from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue(chain) }),
+    } as never)
+
+    const { getWeeklyBriefing } = await import("./briefing")
+    await getWeeklyBriefing("2026-05-29", "profile-b")
+    expect(eq).toHaveBeenCalledWith("profile_id", "profile-b")
+    expect(eq).toHaveBeenCalledWith("date", "2026-05-29")
   })
 
   it("returns cached briefing when row exists", async () => {
@@ -68,7 +81,7 @@ describe("getWeeklyBriefing", () => {
     vi.mocked(supabaseService).mockReturnValue({ from: mockFrom } as never)
 
     const { getWeeklyBriefing } = await import("./briefing")
-    const result = await getWeeklyBriefing("2026-05-29")
+    const result = await getWeeklyBriefing("2026-05-29", "test-profile-id")
     expect(result).toEqual(cached)
   })
 })
@@ -97,7 +110,7 @@ describe("runWeeklyBriefing", () => {
 
     const { runWeeklyBriefing } = await import("./briefing")
     const research = vi.fn()
-    const result = await runWeeklyBriefing("2026-05-29", research)
+    const result = await runWeeklyBriefing("2026-05-29", research, "test-profile-id")
     expect(result).toEqual(cached)
     expect(research).not.toHaveBeenCalled()
   })
@@ -128,7 +141,7 @@ describe("runWeeklyBriefing", () => {
 
     const { runWeeklyBriefing } = await import("./briefing")
     const research = vi.fn().mockResolvedValue({ xTopics: "x", github: "g", news: "n" })
-    const result = await runWeeklyBriefing("2026-05-29", research)
+    const result = await runWeeklyBriefing("2026-05-29", research, "test-profile-id")
 
     expect(research).toHaveBeenCalledTimes(1)
     expect(result).toEqual(stored)

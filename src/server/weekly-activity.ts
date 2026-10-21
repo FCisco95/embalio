@@ -1,7 +1,7 @@
 "use server";
 import { supabaseService } from "@/lib/supabase/server";
 import { getWeekStart } from "@/lib/weekly-activity";
-import { assertFixedProfileAccess } from "@/server/fixed-profile";
+import { assertOwnProfile } from "@/server/auth";
 
 export interface WeeklyActivity {
   postsThisWeek: number;
@@ -11,7 +11,7 @@ export interface WeeklyActivity {
 }
 
 export async function getWeeklyActivity(profileId: string): Promise<WeeklyActivity> {
-  assertFixedProfileAccess(profileId);
+  await assertOwnProfile(profileId);
   const sb = supabaseService();
   const weekStart = getWeekStart(new Date()).toISOString();
 
