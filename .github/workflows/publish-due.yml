@@ -1,7 +1,7 @@
 name: publish-due
 
 # Manual fallback only. The real ticker is pg_cron (owner-run SQL from the revamp
-# plan, section 2) hitting /api/cron/publish-due every minute. No `schedule:` here on
+# plan, section 2) hitting /api/cron/publish-due every 5 minutes. No `schedule:` here on
 # purpose: GitHub's cron granularity is too coarse to be the primary trigger, and a
 # second automatic trigger would only add overlapping runs (safe, but pointless:
 # posting_jobs_active_draft_uidx makes publishDraft idempotent).

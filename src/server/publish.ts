@@ -40,7 +40,7 @@ export async function publishDraft(
 
   /**
    * Refuse before any job exists. A SCHEDULED draft must also leave the due query, or it is
-   * re-selected every minute and (oldest-first, limit 10) can starve the rest: move it back to
+   * re-selected on every tick and (oldest-first, limit 10) can starve the rest: move it back to
    * approved and record why as a failed job, which the queue UI reads as `last_error`.
    */
   const refuse = async (reason: string): Promise<PublishResult> => {
@@ -166,7 +166,7 @@ export async function publishDraft(
     await setJob({ status: tweetSent ? "needs_manual_confirmation" : "failed", error: msg });
 
     if (tweetSent) {
-      // Park the draft so the ticker's due-selection stops returning it every minute
+      // Park the draft so the ticker's due-selection stops returning it on every tick
       // (unless it was already marked posted: then the draft row is already correct).
       if (!draftPosted) {
         const { error: pErr } = await sb.from("drafts").update({ status: "unconfirmed" }).eq("id", draft.id);
