@@ -51,6 +51,7 @@ export type Database = {
       }
       analytics_daily: {
         Row: {
+          api_updated_at: string | null
           bookmarks: number | null
           date: string
           engagements: number | null
@@ -67,6 +68,7 @@ export type Database = {
           unfollows: number | null
         }
         Insert: {
+          api_updated_at?: string | null
           bookmarks?: number | null
           date: string
           engagements?: number | null
@@ -83,6 +85,7 @@ export type Database = {
           unfollows?: number | null
         }
         Update: {
+          api_updated_at?: string | null
           bookmarks?: number | null
           date?: string
           engagements?: number | null
@@ -198,6 +201,10 @@ export type Database = {
       }
       drafts: {
         Row: {
+          angle: string | null
+          link_url: string | null
+          rationale: string | null
+          scheduled_at: string | null
           body: string
           candidate_id: string | null
           created_at: string
@@ -210,6 +217,10 @@ export type Database = {
           suggested_visual: string | null
         }
         Insert: {
+          angle?: string | null
+          link_url?: string | null
+          rationale?: string | null
+          scheduled_at?: string | null
           body: string
           candidate_id?: string | null
           created_at?: string
@@ -222,6 +233,10 @@ export type Database = {
           suggested_visual?: string | null
         }
         Update: {
+          angle?: string | null
+          link_url?: string | null
+          rationale?: string | null
+          scheduled_at?: string | null
           body?: string
           candidate_id?: string | null
           created_at?: string
@@ -325,6 +340,7 @@ export type Database = {
       }
       posting_jobs: {
         Row: {
+          reply_result_url: string | null
           attempts: number
           created_at: string
           draft_id: string | null
@@ -337,6 +353,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          reply_result_url?: string | null
           attempts?: number
           created_at?: string
           draft_id?: string | null
@@ -349,6 +366,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          reply_result_url?: string | null
           attempts?: number
           created_at?: string
           draft_id?: string | null
@@ -379,6 +397,8 @@ export type Database = {
       }
       posts: {
         Row: {
+          link_tweet_url: string | null
+          tweet_id: string | null
           draft_id: string | null
           id: string
           last_scraped_at: string | null
@@ -388,6 +408,8 @@ export type Database = {
           tweet_url: string | null
         }
         Insert: {
+          link_tweet_url?: string | null
+          tweet_id?: string | null
           draft_id?: string | null
           id?: string
           last_scraped_at?: string | null
@@ -397,6 +419,8 @@ export type Database = {
           tweet_url?: string | null
         }
         Update: {
+          link_tweet_url?: string | null
+          tweet_id?: string | null
           draft_id?: string | null
           id?: string
           last_scraped_at?: string | null
@@ -424,6 +448,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          reach_insights: Json | null
           account_size: string | null
           bio_optimized: boolean
           channel_playbook: Json | null
@@ -448,6 +473,7 @@ export type Database = {
           voice_spec: string | null
         }
         Insert: {
+          reach_insights?: Json | null
           account_size?: string | null
           bio_optimized?: boolean
           channel_playbook?: Json | null
@@ -472,6 +498,7 @@ export type Database = {
           voice_spec?: string | null
         }
         Update: {
+          reach_insights?: Json | null
           account_size?: string | null
           bio_optimized?: boolean
           channel_playbook?: Json | null
@@ -950,6 +977,109 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      x_accounts: {
+        Row: {
+          access_expires_at: string
+          access_token_enc: string
+          created_at: string
+          last_error: string | null
+          last_refresh_at: string | null
+          needs_reauth: boolean
+          profile_id: string
+          refresh_token_enc: string
+          scopes: string
+          token_version: number
+          updated_at: string
+          x_user_id: string
+          x_username: string
+        }
+        Insert: {
+          access_expires_at: string
+          access_token_enc: string
+          created_at?: string
+          last_error?: string | null
+          last_refresh_at?: string | null
+          needs_reauth?: boolean
+          profile_id: string
+          refresh_token_enc: string
+          scopes: string
+          token_version?: number
+          updated_at?: string
+          x_user_id: string
+          x_username: string
+        }
+        Update: {
+          access_expires_at?: string
+          access_token_enc?: string
+          created_at?: string
+          last_error?: string | null
+          last_refresh_at?: string | null
+          needs_reauth?: boolean
+          profile_id?: string
+          refresh_token_enc?: string
+          scopes?: string
+          token_version?: number
+          updated_at?: string
+          x_user_id?: string
+          x_username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "x_accounts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      target_allocations: {
+        Row: {
+          allocated_at: string
+          allocated_by: string
+          profile_id: string
+          source_tweet_id: string
+        }
+        Insert: {
+          allocated_at?: string
+          allocated_by?: string
+          profile_id: string
+          source_tweet_id: string
+        }
+        Update: {
+          allocated_at?: string
+          allocated_by?: string
+          profile_id?: string
+          source_tweet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "target_allocations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signal_cursors: {
+        Row: {
+          key: string
+          since_id: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          since_id: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          since_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       predictions: {
         Row: {

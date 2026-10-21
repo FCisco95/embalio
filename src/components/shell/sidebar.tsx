@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { NAV } from "./nav-items"
+import { NAV, type NavItem } from "./nav-items"
 import { BrandAvatar, BRAND_GRADIENT } from "@/components/ui/brand-avatar"
 import { BRAND } from "@/lib/brand"
 
@@ -15,6 +15,41 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false, badges }: SidebarProps) {
   const pathname = usePathname()
+  const main = NAV.filter((n) => !n.labs)
+  const labs = NAV.filter((n) => n.labs)
+
+  const renderItem = ({ href, icon: Icon, label }: NavItem) => {
+    const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href)
+    const badge = badges?.[href]
+    return (
+      <Link
+        key={href}
+        href={href}
+        title={collapsed ? label : undefined}
+        className={cn(
+          "relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-medium transition-colors duration-[120ms]",
+          collapsed && "justify-center",
+          isActive
+            ? "nav-active-bar font-semibold text-brand-text"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        )}
+        style={isActive ? { background: "color-mix(in oklch, var(--primary) 14%, transparent)" } : undefined}
+      >
+        <span className="flex w-5 shrink-0 items-center justify-center">
+          <Icon className="size-[18px]" strokeWidth={1.6} />
+        </span>
+        {!collapsed && <span className="flex-1 text-left">{label}</span>}
+        {!collapsed && badge ? (
+          <span className="inline-flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-primary px-[5px] text-[11px] font-bold text-primary-foreground">
+            {badge}
+          </span>
+        ) : null}
+        {collapsed && badge ? (
+          <span className="absolute right-[14px] top-2 size-1.5 rounded-full bg-primary" />
+        ) : null}
+      </Link>
+    )
+  }
 
   return (
     <aside
@@ -37,38 +72,21 @@ export function Sidebar({ collapsed = false, badges }: SidebarProps) {
 
       {/* Nav */}
       <nav className={cn("flex flex-1 flex-col gap-[3px] overflow-y-auto", collapsed ? "px-2.5" : "px-3")}>
-        {NAV.map(({ href, icon: Icon, label }) => {
-          const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href)
-          const badge = badges?.[href]
-          return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
+        {main.map(renderItem)}
+        {labs.length > 0 && (
+          <>
+            <div
               className={cn(
-                "relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-medium transition-colors duration-[120ms]",
-                collapsed && "justify-center",
-                isActive
-                  ? "nav-active-bar font-semibold text-brand-text"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                "mt-4 mb-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70",
+                collapsed ? "text-center" : "px-[11px]"
               )}
-              style={isActive ? { background: "color-mix(in oklch, var(--primary) 14%, transparent)" } : undefined}
+              aria-hidden={collapsed}
             >
-              <span className="flex w-5 shrink-0 items-center justify-center">
-                <Icon className="size-[18px]" strokeWidth={1.6} />
-              </span>
-              {!collapsed && <span className="flex-1 text-left">{label}</span>}
-              {!collapsed && badge ? (
-                <span className="inline-flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-primary px-[5px] text-[11px] font-bold text-primary-foreground">
-                  {badge}
-                </span>
-              ) : null}
-              {collapsed && badge ? (
-                <span className="absolute right-[14px] top-2 size-1.5 rounded-full bg-primary" />
-              ) : null}
-            </Link>
-          )
-        })}
+              {collapsed ? "·" : "Labs"}
+            </div>
+            {labs.map(renderItem)}
+          </>
+        )}
       </nav>
 
       {/* Brand chip footer */}
