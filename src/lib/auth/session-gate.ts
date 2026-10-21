@@ -22,7 +22,9 @@ export function isProtectedPath(pathname: string): boolean {
     pathname.startsWith("/plan") ||
     pathname.startsWith("/profiles") ||
     pathname.startsWith("/studio") ||
-    pathname.startsWith("/topics")
+    pathname.startsWith("/topics") ||
+    // X OAuth link flow: the routes also gate themselves (requireSessionUser); this is defense in depth.
+    pathname.startsWith("/api/x/")
   );
 }
 

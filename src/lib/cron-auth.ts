@@ -4,7 +4,7 @@ import { timingSafeEqual } from "node:crypto";
 // Constant-time comparison so the bearer secret can't be recovered byte-by-byte
 // via response-timing. Length mismatch short-circuits to false (lengths aren't
 // secret), and equal-length inputs are compared without early-exit.
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   if (ab.length !== bb.length) return false;

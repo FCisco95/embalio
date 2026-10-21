@@ -1,0 +1,19 @@
+name: publish-due
+
+# Manual fallback only. The real ticker is pg_cron (owner-run SQL from the revamp
+# plan, section 2) hitting /api/cron/publish-due every minute. No `schedule:` here on
+# purpose: GitHub's cron granularity is too coarse to be the primary trigger, and a
+# second automatic trigger would only add overlapping runs (safe, but pointless:
+# posting_jobs_active_draft_uidx makes publishDraft idempotent).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: publish-due
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 90 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.APP_BASE_URL }}/api/cron/publish-due")
+          cat /tmp/out; echo; [ "$code" = "200" ]
