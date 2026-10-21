@@ -11,29 +11,28 @@
 
 Owner-run RLS recovery returned a passing production receipt at 16:17:25 UTC:
 19 tables protected, zero anonymous access, primary owner verified. The owner's
-screenshot confirms dashboard access as `@fcisco95` with 20 drafts. The refreshed
-Security Advisor shows **0 errors, 2 warnings, 2 suggestions**. The original 19
-RLS errors are gone. The live `save_persona` definition was received; its guarded,
-reviewed/tested hardening SQL is ready for owner execution. Leaked-password protection requires Pro; the two Info
-tables are intentionally service-role-only in source.
+screenshot confirms dashboard access as `@fcisco95` with 20 drafts. The owner
+applied the reviewed `save_persona` fix; its receipt passed. Final refreshed
+Security Advisor shows **0 errors, 1 warning, 2 suggestions**. RLS/function
+remediation is verified through owner receipts/screenshots. The remaining count
+fits the previously identified Pro-only password warning and intentional internal
+Info tables; final screenshot selected Errors, so its warning row was not expanded.
 
 Session 26 next-steps tasks 1–3 are complete: feature branch pushed, PR #7 opened,
 visual component checks passed, three merged harness worktrees/branches removed.
-Task 4's single Linear follow-up is approved; creation awaits a parent issue ID
-and a connected workspace exposing Embalio/BAK. Task 5 is not authorized until
+Task 4's single Linear follow-up is approved as a child. BAK is now reachable;
+complete inventory found no suitable parent. Approval to create the same one
+issue independently is pending. Task 5 is not authorized until
 the owner confirms BOTH the PR merge and `@fcisco95` linked on `/profiles`.
 
 ## Current Objective
 
-Obtain the owner-run result of `docs/security/2026-10-21-save-persona-hardening.sql`.
-The candidate is reviewed/tested against the owner's actual live definition,
-preserved in `docs/security/2026-10-21-save-persona-definition.json`.
-The owner's postflight confirms all 19 tables
-RLS-on, no anonymous access or authenticated internal/admin privileges, and the
-primary profile linked to the expected Auth owner. Six profiles remain, three
-unlinked and quarantined. Owner screenshots confirm login/home profile access
-and refreshed Advisor zero errors. Dedicated queue/performance checks are untested.
-See `docs/security/2026-10-21-rls-recovery.md`. Keep slice 2 paused.
+Finish Task 4 when the owner approves the single independent issue, since no
+Embalio parent exists in the connected BAK inventory. The concrete proposal is
+`docs/proposals/2026-10-21-revamp-security-follow-up.md`.
+The production RLS/function checkpoint is accepted within its documented scope:
+both SQL receipts passed, owner dashboard works, final Advisor is 0/1/2.
+No more SQL is needed for that acceptance. Keep slice 2 paused.
 
 ## Current State
 
@@ -46,8 +45,9 @@ See `docs/security/2026-10-21-rls-recovery.md`. Keep slice 2 paused.
 - `git worktree list` contains only the primary checkout; all three clean,
   integrated `worktree-agent-*` branches were deleted with non-force commands.
 - Security recovery/templates and the owner SQL receipt are committed locally
-  as `a3a172b`, not pushed. The function/acceptance checkpoint follows that commit;
-  all security commits remain local pending owner application/read-back.
+  as `a3a172b`; function hardening is `2648b0b`. Both commits remain local.
+  Owner execution/read-back and final Advisor refresh passed. Acceptance receipts
+  follow in this checkpoint; no security commit has been pushed yet.
 
 ## Recent Changes
 
@@ -63,12 +63,14 @@ zero anonymous access, zero authenticated internal/admin privileges, and the
 expected primary owner verified. All six profiles remain; three NULL owners
 are quarantined. Receipt: `docs/security/2026-10-21-rls-postflight.json`.
 Owner screenshot shows the signed-in dashboard as `@fcisco95`, 20 drafts and
-existing home cards. Refreshed Advisor screenshot confirms zero errors, two
-warnings and two suggestions. The warnings are `public.save_persona` mutable
-search path and Auth leaked-password protection disabled (Pro-only; project Free).
+existing home cards. Advisor changed from 19 errors to zero; after function
+hardening its final counts are 0 errors, 1 warning, 2 suggestions.
+Previously expanded warnings were mutable `save_persona` search path and Auth
+leaked-password protection disabled (Pro-only; project Free).
 Info tables `algorithm_briefs`/`youtube_credentials` intentionally use service-role
-access and default-deny RLS in source. Live function code differs from migration
-0006; the pending candidate preserves its original error and behavior. Dedicated
+access and default-deny RLS in source. The owner applied the function patch and
+returned all three booleans true; final Advisor counts are saved in
+`docs/security/2026-10-21-advisor-postflight.json`. Dedicated
 queue/performance routes and writes remain unverified. No agent production write; no profile
 deletion/reassignment or test-user disablement. The private
 prefilled copy remains `.superpowers/security-recovery/2026-10-21/apply-reviewed-rls.sql`.
@@ -104,13 +106,13 @@ Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
 
 ## Next Actions
 
-1. Obtain the owner-run result of `docs/security/2026-10-21-save-persona-hardening.sql`
-   and refresh Advisor. Expected JSON: `security_invoker`, `search_path_pinned`,
-   `reviewed_body` all true. Stop on error; don't bypass drift guards. Keep the two
-   intentionally internal Info tables and subscription/Auth settings unchanged.
-2. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
-   reachable through Orca, re-check duplicates, then create exactly one child
-   with `agent-proposed`. Do not create a root issue or use another team.
+1. Await approval of the concrete single independent BAK issue. The owner asked
+   the agent to find a parent: full BAK inventory including archived returned
+   only onboarding BAK-1..4 and unrelated completed BAK-5; no projects exist.
+   Do not use BAK-5 or create another parent. Re-check duplicates before creation;
+   use `agent-proposed` and the existing `Embalio` label, no priority/assignee/estimate.
+2. Preserve the completed security receipt; do not rerun production SQL to clear
+   the Pro-only Auth warning or intentional internal-table Info findings.
 3. Await the owner's explicit confirmation of PR merge AND primary X link before
    starting Session 26 task 5. Owner-only rollout actions remain owner-only.
 
@@ -132,7 +134,8 @@ Draft PR #7; browser/cleanup receipt; approved Linear proposal; Session 27
 handoff snapshot. Local-only screenshots/results: `.superpowers/browser-check/slice1/`.
 No credentials, deployed resources or scheduled jobs created.
 Security additions: reviewed SQL templates/runbook, disposable Postgres runner,
-security snapshot, owner-supplied postflight/function-definition JSON, guarded
+security snapshot, owner-supplied RLS/function postflight and function-definition
+JSON, final Advisor count receipt, guarded
 function hardening and its disposable test runner, and a private Git-ignored
 operator copy. The owner created
 their own Auth user; its UUID and password are not in the tracked templates.
@@ -146,16 +149,17 @@ First read docs/security/2026-10-21-rls-recovery.md and the security snapshot at
 docs/handoffs/2026-10-21-session27-rls-recovery.md. Owner-run recovery passed
 the production SQL receipt (19 RLS-on, zero anonymous access, primary linked).
 Owner screenshot confirms the signed-in @fcisco95 dashboard and 20 drafts.
-Refreshed Advisor shows 0 errors, 2 warnings and 2 suggestions. The live
-save_persona definition has been received. Its reviewed/tested candidate is
-docs/security/2026-10-21-save-persona-hardening.sql; await owner application/receipt
-and refreshed Advisor. Password leak protection requires Pro;
+Owner-run save_persona patch passed its receipt (all three booleans true), saved
+in docs/security/2026-10-21-save-persona-postflight.json. Final refreshed Advisor
+shows 0 errors, 1 warning and 2 suggestions; do not rerun the SQL.
+Password leak protection requires Pro;
 the two Info tables intentionally deny normal API access. Dedicated queue/
 performance checks remain untested.
 Do not rerun SQL blindly.
 Tasks 1–3 are complete; PR #7 is a draft. The single Linear follow-up is approved
-but needs its parent ID and Embalio/BAK workspace access. Use the proposal in
-docs/proposals/2026-10-21-revamp-security-follow-up.md; create no root issue.
+as a child, but full BAK inventory found no suitable parent. BAK access and the
+agent-proposed/Embalio labels now work. Await explicit approval for exactly one
+independent issue using docs/proposals/2026-10-21-revamp-security-follow-up.md.
 Model: GPT-6.1 Sol (high) — bounded continuation and verification.
 Skills: task-observer, embalio, handoff-memory, orca-linear.
 Never merge or push main, edit .env*, or apply migrations. Do not begin slice 2

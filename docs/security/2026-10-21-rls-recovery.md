@@ -4,8 +4,9 @@ Prepared 2026-10-21. **Production execution is owner-only.** The agent has no
 authenticated production connection and has not applied these scripts. The owner
 ran the reviewed bundle and supplied the passing postflight below. The owner's
 screenshot confirms dashboard access. Refreshed Security Advisor shows zero
-errors, two warnings and two suggestions. The owner supplied the live function
-definition; a guarded, locally tested hardening candidate is ready but unapplied.
+errors, two warnings and two suggestions before function hardening. The owner
+then applied the guarded, reviewed/tested function fix and returned a passing
+receipt. Final refreshed Advisor counts are **0 errors, 1 warning, 2 suggestions**.
 
 ## Confirmed Production Evidence
 
@@ -130,12 +131,13 @@ owner then expanded both tabs:
 
 | Finding | Assessment / next step |
 |---|---|
-| Function Search Path Mutable: `public.save_persona` | Live definition received; it differs from migration 0006 in formatting/error text. Reviewed/tested owner-run `2026-10-21-save-persona-hardening.sql` qualifies both tables and `pg_catalog.unnest`, pins an empty path and preserves the live invoker behavior. Application/receipt pending. |
+| Function Search Path Mutable: `public.save_persona` | Owner applied `2026-10-21-save-persona-hardening.sql`. Receipt confirms reviewed body, pinned search path and SECURITY INVOKER. Final Advisor warning count dropped from two to one. The fix preserves the observed live behavior. |
 | Leaked Password Protection Disabled: Auth | Supabase documents this feature as Pro-plan and above. The owner's project screenshot shows Free. Treat as an unavailable paid feature, not evidence that the new password was leaked; no plan/account change authorized or performed. |
 | RLS Enabled No Policy: `public.algorithm_briefs` | Intentional service-role-only design in migration `0012_algorithm_briefs.sql`; server code uses `supabaseService`. Keep default denial for normal API roles. |
 | RLS Enabled No Policy: `public.youtube_credentials` | Intentional service-role-only design in migration `0011_youtube_credentials.sql`; OAuth/publish server code uses `supabaseService`. Do not add a browser-access policy to silence the Info finding. |
 
-No new production SQL or Auth setting change has been made for these findings.
+The owner applied the function SQL; no agent production write or Auth setting
+change was made for these findings.
 Password storage and breach-list screening are separate: Supabase Auth stores
 password hashes using bcrypt, including on Free. The paid protection additionally
 rejects passwords already present in known breach lists; its disabled warning is
@@ -144,12 +146,19 @@ The two Info findings alone do not prove exposure; this is an access-model
 assessment from source and the Advisor screenshot, not a fresh audit of all grants,
 views or service-role entry points.
 
-Apply the function candidate as described below. Dedicated queue and performance data checks remain
+The final owner-supplied refreshed Advisor screenshot shows **0 errors, 1 warning,
+2 suggestions**; counts/source are saved in `2026-10-21-advisor-postflight.json`.
+The selected tab was Errors; the final warning row was not expanded. The remaining
+count is consistent with the previously identified unchanged Pro-only Auth
+warning and the intentional Info tables. The RLS/function remediation checkpoint
+is accepted through the owner SQL receipts and UI read-back, within these limits.
+
+Dedicated queue and performance data checks remain
 untested. Do not report full application/security acceptance from the SQL receipt
 and dashboard/Advisor screenshots alone. This does not apply the five October
 revamp migrations, merge PR #7, connect X, or unblock slice 2 automatically.
 
-## Reviewed save_persona Candidate — Owner Application Pending
+## Reviewed save_persona Hardening — Owner Applied
 
 The actual production code is preserved as owner-supplied read-back in
 `docs/security/2026-10-21-save-persona-definition.json`. It updates the same
@@ -157,18 +166,21 @@ fields and seeds as migration 0006, but uses the original `profile % not found`
 message and different formatting. The patch targets that observed body, not an
 assumed migration match.
 
-Run only `docs/security/2026-10-21-save-persona-hardening.sql` in Embalio's SQL
+The owner ran `docs/security/2026-10-21-save-persona-hardening.sql` in Embalio's SQL
 Editor. It changes the function definition, not application rows, roles or table
 policies. It keeps `SECURITY INVOKER`, function identity, owner and existing ACLs.
 Unknown body/overload/contract/settings or RLS-off owner tables abort the entire
 transaction. Source hashes guard against accidental version drift; they are not
 a substitute for database-owner authorization. No need to rerun the RLS bundle.
 
-Expected final JSON has `function="public.save_persona"` and all three booleans
-`security_invoker`, `search_path_pinned`, `reviewed_body` equal to **true**. Return
-that result or the exact error, then refresh Advisor. If successful, the function
-search-path warning should clear; the Pro-only password warning and two
-intentional Info findings may remain. No new production result is claimed yet.
+The owner returned final JSON with `function="public.save_persona"` and all three
+booleans `security_invoker`, `search_path_pinned`, `reviewed_body` equal to **true**.
+It is preserved verbatim in `docs/security/2026-10-21-save-persona-postflight.json`.
+This is owner-supplied production metadata, not an independent agent query or
+live persona save. The subsequent refreshed Advisor dropped from two warnings to
+one, with zero errors and two Info suggestions. The unchanged Pro-only password
+warning and intentional Info findings were classified above.
+Do not rerun the function SQL just to verify the dashboard.
 
 Local evidence:
 

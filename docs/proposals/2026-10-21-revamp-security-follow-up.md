@@ -1,13 +1,14 @@
 # Proposed Linear child issue
 
-Status: creation approved on 2026-10-21; waiting for the owner to supply the
-parent issue ID. Orca's connected team inventory does not expose Embalio/BAK.
-No issue has been created. Do not create a root issue or use another team instead.
+Status: one child issue approved on 2026-10-21. The owner asked the agent to find
+the parent; current BAK inventory is accessible but has no suitable parent.
+Explicit approval of the same single issue independently is pending. No issue
+has been created; do not create another parent or use an unrelated issue.
 
-Title: **Harden Server Action boundaries and manual publish confirmation**
+Title: **Embalio: harden Server Actions and manual publish confirmation**
 
-Label: `agent-proposed`.
-Team: Embalio / BAK, subject to the supplied parent issue's verified identity.
+Labels: `agent-proposed`, existing `Embalio` label.
+Team: Bakehouse Labs / BAK (workspace Bakehouse Labs).
 Do not change priority, assignee or estimate.
 
 ## What Was Found
@@ -43,11 +44,14 @@ Do not change priority, assignee or estimate.
 
 ## Duplicate Search / Authority
 
-Read-only Orca Linear searches for `Embalio`, `revamp`, `recommendTargets` and
-`TweetUrl` returned no matches in the connected workspace search, with no
-reported partial results. This does not establish that no issue exists in an
-unconnected workspace. Verify the supplied parent and re-check duplicates before
-creating exactly one child; ask if the parent is unavailable in the connected workspace.
+Renewed Orca searches covered the now-connected Bakehouse workspace. `Embalio`
+returned only completed BAK-5 (Orca bridge smoke test); `revamp` matched unrelated
+ORG-3 (Organic auth emails); `recommendTargets`/`TweetUrl` returned no matches.
+Full BAK inventory including archived returned five issues, `hasMore=false`,
+`truncated=false`, `partial=false`: onboarding BAK-1..4 and completed BAK-5.
+Projects returned none. Existing `agent-proposed` and `Embalio` labels are readable.
 
-Creation is approved; the parent ID is still missing. This proposal does not
-authorize beginning its implementation.
+The owner asked the agent to verify rather than supplying a parent. No suitable
+parent exists in that inventory. Permission for exactly one independent BAK issue
+is pending; re-check duplicates at creation. This proposal does not authorize
+beginning implementation, setting priority/assignee/estimate or creating a parent.
