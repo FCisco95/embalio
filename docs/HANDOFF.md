@@ -1,6 +1,107 @@
 # Embalio — Handoff (canonical)
 
-**Last updated:** 2026-10-21 (Session 26 — **REVAMP: GATE-2 closed NOT RUN; new plan built through slice 1 on branch `feat/revamp-slice0-contract` @ `7a66b73` (31 commits over `main`, 1242 pass / 1 skip, tsc + build green), NOT pushed, migrations NOT applied.** Plan: `docs/superpowers/plans/2026-10-21-revamp-plan.md`. Phone-first approval queue (Hoje) + nightly Claude skills + X API pay-per-use publish via per-account OAuth; 30-day consistency gate (published originals), day-14 tripwire. Owner rollout queue + slice-2 scope in the Session 26 entry. Snapshot: `docs/handoffs/2026-10-21-session26-revamp-slice0-1.md`.)
+## Metadata
+
+- Project: Embalio
+- Branch: `feat/revamp-slice0-contract`
+- Last Updated: 2026-10-21 (Session 27, Codex continuation of Session 26)
+- Current PR: https://github.com/FCisco95/embalio/pull/7 — draft, not merged
+
+## TL;DR
+
+Session 26 next-steps tasks 1–3 are complete: feature branch pushed, PR #7 opened,
+visual component checks passed, three merged harness worktrees/branches removed.
+Task 4's single Linear follow-up is approved; creation awaits a parent issue ID
+and a connected workspace exposing Embalio/BAK. Task 5 is not authorized until
+the owner confirms BOTH the PR merge and `@fcisco95` linked on `/profiles`.
+
+## Current Objective
+
+Finish the approved Linear follow-up when its parent and workspace are available.
+Keep slice 2 paused. The owner performs migration/env setup, merge and live X
+acceptance using Session 26's rollout queue below.
+
+## Current State
+
+- PR #7 is a draft to `main`, titled as requested; its body contains Session 26's
+  summary and owner rollout steps 1–8. Source before this documentation receipt:
+  `bfbc56f`; feature branch tracks `origin/feat/revamp-slice0-contract`.
+- Local and remote `main` remain at `f544ac4`. No merge, migration, env edit,
+  workflow dispatch or live X publish was performed in this continuation.
+- `git worktree list` contains only the primary checkout; all three clean,
+  integrated `worktree-agent-*` branches were deleted with non-force commands.
+
+## Recent Changes
+
+No product code changed. Added a browser/cleanup receipt and the concrete Linear
+proposal. Temporary local UI fixtures were removed before the final build.
+
+## Known Issues / Watch List
+
+Protected `/` and `/profiles` redirect a fresh browser to login. The visual checks
+used real components/global CSS with disposable props, not an authenticated
+end-to-end account flow. The follow-up's security findings are not fixed here.
+The five `20261021_*.sql` migrations remain NOT applied per owner state.
+
+## Quick Reference
+
+- Original queue: `docs/handoffs/2026-10-21-session26-codex-next-steps.md`.
+- Browser/cleanup receipt: `docs/reviews/2026-10-21-slice1-browser-check.md`.
+- Approved issue proposal: `docs/proposals/2026-10-21-revamp-security-follow-up.md`.
+- Current snapshot: `docs/handoffs/2026-10-21-session27-pr-browser-cleanup.md`.
+- Plan: `docs/superpowers/plans/2026-10-21-revamp-plan.md`.
+
+## Validation
+
+Full local suite: 1,242 passed / 1 skipped (184 files passed / 1 skipped).
+TypeScript and production build passed in this continuation; no lint or live X
+acceptance is claimed. Final verification excludes the temporary fixture route.
+Visual checks: sidebar menu expanded/collapsed, queue cards and five buttons at
+390 px, mismatch banner; no browser page errors and no CSS defect found.
+
+## Next Actions
+
+1. Obtain the approved follow-up's parent issue ID; verify that Embalio/BAK is
+   reachable through Orca, re-check duplicates, then create exactly one child
+   with `agent-proposed`. Do not create a root issue or use another team.
+2. Await the owner's explicit confirmation of PR merge AND primary X link before
+   starting Session 26 task 5. Owner-only rollout actions remain owner-only.
+
+## Resume Checklist
+
+1. Verify the feature branch, PR head/status and working diff before acting.
+2. Read the Session 27 snapshot and Session 26 task file; do not repeat completed
+   pushes/cleanup or start the proposed security work without a separate scope.
+3. Preserve the ban on merging/pushing `main`, `.env*` edits and migrations.
+
+## Suggested Skills
+
+`task-observer`, `embalio`, `handoff-memory`, `orca-linear`;
+`verification-before-completion` before a commit, `handoff` at checkpoint.
+
+## Generated Artifacts This Session
+
+Draft PR #7; browser/cleanup receipt; approved Linear proposal; Session 27
+handoff snapshot. Local-only screenshots/results: `.superpowers/browser-check/slice1/`.
+No credentials, deployed resources or scheduled jobs created.
+
+## Resume Prompt
+
+```text
+Continue Embalio from docs/HANDOFF.md (Session 27) and
+docs/handoffs/2026-10-21-session26-codex-next-steps.md.
+Tasks 1–3 are complete; PR #7 is a draft. The single Linear follow-up is approved
+but needs its parent ID and Embalio/BAK workspace access. Use the proposal in
+docs/proposals/2026-10-21-revamp-security-follow-up.md; create no root issue.
+Model: GPT-6.1 Sol (high) — bounded continuation and verification.
+Skills: task-observer, embalio, handoff-memory, orca-linear.
+Never merge or push main, edit .env*, or apply migrations. Do not begin slice 2
+until the owner explicitly confirms BOTH PR merge and @fcisco95 linked.
+```
+
+## Session 26 and Earlier — Historical Checkpoints
+
+**Session 26 checkpoint (historical):** 2026-10-21 (Session 26 — **REVAMP: GATE-2 closed NOT RUN; new plan built through slice 1 on branch `feat/revamp-slice0-contract` @ `7a66b73` (31 commits over `main`, 1242 pass / 1 skip, tsc + build green), NOT pushed, migrations NOT applied.** Plan: `docs/superpowers/plans/2026-10-21-revamp-plan.md`. Phone-first approval queue (Hoje) + nightly Claude skills + X API pay-per-use publish via per-account OAuth; 30-day consistency gate (published originals), day-14 tripwire. Owner rollout queue + slice-2 scope in the Session 26 entry. Snapshot: `docs/handoffs/2026-10-21-session26-revamp-slice0-1.md`.)
 
 **Previously:** 2026-09-10 (Session 25 — **auth merge unblocked, with two lockout bugs found and fixed first**: `feat/auth-layer` as it stood would have locked the owner out ~1h after sign-in (session refresh could not persist from a Server Component; the proxy then looped `/login`↔`/` on a dead cookie) and left sign-up open. Fixed on branch **`claude/embalio-macos-handoff-vgt239`** (= `main` + the auth branch + `558a694`), suite **845 pass / 1 skip**, tsc + build green. **Go/no-go, the prod SQL, the order of operations: `docs/runbooks/2026-09-10-auth-merge-runbook.md`.** Whether the GATE-2 profile links to an auth user is **still unknown** (no DB access from the session) — runbook step 0. **GATE-2 close-out recommendation** (close as NOT RUN, open GATE-3 on MYCEL with ring-fenced legs, 2026-09-24 tripwire) is the last entry of `docs/GOAL-LOG.md`. MYCEL week-one requirements + nine post drafts: `docs/research/2026-09-10-mycel-week-one-posts.md`. Campaign Mode slice plan for sign-off: `docs/superpowers/plans/2026-09-10-campaign-mode-slices.md`. Snapshot: `docs/handoffs/2026-09-10-session25-auth-unblock-gate2-closeout.md`.)
 
