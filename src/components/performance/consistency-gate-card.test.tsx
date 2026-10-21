@@ -22,7 +22,7 @@ function gate(publishDays: number): ConsistencyResult {
 describe("ConsistencyGateCard", () => {
   it("shows the day count against the target and a 30-cell strip", () => {
     render(<ConsistencyGateCard gate={gate(12)} />);
-    expect(screen.getByText("12 de 30 dias com post publicado · meta 21")).toBeTruthy();
+    expect(screen.getByText("12 de 30 dias com post original publicado · meta 21")).toBeTruthy();
     expect(screen.getAllByTestId("day-cell")).toHaveLength(30);
     expect(screen.getAllByTestId("day-cell").filter((c) => c.dataset.posted === "true")).toHaveLength(12);
   });

@@ -28,7 +28,7 @@ export function ConsistencyGateCard({ gate }: { gate: ConsistencyResult }) {
             gate.passed ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",
           )}
         >
-          {`${gate.publishDays} de ${gate.days} dias com post publicado · meta ${gate.target}`}
+          {`${gate.publishDays} de ${gate.days} dias com post original publicado · meta ${gate.target}`}
         </div>
         <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${gate.days}, minmax(0, 1fr))` }}>
           {gate.perDay.map((d) => (
