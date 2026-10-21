@@ -72,7 +72,9 @@ describe("ApprovalQueue rendering", () => {
 
   it("shows an empty state", () => {
     renderQueue([]);
-    expect(screen.getByText(/sem rascunhos/i)).toBeTruthy();
+    expect(screen.getByText(/sem drafts para hoje/i)).toBeTruthy();
+    expect(screen.getByText(/02:00/)).toBeTruthy();
+    expect(screen.getByText("/embalio-nightly")).toBeTruthy();
   });
 });
 

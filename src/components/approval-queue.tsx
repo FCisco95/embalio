@@ -27,7 +27,7 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * Phone-first approval queue for the profile's pending ORIGINAL drafts.
- * Not wired into any page here: the home page renders it with `listQueueDrafts` + `getXConnection`.
+ * Rendered by the home page (Hoje) with `listQueueDrafts` + `getXConnection`.
  */
 export function ApprovalQueue({
   profileId,
@@ -52,7 +52,12 @@ export function ApprovalQueue({
           </Link>
         </p>
       )}
-      {visible.length === 0 && <p className="text-[13px] text-muted-foreground">Sem rascunhos na fila.</p>}
+      {visible.length === 0 && (
+        <p className="text-[13px] text-muted-foreground">
+          Sem drafts para hoje. O job nocturno corre às 02:00; podes gerar agora com{" "}
+          <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">/embalio-nightly</code>.
+        </p>
+      )}
       {visible.map((d) => (
         <QueueCard
           key={d.id}
