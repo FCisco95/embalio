@@ -175,8 +175,9 @@ from the loop the owner is about to start running daily.
 
 ## O6 — concierge multi-profile · **PLAN ONLY, needs sign-off**
 
-Not implemented, per the ledger. Plan written:
-`docs/superpowers/plans/2026-08-02-concierge-multi-profile.md`.
+Not implemented, per the ledger. Plan written, since pruned (superseded by the
+2026-10-21 revamp; restore with
+`git show pre-cleanup-2026-11:docs/superpowers/plans/2026-08-02-concierge-multi-profile.md`).
 
 Headline: most of the work already exists — `profiles` is the multi-account row,
 `?profile=` is already honoured on `/performance` and `/performance/gate-2`, and

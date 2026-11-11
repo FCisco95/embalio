@@ -4,21 +4,27 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# Session handoffs
+## Gate
 
-The canonical, living handoff for this repo is **`docs/HANDOFF.md`** — read it
-first to learn current state, what's incomplete, and what to do next. It is
-auto-loaded at session start by the `handoff-memory` plugin. Point-in-time
-session snapshots are archived under `docs/handoffs/`. When wrapping up a
-session, refresh `docs/HANDOFF.md` (and optionally drop a dated snapshot) rather
-than writing handoffs to a temp dir.
+`npm test`, `npx tsc --noEmit` and `npm run build` must pass before commit. CI uses Node 22. There are no git hooks.
 
-# Repo tooling
+## Stop and ask
 
-Installed 2026-06-20 (registry: cisco-brain `40 - RESOURCES/Claude Code Tooling — Install Registry.md`):
+Production SQL/migrations (owner-run), secrets and `.env*` (agents cannot edit), funds/signing, product decisions, deleting unique work. `main` auto-deploys to Vercel production.
 
-- **LLM output (topic scorer, drafts, any model call)** → gate with the `promptfoo` skill (eval suites + red-team) before shipping changes that touch generation/scoring quality.
-- **Landing / hero / CTA / marketing copy** → use the `great-web-copy` skill (PAS/AIDA/StoryBrand, bans buzzwords, `/audit-copy` scorer).
+## Invariants
+
+- `docs/HANDOFF.md` is read at runtime (`src/lib/handoff-reader.ts`) and injected into LLM prompts. Keep the path and keep it short (target ~80 lines).
+- The repo is public: no secrets, owner UUIDs or personal figures in docs. Write in "we".
+- Where present, `docs/security/*.sql|json` are read by `scripts/check-*.mjs`. Do not move or rename them.
+
+## Where docs go
+
+- `docs/HANDOFF.md`: the only living handoff. Refresh it at session end.
+- `docs/handoffs/`: a dated snapshot for a major event only.
+- `docs/superpowers/plans/`: the active plan. An executed plan or audit is deleted once its outcome is in `HANDOFF.md` or `docs/GOAL-LOG.md`. Plans cited by code as decision records stay.
+- `docs/security`, `docs/compliance`, `docs/runbooks`: live records.
+- Screenshots, eval runs and generated output are never committed. Git history is the archive: `git show <tag>:<path>` (tag `pre-cleanup-2026-11` holds the pre-prune tree).
 
 <!-- linear-bridge:claude-md:start -->
 ## Linear workflow (Embalio, team BAK)
