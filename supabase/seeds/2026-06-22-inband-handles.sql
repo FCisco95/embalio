@@ -3,7 +3,8 @@
 -- WHY: the prior watch_targets were oversized (100k+), so sizeFit collapsed and the
 -- sniper fired near-never (Session-12 live-fire returned alerts:0). In-band handles in
 -- the 2–10x follower band are the prerequisite for ANY GATE-2 alert. See
--- docs/superpowers/notes/2026-06-23-gate2-ignition-reconciliation.md.
+-- the GATE-2 ignition reconciliation note (pruned; restore with
+-- `git show pre-cleanup-2026-11:docs/superpowers/notes/2026-06-23-gate2-ignition-reconciliation.md`).
 --
 -- ✅ FILLED + APPLIED 2026-06-25 to live (project vzxpakxjnuaesfxihyvl) via Supabase MCP.
 -- Handles sourced via Grok (live X follower data) for @FCisco95's REAL niche: solo
